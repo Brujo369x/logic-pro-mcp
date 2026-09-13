@@ -8,30 +8,49 @@ extension AccessibilityChannel {
     // MARK: - Transport
 
     static func defaultGetTransportState(runtime: AXLogicProElements.Runtime = .production) -> ChannelResult {
-        guard let transport = AXLogicProElements.getControlBar(runtime: runtime)
+        // ONE resolution of the bar, and ONE collection of its checkboxes, for all four reads.
+        //
+        // Each `readControlBarCheckboxValue` used to re-resolve the control bar itself, and
+        // `getControlBar` walks the whole arrange window eight levels deep over Mach IPC. Four
+        // reads therefore paid for four window walks plus four bar walks, on top of the one this
+        // function already did — nine recursive AX traversals to read four booleans, and the
+        // window grows with the project.
+        //
+        // Measured 2026-09-13 on a 23-header project: `logic_transport.goto_position` blew its 25s
+        // server deadline, and `sample` put 50 of 87 stacks inside `readControlBarCheckboxValue`,
+        // under `finalizeGotoPositionResult` — the VERIFY read after the move, not the dialog the
+        // operation drives. The route had already been diagnosed as a German locale failure twice;
+        // it reproduced identically in English and on the pre-branch binary.
+        let controlBar = AXLogicProElements.getControlBar(runtime: runtime)
+        guard let transport = controlBar
                 ?? AXLogicProElements.getTransportBar(runtime: runtime) else {
             return .error("Cannot locate transport bar")
         }
         var state = AXValueExtractors.extractTransportState(from: transport, runtime: runtime.ax)
-        if let isPlaying = AXLogicProElements.readControlBarCheckboxValue(
-            named: "재생", englishName: "Play", runtime: runtime
-        ) {
-            state.isPlaying = isPlaying
-        }
-        if let isRecording = AXLogicProElements.readControlBarCheckboxValue(
-            named: "녹음", englishName: "Record", runtime: runtime
-        ) {
-            state.isRecording = isRecording
-        }
-        if let isCycleEnabled = AXLogicProElements.readControlBarCheckboxValue(
-            named: "사이클", englishName: "Cycle", runtime: runtime
-        ) {
-            state.isCycleEnabled = isCycleEnabled
-        }
-        if let isMetronomeEnabled = AXLogicProElements.readControlBarCheckboxValue(
-            named: "메트로놈 클릭", englishName: "Metronome", runtime: runtime
-        ) {
-            state.isMetronomeEnabled = isMetronomeEnabled
+        // No control bar means every one of these reads resolved to nil before, so skipping them
+        // leaves the same state — an unreadable bar is not a bar whose controls read false.
+        if let controlBar {
+            let checkboxes = AXLogicProElements.controlBarCheckboxes(in: controlBar, runtime: runtime)
+            if let isPlaying = AXLogicProElements.readControlBarCheckboxValue(
+                among: checkboxes, named: "재생", englishName: "Play", runtime: runtime
+            ) {
+                state.isPlaying = isPlaying
+            }
+            if let isRecording = AXLogicProElements.readControlBarCheckboxValue(
+                among: checkboxes, named: "녹음", englishName: "Record", runtime: runtime
+            ) {
+                state.isRecording = isRecording
+            }
+            if let isCycleEnabled = AXLogicProElements.readControlBarCheckboxValue(
+                among: checkboxes, named: "사이클", englishName: "Cycle", runtime: runtime
+            ) {
+                state.isCycleEnabled = isCycleEnabled
+            }
+            if let isMetronomeEnabled = AXLogicProElements.readControlBarCheckboxValue(
+                among: checkboxes, named: "메트로놈 클릭", englishName: "Metronome", runtime: runtime
+            ) {
+                state.isMetronomeEnabled = isMetronomeEnabled
+            }
         }
         return encodeResult(state)
     }
@@ -1812,18 +1831,39 @@ extension AccessibilityChannel {
         let url: URL
         let preLeafWindowSnapshotURL: URL
 
+        /// Both files live in a DIRECTORY of this run's own, and that is the whole point.
+        ///
+        /// They used to sit directly in the user temporary directory, so `remove()` had to
+        /// enumerate that directory to collect the child's `mktemp` staging siblings — whose
+        /// suffixes only the child knows. The directory is not this process's to bound: measured
+        /// 2026-09-13 it held 114,000 entries, and `sample` caught `goto_position` spending its
+        /// entire 25s deadline inside `remove()`'s `contentsOfDirectory`, in `getattrlistbulk`.
+        /// The operation had already succeeded; the cleanup is what timed it out. Giving the run
+        /// its own directory makes the staging files land inside it, so cleanup is one recursive
+        /// delete and costs nothing the directory's size can change.
         static func create() -> DialogIssuanceLedger? {
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("logic-pro-mcp-goto-position-\(UUID().uuidString)")
-            let preLeafWindowSnapshotURL = url.appendingPathExtension("preleaf-windows")
-            guard FileManager.default.createFile(
+            let manager = FileManager.default
+            let directory = manager.temporaryDirectory
+                .appendingPathComponent("logic-pro-mcp-goto-position-\(UUID().uuidString)", isDirectory: true)
+            // 0o700: the ledger decides whether a Return may have been issued, so another local
+            // user must not be able to write one. `withIntermediateDirectories: false` keeps the
+            // create exclusive — a name that already exists is a refusal, not a reuse.
+            guard (try? manager.createDirectory(
+                at: directory,
+                withIntermediateDirectories: false,
+                attributes: [.posixPermissions: 0o700]
+            )) != nil else { return nil }
+
+            let url = directory.appendingPathComponent("ledger")
+            let preLeafWindowSnapshotURL = directory.appendingPathComponent("preleaf-windows")
+            guard manager.createFile(
                 atPath: url.path,
                 contents: Data(DialogIssuanceStage.notIssued.rawValue.utf8)
-            ), FileManager.default.createFile(
+            ), manager.createFile(
                 atPath: preLeafWindowSnapshotURL.path,
                 contents: Data("UNAVAILABLE".utf8)
             ) else {
-                try? FileManager.default.removeItem(at: url)
+                try? manager.removeItem(at: directory)
                 return nil
             }
             return DialogIssuanceLedger(url: url, preLeafWindowSnapshotURL: preLeafWindowSnapshotURL)
@@ -1856,26 +1896,11 @@ extension AccessibilityChannel {
         }
 
         func remove() {
-            // The child may be killed after `mktemp` and before it can rename or clean its sibling.
-            // This run's UUID makes the prefix exclusive, so the parent can safely collect those
-            // orphaned staging files as well as the canonical ledger.
-            let directory = url.deletingLastPathComponent()
-            let temporaryPrefixes = [
-                url.lastPathComponent + ".tmp.",
-                preLeafWindowSnapshotURL.lastPathComponent + ".tmp.",
-            ]
-            if let siblings = try? FileManager.default.contentsOfDirectory(
-                at: directory,
-                includingPropertiesForKeys: nil
-            ) {
-                for sibling in siblings where temporaryPrefixes.contains(where: {
-                    sibling.lastPathComponent.hasPrefix($0)
-                }) {
-                    try? FileManager.default.removeItem(at: sibling)
-                }
-            }
-            try? FileManager.default.removeItem(at: url)
-            try? FileManager.default.removeItem(at: preLeafWindowSnapshotURL)
+            // The child may be killed after `mktemp` and before it can rename or clean its
+            // sibling. That sibling is inside this run's own directory, so removing the directory
+            // collects it along with both ledger files — without reading a directory whose size
+            // this process does not control. See `create()` for what that cost measured at.
+            try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
         }
     }
 

@@ -32,9 +32,11 @@ What it refuses to let you record:
 - **A cached read presented as live.** `provenance()` records the source and age of any value that did
   not come from a fresh read, and marks it unusable as live evidence.
 
-The ship gate (`~/.claude/scripts/lpm-ship.sh` -> `lpm-live-gate.sh`) reads the document this writes and
-refuses the push if any of the above is violated. The gate is the enforcement; this module is what makes
-compliance the easy path.
+A run whose document violates any of the above exits non-zero, so the harness itself is the answer --
+read `is_clean(out)` at the bottom of any harness. There used to be a gate that read this document and
+refused a push; it was removed on 2026-09-12 along with the rest of the release-permission machinery.
+Nothing decides whether you may merge. What this module still does, and the reason it is worth its
+weight, is make a dishonest document hard to write by accident.
 
 Usage:
 
@@ -1287,19 +1289,26 @@ class Evidence:
 
     # -- capture ------------------------------------------------------------
 
-    def shot(self, tag, settle_region=None, window_title=None):
+    def shot(self, tag, settle_region=None, window_title=None, window=None):
         """Capture the Logic window, waiting until the pixels stop moving.
 
         `settle_region` is an (x, y, w, h) rectangle in window coordinates. Settling is judged on that
         region alone: Logic repaints level meters and clocks continuously, so a whole-window settle
         never converges and would silently record `settled: false` on a perfectly good run.
+
+        `window` is an already-resolved window dict, for the windows `window_title` CANNOT reach:
+        Logic's plug-in windows carry an EMPTY `kCGWindowName`, measured 2026-09-13 — the arrange
+        window answers `lpm-locale-campaign - Tracks` and the Channel EQ beside it answers `''`,
+        so a title lookup finds nothing while the window is plainly on screen. A caller that has
+        identified such a window some other way passes it here; how it identified it is the
+        caller's claim to make and to record.
         """
         # Keyed by harness as well as tag (#612 follow-up). Tags collide across harnesses —
         # `575/before` is used by three different files, `before-create` by two — so a document
         # rotated aside for later comparison used to name PNGs a later run had already replaced.
         # Archiving a document whose pixels are gone is the opposite of keeping a flake visible.
         path = os.path.join(self.dir, f"{self.name}__{tag.replace('/', '_')}.png")
-        win = logic_window(window_title)
+        win = window if window else logic_window(window_title)
         if not win:
             self.records.append({"kind": "capture", "tag": tag, "file": path,
                                  "window": None, "display": {"wholly_within": False},

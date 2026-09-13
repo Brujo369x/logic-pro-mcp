@@ -228,6 +228,43 @@ extension AccessibilityChannel {
             variableName: "midiFileItemName",
             notFoundError: "MIDI_FILE_MENU_ITEM_NOT_FOUND"
         )
+        // The import panel's own title, rendered from `AXLocalePolicy.midiImportPanelTitle` rather
+        // than written in. It was `name is not "Import" and name is not "가져오기"`, and on a German
+        // Logic — whose panel is `Importieren` — that test is true of the panel itself, so the still-
+        // open import panel was taken for the tempo alert and dismissed as one (#876).
+        // `exists a window with one of the panel's measured titles`, rendered the same way.
+        // The tempo alert, identified POSITIVELY by its own question text rather than by not being
+        // the import panel. It exposes no window name at all — measured on a German Logic, where the
+        // negative rule matched the import panel itself until that panel's title was measured.
+        let tempoAlertPhrases = AXLocalePolicy.midiImportTempoAlertText.labels
+            .filter { !$0.contains("\"") && !$0.contains("\\") }
+            .map { "\"\($0)\"" }
+            .joined(separator: ", ")
+        let tempoDeclineButtonNames = AXLocalePolicy.midiImportDeclineTempoButton.labels
+            .filter { !$0.contains("\"") && !$0.contains("\\") }
+            .map { "\"\($0)\"" }
+            .joined(separator: ", ")
+
+        let importPanelTitleExists = AXLocalePolicy.midiImportPanelTitle.labels
+            .filter { !$0.contains("\"") && !$0.contains("\\") }
+            .map { "(exists (first window whose name is \"\($0)\"))" }
+            .joined(separator: " or ")
+        // The panel itself, for the branch that reaches inside it.
+        // `name is in {…}` rather than a chain of `name is … or name is …`: AppleScript's `whose`
+        // filter does not bracket a bare `or` chain the way the reading suggests, and the chained
+        // form found nothing on a German Logic while the list form finds the same window.
+        let importPanelWindowPredicate = AXLocalePolicy.midiImportPanelTitle.labels
+            .filter { !$0.contains("\"") && !$0.contains("\\") }
+            .map { "\"\($0)\"" }
+            .joined(separator: ", ")
+        // The commit button is a SEPARATE label set from the panel title, because Logic does not
+        // spell them the same way in every locale — a button rendered from the title's labels
+        // would press whatever happened to be there.
+        let importCommitButtonNames = AXLocalePolicy.midiImportCommitButton.labels
+            .filter { !$0.contains("\"") && !$0.contains("\\") }
+            .map { "\"\($0)\"" }
+            .joined(separator: ", ")
+
         let script = """
         on importMIDI()
             \(logicProAppleScript.activateByBundleID)
@@ -237,7 +274,7 @@ extension AccessibilityChannel {
                 -- failed run so repeated imports never stack file-open dialogs.
                 tell \(logicProAppleScript.systemEventsProcessTarget)
                     repeat 4 times
-                        if (exists (first window whose name is "Import")) or (exists (first window whose name is "가져오기")) then
+                        if \(importPanelTitleExists) then
                             key code 53
                             delay 0.25
                         else
@@ -255,12 +292,16 @@ extension AccessibilityChannel {
                         return "MENU_ERROR: " & errMsg
                     end try
                 end tell
-                -- Poll for the file-open sheet to actually exist before typing
-                -- the path. Up to ~5s (20 x 250ms). The Open panel attaches as a
-                -- sheet (AXSheet) on the front window; some builds expose it as a
-                -- standalone window with a chooser-style name instead.
+                -- Poll for the file-open sheet to actually exist before typing the path. The Open
+                -- panel attaches as a sheet (AXSheet) on the front window; some builds expose it
+                -- as a standalone window with a chooser-style name instead.
+                --
+                -- A wall-clock budget from `ServerConfig`, not 20 turns of 250ms: the cost of one
+                -- turn is a window walk, and Logic sets that price, so a turn count buys a
+                -- different amount of waiting on a busy machine than on an idle one.
+                set fileOpenDeadline to (current date) + \(Int(ServerConfig.midiImportFileOpenSheetBudget))
                 set fileOpenSeen to false
-                repeat 20 times
+                repeat while (current date) < fileOpenDeadline
                     tell \(logicProAppleScript.systemEventsProcessTarget)
                         try
                             if (exists sheet 1 of window 1) then
@@ -293,8 +334,11 @@ extension AccessibilityChannel {
                 delay 0.15
                 keystroke "/"
                 delay 0.4
+                -- Same reasoning as the sheet above: a wall-clock budget, because the cost of one
+                -- turn here is a window walk whose price Logic sets.
+                set goToDeadline to (current date) + \(Int(ServerConfig.midiImportPathAcceptBudget))
                 set goToSet to false
-                repeat 20 times
+                repeat while (current date) < goToDeadline
                     tell \(logicProAppleScript.systemEventsProcessTarget)
                         -- Only accept the assignment once the field actually
                         -- READS BACK our path, so a race that targets the wrong
@@ -345,18 +389,52 @@ extension AccessibilityChannel {
                 -- the operation was failing at first contact and succeeding for anyone who ignored
                 -- its error.
                 --
-                -- 60 x 200ms, and the loop now records WHAT IT SAW rather than only whether it
-                -- clicked, so a timeout can say which of "no panel", "panel but no button" and
-                -- "button never enabled" actually happened.
+                -- The loop records WHAT IT SAW rather than only whether it clicked, so a timeout
+                -- can say which of "no panel", "panel but no button" and "button never enabled"
+                -- actually happened.
+                --
+                -- A WALL-CLOCK budget, not a count of turns. `repeat 60 times` was really "60
+                -- delays plus 60 walks of the window list", and the walk's cost is Logic's.
+                --
+                -- This wait is NOT what made the cold-launch imports fail; raising it only moved
+                -- the failure to the stage in front of it. The cause was the staged file's home —
+                -- see `SMFWriter.importStagingRoot()`. What this wait must still survive is an
+                -- open panel that is legitimately slow, and it comes from `ServerConfig` beside
+                -- the script bound it has to stay under, because a stage that outlasts its script
+                -- is killed with the script and reports nothing about where Logic stalled.
                 set importClicked to false
                 set sawPanel to false
                 set sawButton to false
-                repeat 60 times
+                set importButtonDeadline to (current date) + \(Int(ServerConfig.midiImportButtonEnableBudget))
+                repeat while (current date) < importButtonDeadline
                     tell \(logicProAppleScript.systemEventsProcessTarget)
                         try
-                            set importDlg to first window whose name is "가져오기"
+                            -- Walk the window list by hand rather than filtering with `whose`. The
+                            -- filter forms were both tried on a German Logic within one run and each
+                            -- missed the panel at a different moment; an explicit loop reads the same
+                            -- titles without depending on how `whose` brackets them.
+                            set importDlg to missing value
+                            repeat with candidateWindow in windows
+                                if (name of candidateWindow) is in {\(importPanelWindowPredicate)} then
+                                    set importDlg to candidateWindow
+                                    exit repeat
+                                end if
+                            end repeat
+                            if importDlg is missing value then error "NO_IMPORT_PANEL"
                             set sawPanel to true
-                            set ib to button "가져오기" of UI element 1 of importDlg
+                            -- Same treatment as the window above: walk the buttons and compare the
+                            -- name, rather than asking `whose` to filter them. Measured on a German
+                            -- Logic where the panel is `Importieren` and its buttons are
+                            -- `Abbrechen` and `Importieren`: the filter form found the panel and
+                            -- then reported no button, while reading the same list by hand finds it.
+                            set ib to missing value
+                            repeat with candidateButton in (every button of UI element 1 of importDlg)
+                                if (name of candidateButton) is in {\(importCommitButtonNames)} then
+                                    set ib to candidateButton
+                                    exit repeat
+                                end if
+                            end repeat
+                            if ib is missing value then error "NO_IMPORT_BUTTON"
                             set sawButton to true
                             if (enabled of ib) then
                                 click ib
@@ -382,7 +460,7 @@ extension AccessibilityChannel {
                 if importClicked is false then
                     tell \(logicProAppleScript.systemEventsProcessTarget)
                         repeat 3 times
-                            if (exists (first window whose name is "Import")) or (exists (first window whose name is "가져오기")) then
+                            if \(importPanelTitleExists) then
                                 key code 53
                                 delay 0.2
                             else
@@ -403,17 +481,24 @@ extension AccessibilityChannel {
                         return "IMPORT_BTN_ERROR: the Import button stayed disabled for the whole wait after the path was accepted"
                     end if
                 end if
-                -- Poll for the tempo dialog (subrole AXDialog) before dismissing
-                -- rather than a fixed delay. ~3s (15 x 200ms).
-                -- A lingering Import open-panel also has subrole AXDialog, so
-                -- exclude it by name; only a genuine tempo alert counts.
+                -- Probe for the tempo alert before dismissing, rather than a fixed delay. This
+                -- budget is deliberately the short one: unlike the stages above it is paid by
+                -- every successful import that has NO tempo alert, so lengthening it would slow
+                -- the common path to make a rare one more patient.
+                set tempoDeadline to (current date) + \(Int(ServerConfig.midiImportTempoProbeBudget))
                 set tempoSeen to false
-                repeat 15 times
+                repeat while (current date) < tempoDeadline
                     tell \(logicProAppleScript.systemEventsProcessTarget)
                         try
-                            if (exists (first window whose subrole is "AXDialog" and name is not "Import" and name is not "가져오기")) then
-                                set tempoSeen to true
-                            end if
+                            repeat with candidateDialog in (every window whose subrole is "AXDialog")
+                                repeat with phrase in {\(tempoAlertPhrases)}
+                                    repeat with alertText in (every static text of candidateDialog)
+                                        if (value of alertText) contains (phrase as string) then
+                                            set tempoSeen to true
+                                        end if
+                                    end repeat
+                                end repeat
+                            end repeat
                         end try
                     end tell
                     if tempoSeen then exit repeat
@@ -422,14 +507,24 @@ extension AccessibilityChannel {
                 if tempoSeen then
                     tell \(logicProAppleScript.systemEventsProcessTarget)
                         try
-                            set tempoDlg to first window whose subrole is "AXDialog" and name is not "Import" and name is not "가져오기"
-                            try
-                                click button "아니요" of tempoDlg
-                            on error
-                                try
-                                    click button "No" of tempoDlg
-                                end try
-                            end try
+                            set tempoDlg to missing value
+                            repeat with candidateDialog in (every window whose subrole is "AXDialog")
+                                repeat with phrase in {\(tempoAlertPhrases)}
+                                    repeat with alertText in (every static text of candidateDialog)
+                                        if (value of alertText) contains (phrase as string) then
+                                            set tempoDlg to candidateDialog
+                                        end if
+                                    end repeat
+                                end repeat
+                            end repeat
+                            if tempoDlg is not missing value then
+                                repeat with candidateButton in (every button of tempoDlg)
+                                    if (name of candidateButton) is in {\(tempoDeclineButtonNames)} then
+                                        click candidateButton
+                                        exit repeat
+                                    end if
+                                end repeat
+                            end if
                         end try
                     end tell
                 end if
@@ -437,7 +532,7 @@ extension AccessibilityChannel {
                 -- (failed mid-flow), dismiss it so the next call starts clean.
                 tell \(logicProAppleScript.systemEventsProcessTarget)
                     repeat 3 times
-                        if (exists (first window whose name is "Import")) or (exists (first window whose name is "가져오기")) then
+                        if \(importPanelTitleExists) then
                             key code 53
                             delay 0.2
                         else

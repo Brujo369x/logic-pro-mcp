@@ -33,13 +33,27 @@ relaunching Logic over somebody's project is not this run's to do.
 
 WHAT IT DOES NOT CLAIM, SAID BEFORE THE RESULT
 ----------------------------------------------
-It does not claim the product WORKS in German. `tracks.record_sequence` does not: it imports a
-standard MIDI file and the import panel is localised too, so on a German Logic the operation refuses
-at `preflight_blocking_dialog` naming a dialog called `Importieren`. That refusal is DRIVEN and
-recorded here rather than left out, because a run that quietly picked the operations that pass would
-be measuring its own selection. It is driven last, and the panel it leaves is dismissed and the
-dismissal confirmed — a reading taken behind a blocker is a reading of the blocker. The reachable
-German surface today is MENU-ROUTED navigation, and that is exactly what this asserts.
+It asserts two separate things, and says which is which. The first is MENU-ROUTED navigation.
+The second is `tracks.record_sequence`, which on 2026-09-12 refused at `preflight_blocking_dialog`
+naming a dialog called `Importieren` and now reaches State A. It is driven LAST and its own panel
+is dismissed and the dismissal confirmed, because a reading taken behind a blocker is a reading of
+the blocker.
+
+Getting there took four sequential German walls, each of which only became visible once the one in
+front of it fell, and each recorded as its own field below:
+
+  1. the import panel's window title and commit button were English literals;
+  2. `whose name is "A" or name is "B"` does not bracket the way it reads in AppleScript, so the
+     multi-name predicates silently matched the first clause only;
+  3. the post-import tempo alert has NO window name at all and was being identified by NOT being
+     the import panel, which matched the import panel itself once that panel's title was measured;
+  4. `Spuren enthält` and `Spuren Titel` were in `AXLocalePolicy` with the capitals Logic renders,
+     while both classifiers lowercased the observed description and then compared CASE-SENSITIVELY.
+     The failure printed the very string it could not match, in its own error;
+  5. `parseRegionBars` carried no German row, so the region was found, its kind and note count were
+     read, and the envelope still said `unreadable_readback` with `start_bar: -1`.
+
+Walls 4 and 5 are the reason this run asserts the READ BARS and not just `success` — see below.
 
 THE COUNTEREXAMPLE
 ------------------
@@ -47,6 +61,12 @@ A product that succeeds on a German Logic by not using the German labels at all 
 position, an index, or the English string. Then `edit_menu_bar_is_not_english` would still be true
 while the resolved path came back empty, so the run asserts the RESOLVED LEAVES as well as the
 outcome: success with nothing resolved is the shape that would pass a weaker check and prove nothing.
+
+For `record_sequence` the counterexample is sharper and was OBSERVED rather than imagined. Twice
+today the operation created the region, found it, and named it `MIDI-Region` while returning
+`start_bar: -1`: the German help sentence went unparsed. A check that asked only whether a region
+appeared would have called that a working German import. So the assertion is on the BARS Logic
+rendered in German, not on the count.
 """
 import json
 import os
@@ -64,6 +84,12 @@ COVERS = [
     # matcher moved out of an AppleScript literal and onto the policy for #876. Nothing else in the
     # tree claimed that file, so the change that made German work was covered by no live run.
     "Sources/LogicProMCP/Channels/AccessibilityChannel+Transport.swift",
+    # The German import journey below. `+MIDIImport` renders the import panel's title, its commit
+    # button and the tempo alert's decline button out of the policy; `+Regions` carries the
+    # case-insensitive normalized classifier and the German region-bar pattern. Before this run
+    # nothing live claimed either on a non-English Logic.
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+MIDIImport.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+Regions.swift",
 ]
 
 FIXTURE = os.path.expanduser("~/Music/Logic/lpm-locale-campaign.logicx")
@@ -278,6 +304,29 @@ recording = ev.record_screen(seconds=300)
 d = E.Driver()
 d.tool("logic_system", "refresh_cache")
 
+# A window that exists is not an application that answers. Logic was relaunched seconds ago and is
+# still opening the project; the first run of this harness after the import journey landed drove
+# `goto_position` straight into its own 25s server deadline, and because the abandoned operation
+# left the mutation gate held, `record_sequence` behind it returned `mutating_operation_in_progress`
+# — one slow launch reported as two failures, neither of them the product's.
+#
+# So wait for Logic to ANSWER, not merely to exist: `logic_system.health` is read-only and touches
+# the same AX surface the operations do. The wait is bounded and its cost is recorded, because a
+# settle that silently took two minutes is a fact about this machine that the next reader needs.
+settle_started = time.time()
+settle_rounds = 0
+while time.time() - settle_started < 120:
+    settle_rounds += 1
+    probe_started = time.time()
+    probe = d.tool("logic_system", "health")
+    probe_took = time.time() - probe_started
+    if isinstance(probe, dict) and probe.get("error") is None and probe_took < 5:
+        break
+    time.sleep(5)
+ev.note("876/logic-answered-before-anything-was-driven",
+        {"rounds": settle_rounds, "waited_sec": round(time.time() - settle_started, 1),
+         "last_probe_sec": round(probe_took, 1)})
+
 edit_item_list = menu_items(edit_live)
 move_live = next((i for i in edit_item_list if i in move_labels), "")
 playhead_live = next((i for i in submenu_items(edit_live, move_live) if i in playhead_labels), "") \
@@ -307,13 +356,24 @@ seek = d.tool("logic_transport", "goto_position", {"bar": str(TARGET_BAR)})
 time.sleep(2)
 ev.note("876/goto", seek if isinstance(seek, dict) else {"raw": str(seek)[:200]})
 
+# NO RETRY HERE, and that is a correction of something this file tried yesterday. When
+# `goto_position` is abandoned at its deadline the child script may still be mid-protocol, and a
+# second call finds the FIRST call's `Zu Position` dialog still up: measured 2026-09-13, the retry
+# came back `mutating_operation_in_progress`, and the dialog it left made the run after that one
+# report `menu_disabled`. One timeout became three failures in a row, none of them the product's.
+#
+# The timeout that prompted the retry was not the product either. It was the server's startup
+# sweep of the user temporary directory — 141,673 entries, most of them this project's own test
+# fixtures — running on the main thread before `start()` returned. That is fixed at the source.
+# `goto_position` now completes in 3.5s, and in 3.6s with this run's screen recorder going.
+
 after = ev.shot("876/after-the-playhead-moved", settle_region=band)
 ev.visual("876/the-playhead-readout-moved-on-a-german-logic",
           before["file"], after["file"], band, subject=band_subject, expect_change=True,
-          why=f"the playhead was driven to bar {TARGET_BAR} through Logic's GERMAN Navigate ▸ Go To "
-              "▸ Position… chain, and the control bar's position readout is where Logic shows where "
-              "the playhead is — a route reporting success while the readout still says bar 1 would "
-              "leave this band identical")
+          why=f"the playhead was driven to bar {TARGET_BAR} through Logic's GERMAN Navigate \u25b8 Go To "
+              "\u25b8 Position\u2026 chain, and the control bar's position readout is where Logic shows "
+              "where the playhead is \u2014 a route reporting success while the readout still says bar 1 "
+              "would leave this band identical")
 
 seek_body = seek if isinstance(seek, dict) else {}
 reading = {
@@ -359,14 +419,93 @@ ev.falsifiable(
             "rather than folded into it",
 )
 
-# THE NEXT GERMAN GAP, measured in the same run that proves the menus work, so nobody has to take
-# its size on trust. It runs AFTER the assertion above and not before: `record_sequence` leaves
-# Logic's German import panel open, and a check recorded while a modal is up is retired by
-# `is_clean` — correctly, because a reading taken behind a blocker is a reading of the blocker.
-blocked = d.tool("logic_tracks", "record_sequence", {"notes": "60,0,480"})
-ev.note("876/the-import-path-is-not-reachable-in-german",
-        {k: v for k, v in (blocked or {}).items()
-         if k in ("state", "error", "failure_stage", "dialog_title", "hint")})
+# THE GERMAN IMPORT JOURNEY. It runs AFTER the navigation assertion above and not before:
+# `record_sequence` opens Logic's German import panel, and a check recorded while a modal is up is
+# retired by `is_clean` — correctly, because a reading taken behind a blocker is a reading of the
+# blocker. The panel this leaves is dismissed below and the dismissal confirmed.
+# Anything a previous step left up is dismissed FIRST, and the dismissal is confirmed. The import
+# refuses fail-closed on a blocking dialog — correctly — so a stray window from the navigation
+# above would be recorded here as an import failure that never happened.
+osa('tell application "Logic Pro" to activate')
+time.sleep(0.5)
+osa('tell application "System Events" to key code 53')
+time.sleep(1.5)
+ev.check("876/nothing-is-blocking-the-import-journey",
+         E.blocking_modal() is None,
+         "no modal is up before the import is driven, so what follows is a reading of the import "
+         "and not a reading of a blocker somebody else left",
+         f"blocking_modal={json.dumps(E.blocking_modal(), ensure_ascii=False)}", None)
+
+# ONE attempt, asserted on the FIRST call — and the count is still part of the reading.
+#
+# This used to loop up to six times, because after a Logic relaunch the first imports failed and a
+# later one landed. That was not flakiness and not a budget: the staged .mid file lived in the
+# shared user temporary directory, and Logic's open panel is a column view that must enumerate the
+# file's parent — 114,000 entries — so it sat on `Loading…` with Import disabled. The file now
+# stages under a root whose ancestors are all small (`SMFWriter.importStagingRoot()`), and a cold
+# Logic imported four times out of four, first attempt included.
+#
+# The loop is gone rather than kept "just in case", because a retry that is not needed hides the
+# regression it was written to tolerate: if the staging root ever moves back, this run must go red
+# on the first call instead of quietly taking five.
+attempts = []
+imported = d.tool("logic_tracks", "record_sequence", {"notes": "60,0,480"}) or {}
+attempts.append(imported)
+ev.note("876/import-attempt-1",
+        {k: (v[:400] if isinstance(v, str) else v) for k, v in imported.items()})
+
+ev.note("876/the-import-journey",
+        {k: (v[:600] if isinstance(v, str) else v) for k, v in imported.items()})
+
+import_reading = {
+    "success": imported.get("success"),
+    "verified": imported.get("verified"),
+    "error": imported.get("error"),
+    "failure_stage": imported.get("failure_stage"),
+    "start_bar": imported.get("start_bar"),
+    "end_bar": imported.get("end_bar"),
+    "expected_start_bar": imported.get("expected_start_bar"),
+    "expected_end_bar": imported.get("expected_end_bar"),
+    "region_name": imported.get("region_name"),
+    "note_count": imported.get("note_count"),
+    # The bars were READ out of a sentence that is German, and this says so rather than trusting
+    # that the locale switch above still holds by the time the import runs.
+    "help_is_german": isinstance(imported.get("raw_help"), str)
+                      and "beginnt bei" in imported.get("raw_help", ""),
+    "help_is_not_english": isinstance(imported.get("raw_help"), str)
+                           and "starts at" not in imported.get("raw_help", "").lower(),
+    # Part of the READING, not a footnote, and now pinned at ONE. A run that needs a second go is
+    # a different fact about the product than a run that lands first time, and the caller's first
+    # call is the one that matters — it is the move an agent opens with.
+    "attempts": len(attempts),
+}
+
+ev.falsifiable(
+    "876/a-german-logic-imports-a-sequence-and-its-bars-are-read-back",
+    lambda o: (o["success"] is True and o["verified"] is True and o["error"] is None
+               and o["help_is_german"] and o["help_is_not_english"]
+               and o["start_bar"] == o["expected_start_bar"]
+               and o["end_bar"] == o["expected_end_bar"]
+               and isinstance(o["start_bar"], int) and o["start_bar"] > 0
+               and o["attempts"] == 1),
+    import_reading,
+    {"success": True, "verified": False, "error": "unreadable_readback", "failure_stage": None,
+     "start_bar": -1, "end_bar": -1, "expected_start_bar": 1, "expected_end_bar": 2,
+     "region_name": "MIDI-Region", "note_count": 1,
+     "help_is_german": True, "help_is_not_english": True, "attempts": 1},
+    "`tracks.record_sequence` reaches State A on a German Logic: the localized import panel is "
+    "named and committed, the unnamed tempo alert is identified by its own question text and "
+    "declined, the arrange canvas is classified through `Spuren enthält`, and the imported "
+    "region's start and end bars are read out of Logic's GERMAN help sentence. THE COUNTEREXAMPLE "
+    "is the envelope this run actually got twice on 2026-09-13, shown above: the region created, "
+    "found, named and counted, with `start_bar: -1` because the sentence went unparsed. A check "
+    "that asked only whether a region appeared would have passed on it",
+    mutation="delete the German row from `parseRegionBars` in `AccessibilityChannel+Regions.swift` "
+            "and this returns exactly the counterexample — `region_name` and `note_count` stay "
+            "right, `start_bar` goes to -1 and `error` becomes `unreadable_readback`. Or re-lower "
+            "`Spuren enthält` to a case-SENSITIVE comparison and the readback is lost one stage "
+            "earlier, at `readback_unavailable`",
+)
 
 # ...and the panel it left has to go, or the next run on this machine starts behind it. Measured
 # earlier today: a `Zu Position` dialog left open by a failed attempt made the following run report

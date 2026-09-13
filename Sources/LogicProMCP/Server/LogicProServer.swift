@@ -178,6 +178,38 @@ final class LogicMutationGate: @unchecked Sendable {
         self.timedOutReclaimGrace = timedOutReclaimGrace
     }
 
+    /// Whether a mutating operation holds the gate AND is still entitled to it.
+    ///
+    /// Read-only and advisory: it keeps the background AX poller OUT of Logic's accessibility
+    /// surface while a foreground operation is driving it. Deliberately NOT a synchronisation
+    /// primitive — a caller that needs exclusion still calls `tryAcquire`, and a mutation can
+    /// acquire the moment after this returns false.
+    ///
+    /// "Still entitled" is the half that matters, and the first version of this did not have it.
+    /// `activeOperation != nil` stays true for a holder the command deadline already ABANDONED —
+    /// a state this product reaches routinely, since a timed-out operation's envelope says
+    /// `mutation_gate: reclaimable_after_grace`. Reclamation happens inside `tryAcquire`, so if no
+    /// later mutation ever asks, nothing clears it: the poller would then skip every scheduled
+    /// cycle indefinitely and the cache would go stale with no error anywhere. Reusing the same
+    /// reclaimability rule means the poller resumes exactly when a successor would be allowed in.
+    func isHeldByEntitledHolder(now: Date = Date()) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard activeOperation != nil, acquiredAt != nil else { return false }
+        return !isReclaimableLocked(now: now)
+    }
+
+    /// Whether the current holder could be taken from. Callers must hold `lock`.
+    ///
+    /// One rule, read by `tryAcquire` and by `isHeldByEntitledHolder`, so the poller cannot resume
+    /// on a different definition of "abandoned" than the one that actually lets a successor in.
+    private func isReclaimableLocked(now: Date) -> Bool {
+        guard activeOperation != nil, let since = acquiredAt else { return true }
+        if let timedOutAt, now.timeIntervalSince(timedOutAt) >= timedOutReclaimGrace { return true }
+        if activeReclaimPolicy == .releaseOnly { return false }
+        return now.timeIntervalSince(since) >= staleHolderTTL
+    }
+
     func tryAcquire(
         operation: String,
         now: Date = Date(),
@@ -379,10 +411,24 @@ actor LogicProServer {
             approvalStore: manualValidationStore
         )
 
+        // The poller stays OUT of the AX surface while a mutation is driving it. Measured
+        // 2026-09-13 with `sample`: `logic_transport.goto_position` sat in `BoundedProcessRunner`
+        // waiting on its `osascript` child while, on another thread, the poller ran
+        // `allTrackHeaders` — a recursive `findDescendant` over the arrange window. Both go to
+        // Logic's accessibility server, which answers them one at a time, so the poller's walk
+        // starves the operation's. On a freshly launched project that was the difference between
+        // 3.5s and the 25s deadline.
+        //
+        // Skipping a tick costs nothing: the cache is invalidated after a mutation anyway, and the
+        // next tick is three seconds later. An explicit `refreshNow` is NOT affected — a caller
+        // asking for a refresh is not the background loop.
+        var runtimeWithGate = pollerRuntime
+        let pollerMutationGate = self.mutationGate
+        runtimeWithGate.mutationInFlight = { pollerMutationGate.isHeldByEntitledHolder() }
         self.poller = StatePoller(
             axChannel: axChannel,
             cache: cache,
-            runtime: pollerRuntime,
+            runtime: runtimeWithGate,
             postPoll: { cacheKeys in
                 await resourceNotifier.publishChangedResources(
                     cacheKeys: cacheKeys,
@@ -491,14 +537,14 @@ actor LogicProServer {
                 let cmdParams: [String: Value] = rawCmdParams?.objectValue ?? [:]
                 // #399 (CEO audit P0) — the transport fault-injection probe is a
                 // qualification-only affordance compiled solely in debug via
-                // `QUALIFICATION_FAULT_SEAM`. In a release binary this block does
+                // `FAULT_TEST_SEAM`. In a release binary this block does
                 // not exist: `__adr001b_no_write_probe` on transport.play falls
                 // straight through to normal strict-param handling, so
                 // `LOGIC_PRO_MCP_FAULT_INJECT` in the environment engages nothing.
-                #if QUALIFICATION_FAULT_SEAM
+                #if FAULT_TEST_SEAM
                 if cmdParams["__adr001b_no_write_probe"]?.boolValue == true,
                    OperationRegistry.spec(tool: name, command: command)?.id == .transportPlay,
-                   let injection = QualificationFaultInjection(
+                   let injection = FaultInjectionSeam(
                        environment: ProcessInfo.processInfo.environment
                    ) {
                     switch injection.mode {
@@ -1181,6 +1227,86 @@ actor LogicProServer {
         recoverModifier()
     }
 
+    /// Startup housekeeping that must not gate serving.
+    ///
+    /// `SMFWriter.cleanupStartupOrphanFiles` enumerates the user temporary directory, and the size
+    /// of that directory is not this process's to bound. Measured 2026-09-13 it held 141,673
+    /// entries — most of them fixture directories left behind by this project's own test suite —
+    /// and `sample` caught the server still inside `start()` EIGHT SECONDS after launch, with
+    /// 4,369 of 4,369 main-thread stacks in `getattrlistbulk` under `contentsOfDirectory`. The
+    /// first operation of the session was already waiting on it. With a screen recording running
+    /// beside it, that delay was the difference between a 3.5s `goto_position` and a 25s deadline
+    /// abandonment, which is how a live harness came to report its own instrument as a product
+    /// failure in German.
+    ///
+    /// Nothing depends on the sweep having finished — it removes directories older than five
+    /// minutes, so a later sweep removes exactly what an earlier one would have. The modifier
+    /// recovery beside it stays synchronous, because THAT one is a precondition: a stuck modifier
+    /// must be released before this process sends any key.
+    static func scheduleBackgroundOrphanCleanup(_ cleanup: @escaping @Sendable () -> Void) {
+        guard orphanSweepIsDue() else { return }
+        DispatchQueue.global(qos: .utility).async(execute: cleanup)
+    }
+
+    /// How often the orphan sweep may run, across every server process this user starts.
+    static let orphanSweepInterval: TimeInterval = 3600
+
+    /// Whether the sweep is due, and claim it if so.
+    ///
+    /// Moving the sweep off the startup thread was not enough on its own, and the second
+    /// measurement said why: while it enumerated, `DialogIssuanceLedger.create()` sat in `open(2)`
+    /// and `goto_position` still hit its deadline — `sample` put 4,431 of 4,440 stacks on the
+    /// sweeping thread in `getattrlistbulk` and 476 on the operation's blocked `open`. Taking a
+    /// cost off the critical path is not the same as not paying it.
+    ///
+    /// What makes the cost avoidable is that nothing about it is per-process. The sweep removes
+    /// temporary directories older than five minutes; whether it runs at THIS start or the next
+    /// one changes nothing a caller can observe. A live session starts many servers — every live
+    /// harness run starts one — so once per process meant paying an unbounded directory
+    /// enumeration over and over for the same handful of files.
+    ///
+    /// The marker is advisory and deliberately not locked: two servers racing at the same second
+    /// may both sweep, which costs a duplicate enumeration and corrupts nothing. It is named so
+    /// the sweep itself does not match and delete it.
+    static func orphanSweepIsDue(
+        now: Date = Date(),
+        markerURL: URL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("logic-pro-mcp-orphan-sweep-\(getuid()).marker"),
+        interval: TimeInterval? = nil
+    ) -> Bool {
+        let due = interval ?? orphanSweepInterval
+        let manager = FileManager.default
+
+        // What is at that path is not automatically ours. It sits at a predictable, uid-derived
+        // name in a directory this process does not own, so anything there is INPUT: a directory,
+        // a symlink, or a file belonging to somebody else. Take it only if it is a regular file
+        // this uid owns; otherwise replace it, and if it cannot be replaced, do not sweep.
+        var info = stat()
+        if lstat(markerURL.path, &info) == 0 {
+            let isOurRegularFile = (info.st_mode & S_IFMT) == S_IFREG && info.st_uid == getuid()
+            if isOurRegularFile {
+                let sweptAt = Date(timeIntervalSince1970: TimeInterval(info.st_mtimespec.tv_sec))
+                let elapsed = now.timeIntervalSince(sweptAt)
+                // `elapsed < due` alone is not "recently swept": a marker stamped in the FUTURE
+                // gives a NEGATIVE elapsed, which satisfies that comparison forever and silences
+                // the sweep for good. A timestamp ahead of now is not a reading about the past.
+                if elapsed >= 0, elapsed < due { return false }
+            } else if (try? manager.removeItem(at: markerURL)) == nil {
+                return false
+            }
+        }
+
+        // Claim it BEFORE sweeping. A sweep that stamped the marker on completion would let every
+        // server started during a slow sweep start its own. A claim that FAILS means the throttle
+        // is not in force, so the sweep is skipped rather than run by everyone — this is
+        // housekeeping, and the honest failure direction is to do less of it, not more.
+        guard manager.createFile(atPath: markerURL.path, contents: Data(),
+                                 attributes: [.posixPermissions: 0o600]) else {
+            return false
+        }
+        return true
+    }
+
     func start() async throws {
         await sagaJournal.clear()
         OperationHandlerRegistry.validate()
@@ -1191,7 +1317,9 @@ actor LogicProServer {
             )
         } else {
             Self.performStartupMaintenance(
-                cleanupOrphans: { SMFWriter.cleanupStartupOrphanFiles() },
+                cleanupOrphans: {
+                    Self.scheduleBackgroundOrphanCleanup { SMFWriter.cleanupStartupOrphanFiles() }
+                },
                 recoverModifier: { StuckModifierRecovery.recoverIfNeeded() }
             )
         }

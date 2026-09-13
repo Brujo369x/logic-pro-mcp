@@ -24,10 +24,7 @@
     "expected": "ja-JP: failed=2 and the test fails on knownLiveGateFailuresMatchExactly; en-US: failed=1 and it passes",
     "cost": "~25 s per run plus a Logic relaunch between them, so about five minutes in total"
   },
-  "depends": [
-    "Tests/LogicProMCPTests/QualificationRunnerTests.swift",
-    "Sources/LogicProMCP/Qualification/QualificationRunner.swift"
-  ],
+  "depends": [],
   "evidence": [
     "evidence/2026-09-05-qualification-live-gate-by-ui-language.json"
   ],
@@ -74,7 +71,9 @@
     "It does not say WHY `plugins.get_inventory` disagrees with its readback in Japanese. No ja-JP probe of that operation was taken; only the gate's own verdict for it.",
     "One host, one build, one project. `tracks.list_library` fails in both languages and is already pinned as a known failure against #284 — this record is about the operation that appears only in one.",
     "The test is skipped entirely without a release build (`.enabled(if: isExecutableFile)`), which is why CI does not see this. It is a local-suite property, not a CI one.",
-    "`swift test` was run once per language, not repeatedly. A single run cannot separate a language dependence from a flake, though the two runs differ in exactly the direction the language change predicts."
+    "`swift test` was run once per language, not repeatedly. A single run cannot separate a language dependence from a flake, though the two runs differ in exactly the direction the language change predicts.",
+    "The code this record stood on was REMOVED on 2026-09-12 with the release-certification system: Sources/LogicProMCP/Qualification/QualificationRunner.swift. The readings below were true of the build they were taken on and are kept as history; nothing in the tree depends on them now, so this record cannot go stale against code that is gone.",
+    "The subject of this record no longer exists. The release-qualification runner and its tests were removed in the change that retired that subsystem, so `depends` is empty and the re-verification command below cannot be run as written. The reading is kept as a measurement of what was true on its date; it is not a statement about the shipped product today."
   ],
   "supersedes": null
 }

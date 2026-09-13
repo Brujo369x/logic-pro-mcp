@@ -163,24 +163,67 @@ enum SliderIncrementWalk {
         var isProbe = true
         var steps = 0
 
+        // A REQUEST DISTANCE, not an assumed raw or display increment. Some Logic sliders snap
+        // coarser than one raw unit: Channel EQ's Q spans 0...127 over peak bands and 0...52 over
+        // shelves, and `nudge(current + 1)` lands back on the value it started from — measured
+        // 2026-09-12, every `.display` request on Q stopped at `walk_steps: 1`. The SAME parameter
+        // reached twelve verified writes through the `.rawValue` path, so the control was never
+        // stuck; one raw unit is simply below its minimum step.
+        //
+        // A successful distance is RETAINED, so calibration is paid once per walk rather than at
+        // every movement. See the budget note on `walk(to:read:nudge:budget:)`.
+        var requestDistance = 1.0
+        var unchangedWrites = 0
+        // A retry policy, not a slider range: the tried distances are 1, 2, 4 … 128, which covers
+        // the reported Q spans. A control needing more still returns `noProgress`, which is the
+        // honest answer — this is bounded discovery, not a promise to find any threshold.
+        let unchangedWriteLimit = 8
+
         while steps < budget {
-            guard nudge(current.value + direction.rawValue) else {
+            let requested = current.value + direction.rawValue * requestDistance
+            guard requested.isFinite, requested != current.value else {
                 return .noProgress(steps: steps, last: current)
             }
+            guard nudge(requested) else {
+                return .noProgress(steps: steps, last: current)
+            }
+            // Accepted no-ops and calibration writes consume the same budget, because `budget` is
+            // a cap on ACCEPTED WRITE STEPS and the caller can see the number.
             steps += 1
 
             guard let next = read() else {
                 return .readbackLost(steps: steps)
             }
-            if next.display == targetDisplay {
+            if namesTheSameReading(next.display, targetDisplay) {
                 return .arrived(steps: steps, final: next)
             }
 
-            if next.display == current.display {
-                return .noProgress(steps: steps, last: next)
+            if next.value == current.value, next.display == current.display {
+                // NEITHER observation moved. That is either a rail or a request smaller than this
+                // control's minimum step, and one unchanged readback cannot tell them apart — so
+                // double the distance and ask again, up to the bounded retry window above. After
+                // that the walk reports no progress, which is what a real rail deserves.
+                unchangedWrites += 1
+                guard unchangedWrites < unchangedWriteLimit else {
+                    return .noProgress(steps: steps, last: next)
+                }
+                requestDistance *= 2
+                current = next
+                continue
             }
 
-            guard let movedCloser = displayMovedCloser(
+            unchangedWrites = 0
+            if next.display == current.display {
+                // An unchanged RENDERING over a CHANGED raw value is progress. Channel EQ's Q
+                // renders two decimals over a range finer than that, so a real step reads back the
+                // same string — treating that as terminal is why Q landed nothing on any band in
+                // either direction (#292). A display plateau neither enlarges the request nor ends
+                // calibration.
+                current = next
+                continue
+            }
+
+            guard let numbers = orderedDisplayNumbers(
                 from: current.display,
                 to: next.display,
                 target: targetDisplay
@@ -191,6 +234,21 @@ enum SliderIncrementWalk {
                 return .noProgress(steps: steps, last: next)
             }
 
+            // A larger request can step OVER the target, and a crossing can still be numerically
+            // closer — rendered 0 → 4 against a target of 3 is closer and has passed it. Check the
+            // crossing BEFORE distance and before the probe reversal, so a coarse walk can never
+            // sail past its target and call the overshoot progress.
+            if crossesTarget(
+                from: numbers.current,
+                to: numbers.next,
+                target: numbers.target,
+                tolerance: 0
+            ) {
+                return .overshot(steps: steps, last: next)
+            }
+
+            let movedCloser = abs(numbers.next - numbers.target)
+                < abs(numbers.current - numbers.target)
             if !movedCloser {
                 if isProbe {
                     // The lone calibration probe moved away, so try its
@@ -216,7 +274,7 @@ enum SliderIncrementWalk {
         case .rawValue(let value, let tolerance):
             isWithinTolerance(reading.value, of: value, tolerance: abs(tolerance))
         case .display(let display):
-            reading.display == display
+            namesTheSameReading(reading.display, display)
         }
     }
 
@@ -228,24 +286,35 @@ enum SliderIncrementWalk {
         abs(value - target) <= tolerance
     }
 
-    /// Returns whether Logic's next rendering is numerically closer to the
-    /// requested rendering. The parsed suffix is intentionally compared
-    /// exactly: it is the unit text Logic supplied, not a unit conversion.
-    private static func displayMovedCloser(
+    /// The two rendered numbers and the requested one, in a form that may be compared — or `nil`
+    /// when they may not be.
+    ///
+    /// Only numbers LOGIC rendered are compared, and only with consistent rendered units. The
+    /// requested unit is checked against them only when Logic rendered a unit at all: Logic renders
+    /// Q as `0.88 ` with no unit while the caller's request is built as `0.88 Q`, and the old
+    /// predicate rejected exactly that pair — so a Q walk could arrive (arrival already allowed it)
+    /// but could never be steered. The asymmetry was the bug; this is the same rule arrival uses.
+    private static func orderedDisplayNumbers(
         from current: String,
         to next: String,
         target: String
-    ) -> Bool? {
+    ) -> (current: Double, next: Double, target: Double)? {
         guard let currentValue = leadingNumber(in: current),
               let nextValue = leadingNumber(in: next),
               let targetValue = leadingNumber(in: target),
-              currentValue.suffix == nextValue.suffix,
-              currentValue.suffix == targetValue.suffix else {
+              currentValue.number.isFinite,
+              nextValue.number.isFinite,
+              targetValue.number.isFinite else {
             return nil
         }
 
-        return abs(nextValue.number - targetValue.number)
-            < abs(currentValue.number - targetValue.number)
+        let renderedUnit = trimmed(currentValue.suffix)
+        guard renderedUnit == trimmed(nextValue.suffix),
+              renderedUnit.isEmpty || renderedUnit == trimmed(targetValue.suffix) else {
+            return nil
+        }
+
+        return (currentValue.number, nextValue.number, targetValue.number)
     }
 
     /// Splits only a leading signed decimal from Logic's rendering. Everything
@@ -278,6 +347,45 @@ enum SliderIncrementWalk {
             return nil
         }
         return (number, String(decoding: bytes[end...], as: UTF8.self))
+    }
+
+    /// Whether two renderings name the SAME reading.
+    ///
+    /// Exact string equality was the rule, and it made half of Channel EQ's dB space unreachable.
+    /// The request renders -5.0 as `-5` — correct for `400 Hz`, wrong for dB, where Logic always
+    /// shows the decimal — so the walk arrived at `-5.0 dB` and did not recognise it. Measured live
+    /// 2026-09-12 (#292): every half-dB target landed and every WHOLE-dB target died
+    /// `increment_walk_no_progress` a few steps from the value it had already reached, `-5.5`
+    /// arriving in 82 steps while `-5.0` died in 6 from a start five steps away. Q lands nothing on
+    /// any band for the mirror reason: a request of `1.5` against a control Logic renders `1.50`.
+    ///
+    /// This is NOT a unit conversion and invents no mapping. The number compared is the one LOGIC
+    /// rendered, read by the same parser the ordering test uses, and the text after it must match
+    /// exactly — `400 Hz` and `400 dB` stay different readings. A rendering carrying no number at
+    /// all (`Off`, `Auto`) can only be compared as the string it is, and still is.
+    private static func namesTheSameReading(_ rendered: String, _ requested: String) -> Bool {
+        if rendered == requested { return true }
+        guard let left = leadingNumber(in: rendered),
+              let right = leadingNumber(in: requested) else { return false }
+        guard left.number == right.number else { return false }
+        // An EMPTY rendered suffix matches whatever unit the caller asked in. Measured 2026-09-13
+        // (#292): Channel EQ renders Q as `0.88 ` — two decimals, a trailing space, and NO unit —
+        // while a request for `unit: "Q"` builds `0.88 Q`. Comparing the suffixes as equals made Q
+        // unreachable on every band in both directions, which is the failure this was written to
+        // end and instead reproduced one layer down.
+        //
+        // Two NON-EMPTY suffixes must still agree, and that is the clause that matters: `400 Hz`
+        // and `400 dB` stay different readings. When LOGIC renders no unit there is nothing to
+        // disagree with — the control does not express one, and the caller's `Q` is their label for
+        // the parameter rather than a rendering Logic ever produces.
+        let renderedUnit = trimmed(left.suffix)
+        if renderedUnit.isEmpty { return true }
+        return renderedUnit == trimmed(right.suffix)
+    }
+
+    /// Stdlib-only, because this file deliberately imports nothing.
+    private static func trimmed(_ text: String) -> String {
+        String(text.drop(while: { $0 == " " }).reversed().drop(while: { $0 == " " }).reversed())
     }
 
     private static func isASCIIDigit(_ byte: UInt8) -> Bool {

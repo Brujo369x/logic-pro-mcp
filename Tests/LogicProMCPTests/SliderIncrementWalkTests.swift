@@ -245,27 +245,186 @@ struct SliderIncrementWalkTests {
         #expect(requestedRawValues == [101, 104])
     }
 
-    @Test func displayStopsChangingBeforeTargetReportsNoProgress() {
-        var reads: [Reading?] = [
-            Reading(value: 100, display: "100 Hz"),
-            Reading(value: 101, display: "100 Hz"),
-        ]
+    @Test func aDisplayThatStopsChangingWhileTheValueMovesCostsTheBudget() {
+        // THIS CASE'S RULE WAS DELIBERATELY NARROWED (#292) and the trade is stated rather than
+        // hidden. It used to assert that an unchanged rendering is terminal, with the note
+        // "continuing after an unchanged rendering turns a saturated or stalled display into a
+        // budget-exhaustion walk" — which is exactly what now happens, and is the price.
+        //
+        // What it bought: Channel EQ's Q renders two decimals over increments finer than that, so a
+        // REAL step reads back the same string. Under the old rule Q landed nothing on any band in
+        // either direction, dying at step 1 every time. A control that moved is not a control that
+        // did not.
+        //
+        // The failure is still a failure — `budgetExhausted` rolls back exactly as `noProgress`
+        // does — and it costs the caller's own budget, which is the number they can change. The
+        // case that still stops immediately is the rail, and `aRailIsStillARail` pins it.
+        var current = 100.0
         var nudgeCalls = 0
 
         let outcome = SliderIncrementWalk.walk(
             to: .display("101 Hz"),
-            read: { reads.removeFirst() },
-            nudge: { _ in nudgeCalls += 1; return true },
+            read: { Reading(value: current, display: "100 Hz") },
+            nudge: { requested in
+                nudgeCalls += 1
+                current += requested > current ? 1 : -1
+                return true
+            },
             budget: 8
         )
 
-        // Mutation caught: continuing after an unchanged rendering turns a
-        // saturated or stalled display into a budget-exhaustion walk.
-        #expect(outcome == .noProgress(
-            steps: 1,
-            last: Reading(value: 101, display: "100 Hz")
-        ))
-        #expect(nudgeCalls == 1)
+        // Mutation caught: making an unchanged rendering terminal again returns noProgress at step
+        // 1 and Q becomes unreachable; making a rail non-terminal walks into the end stop forever.
+        // 108, not 96: the target renders `101 Hz` against a current `100 Hz`, so the walk reads the
+        // target as ABOVE and steps up. The raw value is what moves; the rendering never does.
+        #expect(outcome == .budgetExhausted(steps: 8, last: Reading(value: 108, display: "100 Hz")))
+        #expect(nudgeCalls == 8)
+    }
+
+    @Test func aStepTooSmallToSeeIsStillAStep() {
+        // #292: Channel EQ's Q renders two decimals while one increment moves less than that, so a
+        // real step reads back the same string. The walk used to call that terminal no-progress and
+        // Q landed nothing on any band in either direction, dying at step 1 every time.
+        //
+        // The raw value is what says whether the control moved. Here one increment is a hundredth
+        // of a display unit, so ten steps are needed before the rendering changes at all.
+        var current = 100.0
+        let read: () -> Reading? = {
+            Reading(value: current, display: String(format: "%.2f", ((current / 1000) * 100).rounded() / 100))
+        }
+        let nudge: (Double) -> Bool = { requested in current += requested > current ? 1 : -1; return true }
+
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("0.15"), read: read, nudge: nudge, budget: 128
+        )
+
+        // Mutation caught: restore `next.display == current.display` as terminal and this returns
+        // noProgress at step 1 — exactly what Q does live.
+        guard case let .arrived(_, final) = outcome else {
+            Issue.record("expected to arrive, got \(outcome)")
+            return
+        }
+        #expect(final.display == "0.15")
+    }
+
+    @Test func aRailIsStillARail() {
+        // The clause above must keep doing the job it was written for. When neither the rendering
+        // NOR the raw value moves, the control is against its end stop and continuing would be a
+        // walk into a wall. This is the case that proves the fix narrowed the rule instead of
+        // deleting it.
+        //
+        // EIGHT steps, not one, since the coarse-step walk landed: one unchanged readback can no
+        // longer tell a rail from a request below the control's minimum step, so the walk doubles
+        // the request 1, 2, 4 … 128 before concluding. The conclusion is unchanged — this is still
+        // `noProgress`, and it is still bounded well inside the budget.
+        let stuck = Reading(value: 480, display: "+24.0 dB")
+        var requests: [Double] = []
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("+30.0 dB"),
+            read: { stuck },
+            nudge: { requested in requests.append(requested); return true },
+            budget: 16
+        )
+        #expect(outcome == .noProgress(steps: 8, last: stuck))
+        #expect(requests == [481, 482, 484, 488, 496, 512, 544, 608])
+    }
+
+    @Test func aRailExhaustsASmallerBudgetBeforeItFinishesCalibrating() {
+        // The retry window is bounded by the budget as well as by its own limit. With seven steps
+        // the walk never reaches its eighth unchanged write, so the caller is told the budget ran
+        // out rather than being given a `noProgress` the walk did not actually establish.
+        let stuck = Reading(value: 480, display: "+24.0 dB")
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("+30.0 dB"),
+            read: { stuck },
+            nudge: { _ in true },
+            budget: 7
+        )
+        #expect(outcome == .budgetExhausted(steps: 7, last: stuck))
+    }
+
+    @Test func aControlWhoseStepIsFourRawUnitsPaysCalibrationOnceAndKeepsTheDistance() {
+        // Channel EQ's Q, in the shape measured on 2026-09-12: `nudge(current + 1)` lands back on
+        // the same raw value, while the `.rawValue` path reached every target. The readings are
+        // synthetic; the SHAPE is the measured one — a control whose minimum step is larger than
+        // one raw unit, rendered with no unit at all, requested with the caller's `Q` label.
+        let readings = [
+            Reading(value: 40, display: "0.88 "),
+            Reading(value: 44, display: "1.10 "),
+            Reading(value: 48, display: "1.40 "),
+            Reading(value: 52, display: "1.80 "),
+        ]
+        var index = 0
+        var requests: [Double] = []
+
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("1.80 Q"),
+            read: { readings[index] },
+            nudge: { requested in
+                requests.append(requested)
+                if requested - readings[index].value >= 4, index + 1 < readings.count {
+                    index += 1
+                }
+                return true
+            },
+            budget: 5
+        )
+
+        // Two calibration writes are paid ONCE, and the distance that worked is retained: the
+        // fourth and fifth requests are +4 again rather than starting over at +1. A strategy that
+        // re-calibrated every step would need nine writes for this walk.
+        #expect(outcome == .arrived(steps: 5, final: readings[3]))
+        #expect(requests == [41, 42, 44, 48, 52])
+    }
+
+    @Test func aCoarseStepThatSailsPastTheTargetSaysSoEvenWhenItLandsCloser() {
+        // The counterexample the crossing check exists for: rendered 0 → 4 against a target of 3
+        // is NUMERICALLY CLOSER and has passed the target. Checking distance first would call that
+        // progress and keep walking away.
+        var reading = Reading(value: 10, display: "0 Hz")
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("3 Hz"),
+            read: { reading },
+            nudge: { _ in reading = Reading(value: 14, display: "4 Hz"); return true },
+            budget: 8
+        )
+        #expect(outcome == .overshot(steps: 1, last: Reading(value: 14, display: "4 Hz")))
+    }
+
+    @Test func aDisplayPlateauDoesNotEnlargeTheRequest() {
+        // The raw value moves while the rendering does not. That is progress, and it must NOT be
+        // read as "the request was too small" — doubling here would overshoot a control that was
+        // moving perfectly well.
+        var value = 100.0
+        var requests: [Double] = []
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("2.00 "),
+            read: { Reading(value: value, display: value >= 104 ? "2.00 " : "1.00 ") },
+            nudge: { requested in
+                requests.append(requested)
+                value = requested
+                return true
+            },
+            budget: 8
+        )
+        #expect(outcome == .arrived(steps: 4, final: Reading(value: 104, display: "2.00 ")))
+        #expect(requests == [101, 102, 103, 104])
+    }
+
+    @Test func aMovingUnitlessControlIsSteeredAgainstAUnitedRequest() {
+        // Arrival already accepted a unitless Logic rendering against a `Q`-labelled request; the
+        // STEERING predicate rejected the same pair, so a Q walk could recognise its destination
+        // and never be aimed at it. This is that asymmetry, pinned.
+        var value = 40.0
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("1.80 Q"),
+            read: {
+                Reading(value: value, display: value >= 52 ? "1.80 " : (value >= 44 ? "1.10 " : "0.88 "))
+            },
+            nudge: { requested in value = requested; return true },
+            budget: 20
+        )
+        #expect(outcome == .arrived(steps: 12, final: Reading(value: 52, display: "1.80 ")))
     }
 
     @Test func displayTargetBelowStartReversesAndArrivesNearRawDistance() {
@@ -375,9 +534,11 @@ struct SliderIncrementWalkTests {
         )
 
         // Mutation caught: a probe blocked by a real control rail must not
-        // consume the caller's entire budget.
-        #expect(outcome == .noProgress(steps: 1, last: rail))
-        #expect(nudgeCalls == 1)
+        // consume the caller's entire budget. Eight now rather than one — the walk has to rule out
+        // "the request was smaller than this control's step" before it may call a rail a rail —
+        // but the budget is what this test is about and eight is still inside it.
+        #expect(outcome == .noProgress(steps: 8, last: rail))
+        #expect(nudgeCalls == 8)
     }
 
     @Test func displayBudgetIsAnExactNudgeLimit() {
@@ -421,5 +582,140 @@ struct SliderIncrementWalkTests {
             #expect(outcome == .budgetExhausted(steps: 0, last: initial))
             #expect(nudgeCalls == 0)
         }
+    }
+
+    // MARK: - #292: the same reading, rendered two ways
+
+    /// A Channel EQ gain slider as Logic actually renders it: ALWAYS one decimal, signed.
+    /// One raw unit is 0.1 dB, measured (raw 302 = `+6.2 dB`, raw 480 = `+24.0 dB`).
+    private func gainSlider(startingAt raw: Double) -> (read: () -> Reading?, nudge: (Double) -> Bool) {
+        var current = raw
+        let render: (Double) -> String = { value in
+            let dB = (value / 10 * 10).rounded() / 10
+            return dB >= 0 ? String(format: "+%.1f dB", dB) : String(format: "%.1f dB", dB)
+        }
+        return ({ Reading(value: current, display: render(current)) },
+                { requested in current += requested > current ? 1 : -1; return true })
+    }
+
+    @Test func aWholeNumberDecibelTargetIsTheSameReadingLogicRendersWithADecimal() {
+        // #292, measured live 2026-09-12: every half-dB request landed and every WHOLE-dB request
+        // failed `increment_walk_no_progress` — `-5.5` arrived in 82 steps, `-5.0` died in 6 from a
+        // start five steps away. The walk reaches the value and does not recognise it.
+        //
+        // `displayTargetValueText` renders -5.0 as `-5`, because dropping a trailing `.0` is right
+        // for Hz (`400 Hz`) and wrong for dB, where Logic always shows the decimal. One formatting
+        // rule for every unit is the defect; `-5 dB` and `-5.0 dB` are the same reading.
+        let slider = gainSlider(startingAt: -45)   // -4.5 dB, five steps above the target
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("-5 dB"),
+            read: slider.read,
+            nudge: slider.nudge,
+            budget: 64
+        )
+
+        // Mutation caught: comparing renderings as strings instead of as the readings they name.
+        // Restore the exact-string compare and this walk sails past -5.0 dB and reports no progress.
+        guard case let .arrived(steps, final) = outcome else {
+            Issue.record("expected to arrive, got \(outcome)")
+            return
+        }
+        // Seven, not five: the walk opens with an UPWARD calibration probe, sees the rendering
+        // move away from the target, and flips once — so a five-step descent costs two extra.
+        // That probe is deliberate (`walkDisplay` says so) and is not what this case is about.
+        #expect(steps == 7)
+        #expect(final.display == "-5.0 dB")
+    }
+
+    @Test func aTargetRenderedWithMoreDecimalsThanTheRequestIsStillTheSameReading() {
+        // The same defect, from the other direction, and the reason Q lands NOTHING on any band:
+        // a request of `1.5` never matches a control Logic renders `1.50`.
+        var current = 140.0
+        let read: () -> Reading? = { Reading(value: current, display: String(format: "%.2f", current / 100)) }
+        let nudge: (Double) -> Bool = { requested in current += requested > current ? 1 : -1; return true }
+
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("1.5"), read: read, nudge: nudge, budget: 64
+        )
+
+        guard case let .arrived(_, final) = outcome else {
+            Issue.record("expected to arrive, got \(outcome)")
+            return
+        }
+        #expect(final.display == "1.50")
+    }
+
+    @Test func aDifferentUnitIsNotTheSameReadingHoweverEqualTheNumbers() {
+        // The comparison must stay a comparison. `400 Hz` and `400 dB` share a number and name
+        // different readings; a numeric compare that ignored the unit would accept either.
+        let reading = Reading(value: 10, display: "400 Hz")
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("400 dB"),
+            read: { reading },
+            nudge: { _ in true },
+            budget: 0
+        )
+
+        #expect(outcome == .budgetExhausted(steps: 0, last: reading))
+    }
+
+    @Test func aRenderingWithNoNumberFallsBackToTheStringItIs() {
+        // Not every display carries a number — `Off`, `Auto`, `-∞ dB`. Those can only be compared
+        // as strings, and equal strings must still arrive.
+        let reading = Reading(value: 0, display: "Off")
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("Off"), read: { reading }, nudge: { _ in true }, budget: 4
+        )
+        #expect(outcome == .arrived(steps: 0, final: reading))
+    }
+
+    @Test func theExactLiveWalkThatFailedIsReproducedFromItsOwnNumbers() {
+        // The failing live call, rebuilt from the envelope it returned: start raw 315 (`rollback_to`),
+        // target `-5 dB`, and Logic's measured rendering — raw 190 reads `-5.0 dB`, 189 reads
+        // `-5.1 dB`, 195 reads `-4.5 dB`, all four read back through the product on 2026-09-12.
+        // If this arrives while the live call reports `noProgress` at 128 steps, the divergence is
+        // not in this algorithm.
+        var current = 315.0
+        let render: (Double) -> String = { raw in
+            let dB = ((raw / 10) - 24 + 0.0).rounded(.toNearestOrEven)
+            _ = dB
+            let exact = (raw / 10) - 24
+            let scaled = (exact * 10).rounded() / 10
+            return scaled >= 0 ? String(format: "+%.1f dB", scaled) : String(format: "%.1f dB", scaled)
+        }
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("-5 dB"),
+            read: { Reading(value: current, display: render(current)) },
+            nudge: { requested in current += requested > current ? 1 : -1; return true },
+            budget: 256
+        )
+        guard case let .arrived(steps, final) = outcome else {
+            Issue.record("expected to arrive, got \(outcome)")
+            return
+        }
+        #expect(final.display == "-5.0 dB")
+        #expect(steps == 127)
+    }
+
+    @Test func aRenderingWithNoUnitMatchesTheUnitTheCallerAskedIn() {
+        // #292, measured 2026-09-13: Channel EQ renders Q as `0.88 ` — two decimals, a trailing
+        // space, no unit — while a request for `unit: "Q"` builds `0.88 Q`. Holding the suffixes to
+        // equality made Q unreachable on every band in both directions.
+        let reading = Reading(value: 40, display: "0.88 ")
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("0.88 Q"), read: { reading }, nudge: { _ in true }, budget: 4
+        )
+        #expect(outcome == .arrived(steps: 0, final: reading))
+    }
+
+    @Test func twoRenderedUnitsMustStillAgree() {
+        // The clause this narrows must keep its teeth. When LOGIC renders a unit, that unit is part
+        // of the reading: `400 Hz` and `400 dB` are different controls' answers and accepting one
+        // for the other would be the wrong-slider outcome this comparison exists to refuse.
+        let reading = Reading(value: 10, display: "400 Hz")
+        let outcome = SliderIncrementWalk.walk(
+            to: .display("400 dB"), read: { reading }, nudge: { _ in true }, budget: 0
+        )
+        #expect(outcome == .budgetExhausted(steps: 0, last: reading))
     }
 }
