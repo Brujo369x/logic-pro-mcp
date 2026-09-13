@@ -1,0 +1,396 @@
+{
+  "id": "2026-09-13-the-event-list-resolves-its-columns-and-follows-the-selected-region",
+  "date": "2026-09-13",
+  "schema": 1,
+  "subject": "Logic's Event List note table, read by the release binary's --probe-event-list",
+  "question": "Does the Event List readback still fail to resolve its columns, as #302 records?",
+  "verdict": "partial",
+  "issues": [
+    "#302",
+    "#293"
+  ],
+  "surface": "system.midi",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "manual",
+    "command": "Manual because it needs a region and an open editor: (1) `logic_tracks.record_sequence` with known pitches; (2) View > Show List Editors; (3) run the release binary with `--probe-event-list`; (4) create a second region with DIFFERENT pitches and run it again.",
+    "expected": "Both runs return ok:true with one row per note written and the pitches just written; the second run returns the second region's notes, not the first's."
+  },
+  "depends": [
+    "Sources/LogicProMCP/MIDIReadback/MIDIProviderGate.swift"
+  ],
+  "evidence": [],
+  "method": "Two MIDI regions were created through the product's own verified `record_sequence`, each with pitches chosen so the two cannot be confused. The release binary's observation-only `--probe-event-list` was run after each. Nothing was written through the Event List.",
+  "observations": [
+    {
+      "what": "columns the probe resolved",
+      "live_columns": [
+        "L",
+        "M",
+        "Position",
+        "Status",
+        "Ch",
+        "Num",
+        "Val",
+        "Length/Info"
+      ],
+      "ok": true
+    },
+    {
+      "what": "first region — written 60, 64, 67 at equal lengths",
+      "rows": 3,
+      "num": [
+        60,
+        64,
+        67
+      ],
+      "val": [
+        "100",
+        "100",
+        "100"
+      ],
+      "ch": [
+        1,
+        1,
+        1
+      ],
+      "position": [
+        "1 1 1 1",
+        "1 1 4 203",
+        "1 2 4 165"
+      ],
+      "length_info": [
+        "0 0 3 202",
+        "0 0 3 202",
+        "0 0 3 202"
+      ],
+      "status": [
+        "Note",
+        "Note",
+        "Note"
+      ]
+    },
+    {
+      "what": "second region — written 72, 74",
+      "rows": 2,
+      "num": [
+        72,
+        74
+      ],
+      "val": [
+        "100",
+        "100"
+      ],
+      "position": [
+        "1 1 1 1",
+        "1 1 2 221"
+      ]
+    },
+    {
+      "what": "cells the rows leave empty",
+      "L": null,
+      "M": null
+    },
+    {
+      "what": "a third region written with THREE DIFFERENT lengths and offsets, to test whether the displayed values track what was written",
+      "written_ms": {
+        "note_60": {
+          "offset": 0,
+          "duration": 120
+        },
+        "note_62": {
+          "offset": 1000,
+          "duration": 240
+        },
+        "note_64": {
+          "offset": 2000,
+          "duration": 960
+        }
+      },
+      "read_length_info": [
+        "0 0 0 230",
+        "0 0 1 220",
+        "0 1 3 164"
+      ],
+      "read_position": [
+        "1 1 1 1",
+        "1 3 1 1",
+        "2 1 1 1"
+      ],
+      "ticks_from_display": [
+        230,
+        460,
+        1844
+      ],
+      "ticks_expected_at_120bpm_960ppq": [
+        230.4,
+        460.8,
+        1843.2
+      ],
+      "worst_difference_ticks": 0.8
+    },
+    {
+      "what": "a fourth region written with FORTY notes, more than the table shows at once",
+      "notes_written": 40,
+      "record_sequence_verified": true,
+      "probe_result": "ok: false",
+      "probe_error": "Event List row 32, column Position has 0 cell children; expected 1."
+    },
+    {
+      "what": "the same forty-note region after scrolling the Event List down six pages",
+      "probe_result": "ok: false",
+      "probe_error": "Event List row 0, column Position has 0 cell children; expected 1.",
+      "reading": "the failing row moved from 32 to 0 — the rows materialised before are empty now and the ones now on screen are filled"
+    },
+    {
+      "what": "the same three-note region read again with Logic relaunched in KOREAN",
+      "locale": "ko-KR",
+      "live_columns": [
+        "L",
+        "M",
+        "위치",
+        "상태",
+        "채널",
+        "번호",
+        "값",
+        "길이/정보"
+      ],
+      "canonical_keys_returned": [
+        "L",
+        "M",
+        "Position",
+        "Status",
+        "Ch",
+        "Num",
+        "Val",
+        "Length/Info"
+      ],
+      "rows": 3,
+      "num": [
+        60,
+        64,
+        67
+      ],
+      "val": [
+        "100",
+        "100",
+        "100"
+      ],
+      "ch": [
+        1,
+        1,
+        1
+      ],
+      "position": [
+        "1 1 1 1",
+        "1 1 4 203",
+        "1 2 4 165"
+      ],
+      "length_info": [
+        "0 0 3 202",
+        "0 0 3 202",
+        "0 0 3 202"
+      ],
+      "status": [
+        "노트",
+        "노트",
+        "노트"
+      ],
+      "reading": "the HEADERS are localised and the collector maps them onto canonical English keys; every value matches the en-US run exactly, except `Status`, whose VALUE is localised"
+    },
+    {
+      "what": "the Event List tab on a Korean Logic, before a region was selected",
+      "error": "Event List is at region level; event-level rows are unavailable.",
+      "reading": "the TAB resolved — the failure is about what is selected, not about finding the tab"
+    },
+    {
+      "what": "the forty-note region read through a new observation-only window probe that reports each row as readable or not instead of failing on the first it cannot read",
+      "total_rows": 40,
+      "readable_rows": 32,
+      "readable_window": [
+        0,
+        31
+      ],
+      "unreadable": 8,
+      "first_unreadable_reason": "Event List row 32, column Position has 0 cell children; expected 1."
+    },
+    {
+      "what": "two reads with the list scrolled between them, to test whether windows stitch",
+      "window_1": [
+        0,
+        31
+      ],
+      "window_2": [
+        5,
+        38
+      ],
+      "overlapping_rows": 27,
+      "overlapping_values_agree": true,
+      "union_covered": 39,
+      "of": 40
+    },
+    {
+      "what": "after performing AXScrollToVisible on the LAST row",
+      "action_return_code": -25206,
+      "readable_rows": 40,
+      "total_rows": 40,
+      "readable_window": [
+        0,
+        39
+      ],
+      "unreadable": 0,
+      "pitches": "exactly 40...79, forty distinct",
+      "strict_probe": "ok: true, rows: 40",
+      "reading": "the whole table materialised; the strict collector, which had thrown at row 32, then read every row in one pass. The action reported an error code and worked anyway."
+    },
+    {
+      "what": "a TWO HUNDRED note region, written to exceed the table at any single scroll position",
+      "notes_written": 200,
+      "record_sequence_verified": true,
+      "before_any_scroll": {
+        "total_rows": 200,
+        "readable_rows": 32,
+        "window": [
+          0,
+          31
+        ]
+      },
+      "after_scroll_to_last_row": {
+        "total_rows": 200,
+        "readable_rows": 33,
+        "window": [
+          167,
+          199
+        ]
+      },
+      "reading": "the whole table did NOT materialise, unlike the forty-note case — forty nearly fits, two hundred does not"
+    },
+    {
+      "what": "the same two hundred rows after the list had been scrolled to the end and then back to row 0",
+      "readable_rows": 200,
+      "total_rows": 200,
+      "window": [
+        0,
+        199
+      ],
+      "conflicts_between_overlapping_reads": 0,
+      "values_match_what_was_written": true
+    },
+    {
+      "what": "the Event pane's event-type filter checkboxes, read on the Korean Logic",
+      "readable": true,
+      "filters": {
+        "노트": 1,
+        "프로그램 체인지": 1,
+        "피치 벤드": 1,
+        "컨트롤러": 1,
+        "애프터터치": 1,
+        "폴리포닉 애프터터치": 1,
+        "시스템 고유": 1,
+        "추가 정보": 0
+      },
+      "other_pane_controls": {
+        "재생헤드 캐치": 0,
+        "MIDI 입력": 0,
+        "MIDI 출력": 1
+      },
+      "reading": "eight event-type filters, SEVEN on and one off. They are titled, not described, and the titles are localised."
+    },
+    {
+      "what": "two window reads with a project change between them",
+      "read_a_rows": 200,
+      "change": "a new two-note region was created through the product's verified record_sequence",
+      "read_b_rows": 2,
+      "fields_in_the_probe_output": [
+        "ok",
+        "total_rows",
+        "readable_rows",
+        "readable_indices",
+        "unreadable",
+        "live_columns",
+        "rows"
+      ],
+      "identity_or_epoch_fields": "none",
+      "reading": "the two reads describe different regions and nothing in the probe's output says so"
+    },
+    {
+      "what": "what the COLLECTOR carries that the probe does not, read from the source",
+      "collect_parameters": [
+        "requestedRegion",
+        "resolvedIdentity",
+        "projectEpochBefore",
+        "projectEpochAfter",
+        "ppq"
+      ],
+      "epochs_compared_anywhere": true,
+      "variant_source": "LogicProTarget.current.variant — resolved from the process being read",
+      "fields_marked_unproven": [
+        "observedRegion",
+        "columnBinding.headerIdentity",
+        "itemCount.semanticsProof",
+        "timing"
+      ],
+      "where": "MIDIReadbackAssessment.swift:154 — `guard e.projectEpochBefore == e.projectEpochAfter else { return .incomplete(.epochChanged) }`, with a test pinning it",
+      "correction": "an earlier pass here said nothing compared them. That was a grep that excluded the file the comparison lives in."
+    },
+    {
+      "what": "the assessment's refusal reasons, read from the whole tree rather than one file",
+      "partial_reasons": [
+        "unboundIdentity",
+        "wrongRegion",
+        "invalidPPQ",
+        "filterEvidenceIncomplete",
+        "filterNotAllNotes",
+        "countIndependenceUnproven",
+        "countMismatch",
+        "harvestNotContiguous",
+        "harvestContentUnstable",
+        "harvestNotExhaustive",
+        "columnUnresolved",
+        "calibrationNotDistinct",
+        "rowParseFailed",
+        "timingUnproven",
+        "epochChanged",
+        "emptyNotProven",
+        "mapsUnpopulated",
+        "decodedNotReassessed"
+      ],
+      "version_drift_case": "absent",
+      "reading": "nearly every listed required proof already exists as a reason the assessment can REFUSE for. Logic version drift is the one with no case at all."
+    },
+    {
+      "what": "the per-cell child counts of a note row, which is the shape #293 records a fixture having got wrong",
+      "first_row_cell_children": {
+        "L": 0,
+        "M": 0,
+        "Position": 1,
+        "Status": 1,
+        "Ch": 1,
+        "Num": 1,
+        "Val": 1,
+        "Length/Info": 1
+      },
+      "reading": "[0, 0, 1, 1, 1, 1, 1, 1] in header order — the two FLAG columns are empty and every data column has exactly one child. The collector already treats an empty flag cell as `off` and refuses an empty DATA cell, and the test fixture carries this shape."
+    }
+  ],
+  "conclusion": "The blocker this issue records — `columnResolveFailed`, `kAXColumns` absent — is not the state today. All eight columns resolve BY NAME, every note written comes back with its pitch, velocity, channel, position and length, and the row count equals the note count in the small regions. The readback FOLLOWS THE SELECTION: after the second region was created the probe returned its two notes, not the first region's three.\n\nLength and position are not merely present, they are CORRECT. Three notes written at 0/1000/2000 ms with durations 120/240/960 ms read back as positions `1 1 1 1`, `1 3 1 1`, `2 1 1 1` — bar 1 beat 1, bar 1 beat 3, bar 2 beat 1, which is 0, 2 and 4 beats at 120 BPM — and as lengths `0 0 0 230`, `0 0 1 220`, `0 1 3 164`. Converted at Logic's 960 ticks per beat those are 230, 460 and 1844 ticks against 230.4, 460.8 and 1843.2 expected: every one within a single tick.\n\nTHE TABLE IS VIEWPORT-MATERIALISED, AND THAT IS NOT A WALL. A forty-note region first reads rows 0...31 and reports the other eight as `0 cell children`; scrolling moves the readable window, and two windows that overlap by 27 rows carry IDENTICAL values there. Performing `AXScrollToVisible` on the LAST row then materialised the whole table: forty of forty rows readable in one pass, pitches exactly 40...79 with no duplicates, and the strict collector — which had thrown at row 32 — read every row. That held for forty rows because forty nearly fit. TWO HUNDRED does not: the same scroll left only 33 readable, at rows 167...199. What DID work was walking the table — after scrolling to the end and back to the start, all two hundred rows read in one pass, with values exactly matching what was written and no disagreement anywhere the reads overlapped. So a note manifest must traverse the table once; it cannot simply ask for the last row.\n\nAnd it is not English-only. Relaunched in Korean, the same region reads back through LOCALISED headers — `위치`, `상태`, `채널`, `번호`, `값`, `길이/정보` — which the collector maps onto the same canonical keys, and every value is identical to the en-US run. One thing IS localised in the data rather than the header: `Status` reads `노트`, so a consumer matching on status text has to go through the policy.\n\nThe filters are readable too, and they are not uniformly on. Eight event-type checkboxes sit above the table — Note, Program Change, Pitch Bend, Controller, Aftertouch, Poly Aftertouch, SysEx, Additional Info — and on this project the last one is OFF. A manifest that ignored them would silently omit whatever it excludes and still report a count. The filters carry TITLES rather than descriptions, and the titles are localised, so identifying the Note filter across languages needs a label set the way the column headers already do.\n\nTwo further things, from the source rather than the screen. The COLLECTOR already takes a requested region, a resolved identity proof and a project epoch before AND after, and `assessReadback` COMPARES them — an unequal pair returns `.incomplete(.epochChanged)`, with a test pinning it. Nearly every other listed proof is there too, as a reason the assessment can refuse for: `filterNotAllNotes`, `harvestNotContiguous`, `harvestContentUnstable`, `harvestNotExhaustive`, `columnUnresolved`, `countMismatch`, `wrongRegion`. Logic version drift is the one with no case at all. The probe carries none of that at all, which is correct for something that mints no identity, and is why two reads either side of a new region returned 200 rows and then 2 with nothing saying the subject had changed. The variant, by contrast, is resolved from the process actually being read rather than assumed at build time, and the evidence type marks `observedRegion`, the column binding, the item-count semantics and the timing as `unproven` — the remaining proofs are encoded in the type itself.\n\nOne more thing this settles for the note-readback issue beside it. Its recorded defect is a fixture that gave every Event-List cell a child, a shape Logic does not produce. Logic produces `[0, 0, 1, 1, 1, 1, 1, 1]` — measured again today — and the collector already distinguishes the two flag columns, where empty means the flag is off, from the data columns, where empty is a datum that failed to read.",
+  "limits": [
+    "The machinery is not what is missing. Ten of the eleven listed proofs exist as guards the assessment refuses on, and this record measures several of them passing against a real region. What is missing is the DEMONSTRATION for each guard on live regions, and one guard outright: nothing in the assessment detects a Logic version change.",
+    "The length/position agreement is arithmetic on ONE tempo (120 BPM) and one time signature, and the conversion assumes Logic's 960-ticks-per-beat display. It was not re-measured at another tempo, and a tempo change mid-region was not tried.",
+    "Only regions this run created were read. A region with chords, overlapping notes, non-note events, or more rows than fit the visible table was not tried, and the count semantics proof is about all events in a region rather than the few written here.",
+    "One locale (ko-KR), one host, one build. The probe is observation-only: it mints no identity proof and adds no MCP surface, so nothing here says the provider is safe to publish.",
+    "`QualifiedProviderRegistry` hardcodes `qualified: false` for every provider, so no measurement can flip it as written; that is a separate decision from whether the readback works.",
+    "The 32-row boundary is this window's size, not a constant. It was not re-measured at another window height, and whether Logic materialises a margin above and below the visible rows was not established.",
+    "The host block first said `ko-KR`, copied from a block generated earlier in the day when Logic WAS Korean. Every reading here was taken with Logic in English. `Scripts/observation_host.py` produced the wrong value because it read the system locale rather than Logic's UI language; that is fixed, and this record is the one that caught it.",
+    "`AXScrollToVisible` returned -25206 and scrolled anyway. WHY the table then becomes fully materialised is not established: the readings show that scrolling to the end and back is sufficient for two hundred rows, not that it is sufficient for any size, and not which of the two scrolls does the work. A region larger than two hundred was not tried.",
+    "The filter reading establishes that the states are READABLE and that one is off. It does not establish what `추가 정보` excludes, and no event of that kind was written to see whether the row count changes when it is toggled — so 'the table shows everything the filters allow' is read off the checkboxes, not demonstrated against content.",
+    "An earlier pass of this record claimed nothing compared the project epochs. That was false, and it came from grepping one file and then a filter that excluded the file holding the comparison. The reading above is from a whole-tree search."
+  ],
+  "supersedes": null
+}

@@ -4626,3 +4626,335 @@ func issue604DismissalSummaryReportsTheObservation() {
     #expect(issued >= required - 1,
             "issued \(issued) of about \(required) detents — the loop gave up early")
 }
+
+// MARK: - #304 set_tempo must not read its own typed text as the project's tempo
+
+/// The tempo fixture, plus a one-button top-level `AXDialog` alert that is either already present
+/// or is raised by the write. Logic raises exactly this shape when a project holds more than one
+/// tempo event: measured live 2026-09-14, the field kept the typed 144, the tempo map stayed at
+/// 120 on both rows, and `경고` said to use the Tempo List editor instead.
+private func makeTempoFixtureWithAlert(
+    builder: FakeAXRuntimeBuilder,
+    tempoValue: Double,
+    alertPresent: Bool
+) -> (app: AXUIElement, slider: AXUIElement, alert: AXUIElement) {
+    let fixture = makeTempoSliderFixture(builder: builder, tempoValue: tempoValue)
+    let alert = builder.element(7190)
+    let alertButton = builder.element(7191)
+    builder.setAttribute(alert, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(alert, kAXSubroleAttribute as String, kAXDialogSubrole as String)
+    builder.setAttribute(alert, kAXModalAttribute as String, true)
+    builder.setChildren(alert, [alertButton])
+    builder.setAttribute(alertButton, kAXRoleAttribute as String, kAXButtonRole as String)
+    builder.setAttribute(alertButton, kAXTitleAttribute as String, "확인")
+
+    // The arrange window must answer AXModal EXPLICITLY. A window that returns no value for it
+    // retires the whole poll as unreadable, and an unreadable poll finds no alert — the fixture
+    // would then pass for the wrong reason.
+    let window = builder.element(7101)
+    builder.setAttribute(window, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(window, kAXModalAttribute as String, false)
+    builder.setAttribute(
+        fixture.app,
+        kAXWindowsAttribute as String,
+        alertPresent ? [alert, window] : [window]
+    )
+    return (fixture.app, fixture.slider, alert)
+}
+
+@Test func testSetTempoRefusesWhenLogicAnswersTheWriteWithAnAlert() async {
+    // The defect this pins: every success branch verified by reading the SAME field it had just
+    // typed into. A field holding "144" is not the project holding 144 — and when Logic refuses,
+    // it says so with a modal rather than by changing the field back. Reported State A with
+    // verified:true while the tempo map did not move.
+    let builder = FakeAXRuntimeBuilder()
+    let fixture = makeTempoFixtureWithAlert(builder: builder, tempoValue: 120.0, alertPresent: false)
+    let alert = fixture.alert
+    let window = builder.element(7101)
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: fixture.app,
+        logicRuntime: builder.makeLogicRuntime(
+            appElement: fixture.app,
+            setAttributeHandler: { element, attribute, value in
+                // The write "lands" in the field, and raises the alert — Logic's actual answer.
+                guard element == fixture.slider, attribute == kAXValueAttribute as String else { return false }
+                builder.setAttribute(fixture.slider, kAXValueAttribute as String, value)
+                builder.setAttribute(fixture.app, kAXWindowsAttribute as String, [alert, window])
+                return true
+            },
+            performActionHandler: { _, _ in true }
+        )
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "144"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(!((obj["success"] as? Bool)!))
+    #expect(obj["error"] as? String == "readback_lost_after_write")
+    #expect(obj["blocking_modal"] as? String == "informational_alert")
+    // An annotation, not a causal claim. This says only that no blocker was OBSERVED before —
+    // the refusal itself rests on the blocker being present NOW, whoever raised it.
+    #expect(!((obj["blocker_present_before_write"] as? Bool)!))
+    #expect(obj["blocker_scan_before_write"] as? String == "complete")
+    // `readback_lost_after_write` is in `terminalErrorCodes`, a set whose own comment said these
+    // codes were exclusive to `logic_plugins.*`. This operation now emits one, so the reason that
+    // is still safe gets asserted rather than re-argued: `transport.set_tempo` routes to
+    // `[.accessibility]` alone, and a single-channel chain's State C envelope is returned verbatim,
+    // so the caller receives THIS envelope rather than a `channels_exhausted` wrapper.
+    #expect(HonestContract.terminalErrorCodes.contains("readback_lost_after_write"))
+    #expect(ChannelRouter.v2RoutingTable["transport.set_tempo"] == [ChannelID.accessibility])
+    #expect(obj["state"] as? String == "C")
+    #expect((obj["write_attempted"] as? Bool)!)
+    // The field's reading is REPORTED, under a name that says it is the field's and not the
+    // project's. Dropping it would hide what the operation actually saw.
+    #expect((obj["observed_field_value"] as? Double) == 144)
+    #expect(obj["observed"] == nil)
+    #expect(obj["verified"] == nil)
+}
+
+@Test func testSetTempoRefusesWhileAnyBlockerIsUpAndSaysItWasAlreadyThere() async {
+    // A first version of this gate compared the classified modal kind before and after the write
+    // and refused on a difference. A review took that apart and each objection held: an UNREADABLE
+    // scan classifies as `.none`, so the original false State A survived whenever the after-read
+    // failed; a kind CHANGE is not evidence this write caused anything; and one informational
+    // alert replaced by another compares equal and slips through. Causation cannot be inferred
+    // from a kind delta, so it is not claimed. What IS claimed: while a blocker is up, the tempo
+    // field cannot be read as the project's tempo — whoever raised it.
+    let builder = FakeAXRuntimeBuilder()
+    let fixture = makeTempoFixtureWithAlert(builder: builder, tempoValue: 120.0, alertPresent: true)
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: fixture.app,
+        logicRuntime: nudgeResponsiveLogicRuntime(builder, app: fixture.app)
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "130"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(obj["error"] as? String == "readback_lost_after_write")
+    #expect(obj["blocking_modal"] as? String == "informational_alert")
+    // The annotation earns its place here: the caller can tell this blocker predates the call, so
+    // the thing to do is clear it rather than hunt for what this write broke.
+    #expect((obj["blocker_present_before_write"] as? Bool)!)
+    #expect(obj["blocker_scan_before_write"] as? String == "complete")
+    #expect(obj["verified"] == nil)
+}
+
+@Test func testSetTempoDirectWriteReportsAnAXRefusalAsAWriteFailure() async {
+    // A review found the geometry-free branch discarding both AX results and then answering State B
+    // — `success: true`, "the write landed". When AX itself refuses the write, that is a failure the
+    // code CAN establish, so it is reported as one, and as `ax_write_failed` rather than
+    // `readback_lost_after_write`: nothing was lost to read, the write was refused outright.
+    let builder = FakeAXRuntimeBuilder()
+    let app = builder.element(7400)
+    let window = builder.element(7401)
+    let controlBar = builder.element(7402)
+    let slider = builder.element(7403)
+
+    builder.setAttribute(app, kAXMainWindowAttribute as String, window)
+    builder.setAttribute(window, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(window, kAXModalAttribute as String, false)
+    builder.setChildren(window, [controlBar])
+    builder.setAttribute(controlBar, kAXRoleAttribute as String, kAXGroupRole as String)
+    builder.setAttribute(controlBar, kAXDescriptionAttribute as String, "Control Bar")
+    builder.setChildren(controlBar, [slider])
+    builder.setAttribute(slider, kAXRoleAttribute as String, kAXSliderRole as String)
+    builder.setAttribute(slider, kAXDescriptionAttribute as String, "Tempo")
+    builder.setAttribute(slider, kAXValueAttribute as String, NSNumber(value: 120.0))
+    builder.setAttribute(app, kAXWindowsAttribute as String, [window])
+
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: app,
+        logicRuntime: builder.makeLogicRuntime(
+            appElement: app,
+            // AX refuses the write. Logic is otherwise clean, so nothing else can explain a refusal.
+            setAttributeHandler: { _, _, _ in false },
+            performActionHandler: { _, _ in true }
+        )
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "144"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(obj["state"] as? String == "C")
+    #expect(obj["error"] as? String == "ax_write_failed")
+    #expect(obj["via"] as? String == "slider-direct")
+    #expect(!((obj["ax_value_write_accepted"] as? Bool)!))
+    // Retryable, unlike the blocked-readback refusal: the caller can simply ask again.
+    #expect((obj["safe_to_retry"] as? Bool)!)
+}
+
+@Test func testSetTempoDirectWriteReportsAConfirmRefusalToo() async {
+    // The other leg of the same gate, which a review noted was implemented by the `||` but not
+    // separately pinned: AX accepts the VALUE and refuses the CONFIRM. An unconfirmed value is not
+    // a landed tempo, and a test that only covered the write leg would stay green if the gate were
+    // narrowed to `!wrote`.
+    let builder = FakeAXRuntimeBuilder()
+    let app = builder.element(7500)
+    let window = builder.element(7501)
+    let controlBar = builder.element(7502)
+    let slider = builder.element(7503)
+
+    builder.setAttribute(app, kAXMainWindowAttribute as String, window)
+    builder.setAttribute(window, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(window, kAXModalAttribute as String, false)
+    builder.setChildren(window, [controlBar])
+    builder.setAttribute(controlBar, kAXRoleAttribute as String, kAXGroupRole as String)
+    builder.setAttribute(controlBar, kAXDescriptionAttribute as String, "Control Bar")
+    builder.setChildren(controlBar, [slider])
+    builder.setAttribute(slider, kAXRoleAttribute as String, kAXSliderRole as String)
+    builder.setAttribute(slider, kAXDescriptionAttribute as String, "Tempo")
+    builder.setAttribute(slider, kAXValueAttribute as String, NSNumber(value: 120.0))
+    builder.setAttribute(app, kAXWindowsAttribute as String, [window])
+
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: app,
+        logicRuntime: builder.makeLogicRuntime(
+            appElement: app,
+            setAttributeHandler: { _, _, _ in true },
+            performActionHandler: { _, _ in false }
+        )
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "144"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(obj["error"] as? String == "ax_write_failed")
+    #expect((obj["ax_value_write_accepted"] as? Bool)!)
+    #expect(!((obj["ax_confirm_accepted"] as? Bool)!))
+}
+
+@Test func testSetTempoDirectWriteDoesNotClaimSuccessWhileABlockerIsUp() async {
+    // The third refusal site, which a review found still asserting success. A tempo slider with no
+    // AX geometry takes the direct-write path, which writes and then returns State B — and State B
+    // means `success: true`, "the write landed but read-back couldn't confirm". Nothing on this
+    // path establishes that it landed, and with a blocker up the readback cannot establish it
+    // either. Same overclaim as the original defect, one branch over.
+    let builder = FakeAXRuntimeBuilder()
+    let app = builder.element(7300)
+    let window = builder.element(7301)
+    let controlBar = builder.element(7302)
+    let slider = builder.element(7303)
+    let alert = builder.element(7304)
+    let alertButton = builder.element(7305)
+
+    builder.setAttribute(app, kAXMainWindowAttribute as String, window)
+    builder.setAttribute(window, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(window, kAXModalAttribute as String, false)
+    builder.setChildren(window, [controlBar])
+    builder.setAttribute(controlBar, kAXRoleAttribute as String, kAXGroupRole as String)
+    builder.setAttribute(controlBar, kAXDescriptionAttribute as String, "Control Bar")
+    builder.setChildren(controlBar, [slider])
+    builder.setAttribute(slider, kAXRoleAttribute as String, kAXSliderRole as String)
+    builder.setAttribute(slider, kAXDescriptionAttribute as String, "Tempo")
+    builder.setAttribute(slider, kAXValueAttribute as String, NSNumber(value: 120.0))
+    // No AXPosition / AXSize: this is what sends the operation down the direct-write path.
+    builder.setAttribute(alert, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(alert, kAXSubroleAttribute as String, kAXDialogSubrole as String)
+    builder.setAttribute(alert, kAXModalAttribute as String, true)
+    builder.setChildren(alert, [alertButton])
+    builder.setAttribute(alertButton, kAXRoleAttribute as String, kAXButtonRole as String)
+    builder.setAttribute(alertButton, kAXTitleAttribute as String, "확인")
+    builder.setAttribute(app, kAXWindowsAttribute as String, [alert, window])
+
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: app,
+        logicRuntime: builder.makeLogicRuntime(
+            appElement: app,
+            setAttributeHandler: { _, _, _ in true },
+            performActionHandler: { _, _ in true }
+        )
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "144"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(obj["state"] as? String == "C")
+    #expect(obj["error"] as? String == "readback_lost_after_write")
+    #expect(obj["via"] as? String == "slider-direct")
+    #expect(obj["blocking_modal"] as? String == "informational_alert")
+    // The defect's signature was `success: true`. Assert it is gone rather than only asserting the
+    // new fields, which a branch that still claimed success could also carry.
+    #expect(!((obj["success"] as? Bool)!))
+}
+
+@Test func testSetTempoRefusesBeforeEscapeCanClearTheEvidence() async {
+    // A review found this hole and no test covered it: when the typed entry does not commit, the
+    // old order pressed Escape FIRST and scanned for a modal afterwards. Escape can clear the very
+    // alert that is the evidence, and every later scan then sees a clean Logic and licenses State A
+    // on a write Logic refused. This fixture makes the alert vanish the moment Escape is pressed,
+    // so only an observation taken BEFORE it can see anything.
+    let builder = FakeAXRuntimeBuilder()
+    let fixture = makeTempoFixtureWithAlert(builder: builder, tempoValue: 120.0, alertPresent: true)
+    let window = builder.element(7101)
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: fixture.app,
+        logicRuntime: builder.makeLogicRuntime(
+            appElement: fixture.app,
+            setAttributeHandler: { _, _, _ in false },
+            performActionHandler: { _, _ in true }
+        ),
+        controlBarMouseRuntime: AXMouseHelper.Runtime(
+            postMouseEvent: { _, _, _ in true },
+            // Escape (key code 53) clears the alert, exactly as it can live. Anything that reads
+            // the modal state after this point sees a clean Logic.
+            postKeyEvent: { code in
+                if code == 53 {
+                    builder.setAttribute(fixture.app, kAXWindowsAttribute as String, [window])
+                }
+                return true
+            },
+            postUnicodeScalar: { _ in true },
+            sleepMicros: { _ in }
+        )
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "144"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(obj["error"] as? String == "readback_lost_after_write")
+    #expect(obj["blocking_modal"] as? String == "informational_alert")
+}
+
+@Test func testSetTempoRefusesWhenTheModalScanCannotComplete() async {
+    // The blocker a review found in the first version, pinned. `ModalReconciliation.classify`
+    // answers `.none` for an UNREADABLE read — every signal it takes defaults to false — so a gate
+    // that asks only for the kind cannot tell "nothing is blocking" from "the scan failed", and the
+    // original false State A survives every failed after-read. A window that refuses to answer
+    // AXModal is exactly that case.
+    let builder = FakeAXRuntimeBuilder()
+    let fixture = makeTempoSliderFixture(builder: builder, tempoValue: 120.0)
+    let unreadable = builder.element(7195)
+    builder.setAttribute(unreadable, kAXRoleAttribute as String, kAXWindowRole as String)
+    builder.setAttribute(unreadable, kAXSubroleAttribute as String, kAXDialogSubrole as String)
+    // No AXModal value at all: the read fails rather than answering false.
+    builder.setAttribute(fixture.app, kAXWindowsAttribute as String, [unreadable])
+    let channel = makeAXBackedAccessibilityChannel(
+        builder: builder,
+        app: fixture.app,
+        logicRuntime: nudgeResponsiveLogicRuntime(builder, app: fixture.app)
+    )
+
+    let result = await channel.execute(operation: "transport.set_tempo", params: ["tempo": "130"])
+
+    let obj = decodeAccessibilityJSON(result.message)
+    #expect(!result.isSuccess)
+    #expect(obj["error"] as? String == "readback_lost_after_write")
+    #expect(obj["blocking_modal"] as? String == "unreadable_modal_scan")
+    // An unreadable scan SAW nothing. Reporting it as a blocker sighting would put an observation
+    // in the response that nobody made, which is the shape of the defect this whole change is about.
+    #expect(!((obj["blocker_present_before_write"] as? Bool)!))
+    #expect(obj["blocker_scan_before_write"] as? String == "unreadable")
+    #expect(obj["verified"] == nil)
+}

@@ -1,0 +1,191 @@
+{
+  "id": "2026-09-14-set-tempo-reported-a-verified-write-logic-had-refused-with-a-dialog",
+  "date": "2026-09-14",
+  "schema": 1,
+  "subject": "transport.set_tempo on a project holding more than one tempo event",
+  "question": "set_tempo verifies by reading the tempo field it just typed into. Is a field holding the typed value the same fact as Logic having applied it?",
+  "verdict": "wall",
+  "issues": [
+    "#304"
+  ],
+  "surface": "arrange.transport",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "manual",
+    "command": "Manual, and it mutates: with ONE tempo event, drive `logic_transport.set_tempo` and read the Tempo list. Then place the playhead somewhere sub-bar, press `새로운 템포 이벤트 생성` so the project holds TWO, drive `set_tempo` again, and read the Tempo list AND Logic's window list. Dismiss the alert, raise the arrange window by title, and undo.",
+    "expected": "With one event the call answers State A and the Tempo list moves. With two it answers State C `ax_write_failed` carrying `blocking_modal: informational_alert` and `modal_raised_by_this_write: true`, the Tempo list does NOT move, and a modal `경고` window is present. Before the fix the second case answered State A with `verified: true`."
+  },
+  "depends": [
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+Transport.swift",
+    "Sources/LogicProMCP/Accessibility/ModalReconciliation.swift"
+  ],
+  "evidence": [],
+  "method": "Driven against a release binary talking to live Logic. The two conditions differ in ONE thing — how many tempo events the project holds — and the same call is made in both, so the reading separates the operation from the project state. The effect was read from the Tempo list, a surface independent of the field the operation writes and verifies against, and Logic's window list was read in the same pass so the alert is an observation rather than an inference. The project was returned to one event at 120 and re-read to confirm.",
+  "observations": [
+    {
+      "condition": "ONE tempo event",
+      "requested": 126,
+      "state": "A",
+      "observed": 126,
+      "tempo_list_after": [
+        [
+          "1 1 1 1",
+          "126"
+        ]
+      ],
+      "modal_windows": 0
+    },
+    {
+      "condition": "TWO tempo events, BEFORE the fix",
+      "requested": 144,
+      "state": "A",
+      "success": true,
+      "verified": true,
+      "observed": 144,
+      "tempo_list_after": [
+        [
+          "1 1 1 1",
+          "120"
+        ],
+        [
+          "5 3 2 60",
+          "120"
+        ]
+      ],
+      "modal_windows": 1,
+      "alert_text": "여러 개의 템포 이벤트가 발견되었습니다! 템포를 더 편집하려면 템포 목록 편집기를 사용하십시오.",
+      "alert_buttons": [
+        "확인"
+      ],
+      "note": "a verified:true answer for a write Logic refused and said so about"
+    },
+    {
+      "condition": "TWO tempo events, AFTER the fix",
+      "requested": 144,
+      "state": "C",
+      "success": false,
+      "error": "ax_write_failed",
+      "observed_field_value": 144,
+      "observed": null,
+      "verified": null,
+      "blocking_modal": "informational_alert",
+      "modal_raised_by_this_write": true,
+      "write_attempted": true,
+      "safe_to_retry": false,
+      "tempo_list_after": [
+        [
+          "1 1 1 1",
+          "120"
+        ],
+        [
+          "5 3 2 60",
+          "120"
+        ]
+      ]
+    },
+    {
+      "condition": "ONE tempo event, AFTER the fix",
+      "requested": 126,
+      "state": "A",
+      "observed": 126,
+      "tempo_list_after": [
+        [
+          "1 1 1 1",
+          "126"
+        ]
+      ],
+      "note": "the refusal is specific; the working case still works"
+    },
+    {
+      "what": "what the alert did to everything after it",
+      "logic_edit_undo": "State C element_not_found, 6 attempts, no effect — and this was first written up as an arrange-window precondition. Re-measured with no modal: undo works with the PLUG-IN window frontmost. The precondition claim is retracted; the alert was the cause.",
+      "file_import_audio_panel": "menu click returned, no panel in 78 s of polling",
+      "tempo_row_delete_paths_tried": [
+        "the pane's own 삭제 button (AX code 0, no effect)",
+        "편집 > 삭제",
+        "a real Delete keypress with the row AX-selected"
+      ],
+      "all_recovered_after": "clicking the alert's 확인 button"
+    },
+    {
+      "what": "how far the exposure SHAPE reaches, counted rather than guessed",
+      "state_A_sites_in_Sources/LogicProMCP/Channels": 40,
+      "files_containing_them": 13,
+      "files_that_ever_read_Logic's_modal_state": 3,
+      "files_that_never_do": 10,
+      "state_A_sites_in_files_that_never_do": 21,
+      "spot_checks": {
+        "mixer": "declares `verify_source: \"ax_slider\"` and reads the fader it wrote — the SAME shape as the tempo field",
+        "markers": "reads the marker LIST back and matches by name — a different surface from the control written",
+        "editing": "re-reads an observable window state, not the control written"
+      },
+      "note": "a count of where the shape COULD occur, not a list of defects: no other operation was driven to see whether Logic ever refuses it with a dialog"
+    },
+    {
+      "what": "what a blind review found in the FIRST version of the fix, and what replaced it",
+      "first_rule": "refuse when the classified modal KIND differs before and after the write",
+      "three_ways_that_was_wrong": [
+        "ModalReconciliation.classify answers .none for an UNREADABLE read — every signal it takes defaults to false — so the original false State A survived every failed after-read",
+        "a kind CHANGE (strayMenu -> informationalAlert) is not evidence this write caused anything",
+        "one informational alert REPLACED by another compares equal and slips through"
+      ],
+      "also_found": [
+        "the geometry-free direct AX write returned State B with no modal reading at all",
+        "Escape was pressed before any modal scan, and Escape can clear the very alert that is the evidence"
+      ],
+      "rule_now": "State A requires a COMPLETE modal read that is clean. A blocker present at all — whoever raised it — means the field cannot be read as the project's tempo, and an incomplete read means we do not know. Both refuse. The before-reading survives only as an annotation (`blocker_present_before_write`) and is not load-bearing.",
+      "mutation_checks": {
+        "disable the completeness check": "the unreadable-scan test goes red with State A verified:true observed 130",
+        "disable the presence check": "the alert test goes red with State A verified:true observed 144",
+        "restored": "10 of 10 green"
+      },
+      "round_2": {
+        "all_three_round_1_findings": "CLOSED",
+        "new_blocker_found": "State C `ax_write_failed` asserts the write itself did not succeed, and that is not what was observed — what was observed is that the write was attempted and the outcome cannot be read",
+        "fixed_to": "State C `readback_lost_after_write`. State C is kept because fail-closed matters more here than the failed/unverified distinction — a caller must not carry on as though the tempo changed — and the error code carries the distinction instead",
+        "also_found": "`blocker_present_before_write` was computed as `refusalLabel != nil`, which is also true when the BEFORE scan merely failed to read: it reported a blocker sighting nobody made. It is now `complete && kind != .none`, with a separate `blocker_scan_before_write` of `complete`/`unreadable`",
+        "test_gap_found": "none of the three tests protected the pre-Escape refusal — removing it left all three green. A fourth test now makes Escape clear the alert in the fixture, so only an observation taken before it can see anything",
+        "mutation_checks": {
+          "remove the pre-Escape refusal": "the new test goes red, error falls back to readback_mismatch with no blocker label",
+          "revert blocker_present_before_write to refusalLabel != nil": "the unreadable-scan test goes red"
+        }
+      },
+      "round_3": {
+        "R2-02_and_R2-03": "CLOSED",
+        "R2-01_partially_closed": "the error code is right everywhere in the function, but the HINT argued that the outcome was 'unknown rather than known to have failed' while riding a State C envelope whose contract says the write did not land. The hint no longer argues with the state; it describes what was observed and says the write is NOT confirmed.",
+        "third_site_found": "the geometry-free direct write still returned State B, and State B asserts `success: true` — 'the write landed but read-back could not confirm'. Nothing on that path establishes it landed, and with a blocker up the readback cannot either. It refuses on the same terms now; State B stays only for an absent readback on an otherwise clean Logic.",
+        "mutation_check": "restoring the State B claim turns the new test red with exactly the defect's signature, `state: B, success: true`",
+        "terminal_code_note": "`readback_lost_after_write` is in `terminalErrorCodes`, whose comment said those codes were exclusive to `logic_plugins.*`. That is no longer literally true. The conclusion holds — `transport.set_tempo` routes to `[.accessibility]` alone and a single-channel State C envelope is returned verbatim — and the comment now says so instead of asserting the old exclusivity."
+      },
+      "round_4": {
+        "R3-01": "CLOSED",
+        "R3-02_partially": "the geometry-free branch DISCARDED both AX results — `setAttribute` returns whether the write was accepted and `performAction` whether the confirm was — and then answered State B, `success: true`, after AX had said no. That failure IS establishable, so it is reported as `ax_write_failed` (nothing was lost to read; the write was refused) and marked `safe_to_retry: true`, unlike the blocked-readback refusal.",
+        "R3-03_partially": "`v2RoutingTable[...]?.count == 1` stayed green if the route changed to a different singleton such as `[.mcu]`. It asserts `== [.accessibility]` now.",
+        "doc_regression_fixed": "the branch's comment still said it 'needs no success gate' and 'does carry the blocker label', both false after the refusal gate landed",
+        "mutation_checks": {
+          "ignore the AX results again": "the new test goes red with `state: B, success: true`",
+          "point the routing assertion at [.mcu]": "the alert test goes red"
+        }
+      }
+    }
+  ],
+  "conclusion": "A tempo field holding the typed value is NOT the project holding that tempo. On a project with more than one tempo event, Logic refuses the control-bar tempo edit and says so with a single-button modal alert directing the caller to the Tempo List editor — and `set_tempo` answered State A with `verified: true` and `observed: 144` while both tempo rows stayed at 120. Every success branch verified against the same field it had written, which cannot tell a refusal from a success. The fix requires a COMPLETE, clean modal read before it will answer State A. A first version compared the classified kind before and after and refused on a difference; a blind review showed that inference cannot be made sound — an unreadable read classifies as `.none` and let the original false State A through, a kind change is not causation, and a replaced alert of the same kind compares equal — so the claim was narrowed to one this function can support. The alert also wedged everything that followed it — undo, the audio-import panel, and three separate delete paths — which is why several earlier readings in this session were taken against a blocked Logic.",
+  "limits": [
+    "The fix makes the operation HONEST, not capable. A project with two tempo events still cannot have its tempo written through this operation; it now says so instead of claiming success. Whether the Tempo List editor offers a writable path was not measured.",
+    "One locale. The alert was identified by its shape — a top-level AXDialog with exactly one button — and never by its Korean text, so the fix is locale-independent, but that was reasoned rather than measured on a second locale.",
+    "Two tempo events, both at 120 bpm. Nothing here says what happens with three, or with events at different tempos.",
+    "The exposure SHAPE was counted, the exposure was not. 21 of the 40 State A sites under `Sources/LogicProMCP/Channels` sit in the 10 files that never read Logic's modal state, and `mixer.set_volume` declares `verify_source: \"ax_slider\"` — it reads the fader it wrote, exactly the shape that made this defect. But a shape is not a defect: the REFUSAL here is specific (Logic objects to a control-bar tempo edit when the project holds more than one tempo event), and no other operation was driven to find out whether Logic ever answers it with a dialog. Nothing here says those 21 sites are wrong; it says a refusal of this kind could not be detected at them.",
+    "It does not DISMISS the blocker. The refusal reports it and stops; clearing it is the preflight reconciler's job on the next operation, and whether that actually runs on this path was not driven.",
+    "The gate refuses while ANY blocker is up, including one this call did not cause, and answers State C `readback_lost_after_write` — `success: false` with the outcome named unknown rather than failed. That is a deliberate false-negative in the fail-closed direction: a stuck dialog makes every tempo write refuse until it is cleared, and `blocker_present_before_write` tells the caller which problem to fix. A reviewer argued State B would carry the 'unverified' distinction more structurally; State B asserts `success: true`, which would be the more dangerous overclaim here.",
+    "One post-write scan, taken once. A modal published after that scan, or one that disappears during it, is not seen — the reviewer named both and neither was measured. The direct-write branch scans immediately after confirm with no wait, so an asynchronously raised alert can arrive too late for its label.",
+    "The contract has three states and this situation fits none cleanly. State A needs confirmation, State B asserts the write landed, State C says it did not. An attempted write whose outcome cannot be read is reported as State C `readback_lost_after_write`: fail-closed, because a caller carrying on as though the tempo changed is the worse error. A reviewer's objection stands on the record — State C's own definition is stronger than the evidence — and resolving it properly would mean changing the contract, which is not this fix's to do.",
+    "Two holes the reviewer named and this change does NOT close, both timing: a blocker seen before the write that disappears before the post-write scan lets the direct branch answer State B; and a modal published after that single scan is never seen. Neither was measured. The pre-write observation is deliberately non-load-bearing, so the first is a consequence of refusing to infer causation from it rather than an oversight."
+  ],
+  "supersedes": null
+}
