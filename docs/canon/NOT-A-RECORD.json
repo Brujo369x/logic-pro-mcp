@@ -1,0 +1,7 @@
+{
+  "note": "Files in docs/observations that are deliberately not observation records. Read from a file rather than held as a module constant so the merge-base ratchet can compare it: a constant is edited in the same commit as the thing it excuses.",
+  "files": [
+    "RATCHETS.json",
+    "LOGIC-BUILD.json"
+  ]
+}

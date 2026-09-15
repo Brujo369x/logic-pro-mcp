@@ -159,7 +159,9 @@ def check_waivers_only_shrink(failures: list) -> None:
     for path, key, what in (
             (os.path.relpath(WITHOUT_CANON_PATH, REPO), "records", "records predating the canon axis"),
             (os.path.relpath(POLICY_CLASSIFICATION, REPO), "literals",
-             "literals classified as answered nowhere in Logic")):
+             "literals classified as answered nowhere in Logic"),
+            (os.path.relpath(NOT_A_RECORD_PATH, REPO), "files",
+             "files in docs/observations that are declared not to be records")):
         before = _at_base(base, path)
         if before is None:
             continue
@@ -235,7 +237,15 @@ def required_corpora(manifest: dict):
 
 
 #: The files in `docs/observations/` that are deliberately not records.
-NOT_A_RECORD = {"RATCHETS.json", "LOGIC-BUILD.json"}
+#: Read from a FILE, not held as a module constant, so `check_waivers_only_shrink` can compare it
+#: against the merge base. A constant is edited in the same commit as the thing it excuses, which
+#: is the hole rule 7 exists to close -- and it was open here and in
+#: `check-every-ci-job-is-required.py` while rule 7 guarded two other lists.
+NOT_A_RECORD_PATH = os.path.join(REPO, "docs", "canon", "NOT-A-RECORD.json")
+
+
+def not_a_record() -> set:
+    return _waiver(NOT_A_RECORD_PATH, "files")
 
 
 BINDING_KINDS = ("code", "record")
@@ -247,7 +257,8 @@ BINDING_RECORD_FIELDS = ("observations", "conclusion", "method", "question", "su
                          "canon_absent", "evidence")
 
 
-def check_binding(where: str, citation: dict, record: dict, failures: list) -> None:
+def check_binding(where: str, citation: dict, record: dict, failures: list,
+                  changed_paths=None) -> None:
     """Rule 9: a citation must be LOAD-BEARING, not decorative.
 
     Citing is not using. Before this, a record could carry a reference that resolved with the right
@@ -301,6 +312,17 @@ def check_binding(where: str, citation: dict, record: dict, failures: list) -> N
                 f"{where}: neither the cited value nor the key {ref.key!r} appears in {path}. "
                 f"The citation says that file rests on this canonical value and the file does not "
                 f"contain it.")
+            return
+        # ...and the file must be one THIS CHANGE touches. Without the list, a binding proved only
+        # that the REPOSITORY contains the value somewhere -- a citation could point at a file the
+        # change never opened and pass. The requirement was that the canonical source be used as
+        # the source of truth IN THIS CHANGE, and "somewhere in the tree" is not that.
+        if changed_paths is not None and path not in changed_paths:
+            failures.append(
+                f"{where}: binding.path {path!r} is not a file this change touches. A citation "
+                f"bound to code the change never opened says the repository holds the value, not "
+                f"that this change rests on it. Bind to a file in the diff, or use "
+                f"{{\"kind\": \"record\"}} if the citation backs a reading rather than code.")
         return
 
     substantive = canon.normalize(json.dumps(
@@ -334,7 +356,7 @@ def check_every_json_is_a_record_or_declared(failures: list) -> None:
     """
     for path in sorted(glob.glob(os.path.join(REPO, "docs", "observations", "*.json"))):
         name = os.path.basename(path)
-        if name in NOT_A_RECORD:
+        if name in not_a_record():
             continue
         if not (len(name) > 10 and name[:4].isdigit() and name[4] == "-"):
             failures.append(
@@ -377,7 +399,8 @@ def check_references(failures: list) -> int:
     return len(found)
 
 
-def check_record(path: str, failures: list, without_canon: set, manifest: dict) -> None:
+def check_record(path: str, failures: list, without_canon: set, manifest: dict,
+                 changed_paths=None) -> None:
     rel = os.path.relpath(path, REPO)
     with open(path, "r", encoding="utf-8") as handle:
         record = json.load(handle)
@@ -410,7 +433,7 @@ def check_record(path: str, failures: list, without_canon: set, manifest: dict) 
             canon.check_citation(citation["ref"], citation["value"])
         except canon.CanonError as exc:
             failures.append(f"{where}: {exc}")
-        check_binding(where, citation, record, failures)
+        check_binding(where, citation, record, failures, changed_paths)
 
     wanted = required_corpora(manifest)
     for index, absence in enumerate(absences):
@@ -486,7 +509,7 @@ def logic_facing(changed):
 
 
 
-def check_text(path: str, changed_paths=None) -> int:
+def check_text(path: str, changed_paths=None, *, require_changed: bool = False) -> int:
     """Validate the canonical citations in a pull request or issue body.
 
     The tree-wide check cannot see this text -- a pull request body is not a file in the tree, and
@@ -496,6 +519,16 @@ def check_text(path: str, changed_paths=None) -> int:
     """
     with open(path, "r", encoding="utf-8") as handle:
         body = handle.read()
+
+    if require_changed and not changed_paths:
+        print(f"{path}: the list of changed files is empty, so whether this change may opt out "
+              f"cannot be derived.\n"
+              f"  A pull request changes something. An empty list means the diff command failed, "
+              f"and the CI step's\n"
+              f"  `||` fallback turns that into a file with nothing in it -- which used to REOPEN "
+              f"the opt-out for a\n"
+              f"  change that edits Logic-facing paths. Fail closed instead.", file=sys.stderr)
+        return 1
 
     touched = logic_facing(changed_paths)
     references = canon.find_refs(body)
@@ -507,6 +540,17 @@ def check_text(path: str, changed_paths=None) -> int:
                   f"  Cite what those claims rest on. See docs/canon/README.md.", file=sys.stderr)
             return 1
         if NO_FACT_OPT_OUT in _visible(body):
+            # ...unless the body QUOTES something citable. The opt-out says "this states no fact
+            # about Logic", and a body carrying a string Logic ships is stating one. This is the
+            # only check available for an issue, which changes no files and so has nothing to
+            # derive the opt-out from -- and it tightens the pull request path for free.
+            quoted = _citable_strings_in(body)
+            if quoted:
+                print(f"{path}: says {NO_FACT_OPT_OUT!r} and quotes {len(quoted)} string(s) the "
+                      f"corpus holds, first {quoted[0][:50]!r}.\n"
+                      f"  A body that quotes a string Logic ships is stating a fact about Logic. "
+                      f"Cite it.", file=sys.stderr)
+                return 1
             print(f"{path}: no citation, and it says so: {NO_FACT_OPT_OUT!r}")
             return 0
         print(f"{path}: no canonical reference, and no opt-out.\n"
@@ -548,6 +592,35 @@ def check_text(path: str, changed_paths=None) -> int:
     return 0
 
 
+#: Shortest quoted run worth testing. Below this a fragment hits the corpus by coincidence.
+CITABLE_QUOTE_MIN = 6
+
+
+def _citable_strings_in(body: str) -> list:
+    """Quoted or backticked runs in the body that the pinned corpus actually holds.
+
+    Only text the author DELIMITED -- between quotes or backticks. Scanning whole sentences would
+    hit every common word; scanning what somebody set apart as a string is scanning what they meant
+    as one.
+    """
+    manifest = canon.load_manifest()
+    corpora = sorted(required_corpora(manifest))
+    found = []
+    for candidate in re.findall(r'[`"\u201c\u2018]([^`"\u201d\u2019\n]{%d,120})[`"\u201d\u2019]'
+                                % CITABLE_QUOTE_MIN, body):
+        text = canon.normalize(candidate)
+        if not text:
+            continue
+        for source, locale in corpora:
+            try:
+                if not canon.is_absent(source, locale, text):
+                    found.append(text)
+                    break
+            except canon.CanonError:
+                continue
+    return found
+
+
 def _quotes_the_value(folded_body: str, ref, committed: str) -> bool:
     """Whether some line of the body hashes to the digest the index pins for this reference.
 
@@ -563,13 +636,29 @@ def _quotes_the_value(folded_body: str, ref, committed: str) -> bool:
     return False
 
 
+def _changed_from_argv():
+    """The changed-file list for the tree-wide run, or None when it was not given.
+
+    None means "do not check which files the change touches", which is the behaviour every run
+    before this had. It is not a default that weakens anything silently: `--changed` is what CI
+    passes, and a local run without it says less rather than passing something wrong.
+    """
+    if "--changed" in sys.argv:
+        index = sys.argv.index("--changed")
+        if index + 1 < len(sys.argv):
+            with open(sys.argv[index + 1], "r", encoding="utf-8") as handle:
+                return [line.strip() for line in handle if line.strip()]
+    return None
+
+
 def main() -> int:
     if len(sys.argv) >= 3 and sys.argv[1] == "--text":
-        changed = []
+        changed, required = [], False
         if len(sys.argv) == 5 and sys.argv[3] == "--changed":
+            required = True
             with open(sys.argv[4], "r", encoding="utf-8") as handle:
                 changed = [line.strip() for line in handle if line.strip()]
-        return check_text(sys.argv[2], changed)
+        return check_text(sys.argv[2], changed, require_changed=required)
 
     failures: list = []
 
@@ -585,15 +674,17 @@ def main() -> int:
             f"were never comparable, so they are not compared. Rebuild on a machine with Logic.")
 
     failures.extend(canon.verify_artifacts(manifest))
+    failures.extend(canon.verify_absence_counts(manifest))
     failures.extend(canon.verify_index_against_absence())
     check_build_agrees_with_the_ledger(manifest, failures)
     check_waivers_only_shrink(failures)
     check_every_json_is_a_record_or_declared(failures)
+    changed = _changed_from_argv()
     references = check_references(failures)
     without_canon = load_without_canon()
     records = observation_records()
     for path in records:
-        check_record(path, failures, without_canon, manifest)
+        check_record(path, failures, without_canon, manifest, changed)
 
     stale = sorted(without_canon - {os.path.relpath(p, REPO) for p in records})
     for entry in stale:

@@ -357,6 +357,40 @@ class GuardBehaviour(unittest.TestCase):
         self.assertIn("must search EVERY corpus", result.stderr)
 
 
+class TheGapsReviewFound(unittest.TestCase):
+    """One case per hole that was open after the first five reviews, found on a second pass."""
+
+    def _check(self, body, changed=None):
+        handle = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8")
+        handle.write(body)
+        handle.close()
+        self.addCleanup(os.remove, handle.name)
+        args = [sys.executable, GUARD, "--text", handle.name]
+        if changed is not None:
+            ch = tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8")
+            ch.write("\n".join(changed))
+            ch.close()
+            self.addCleanup(os.remove, ch.name)
+            args += ["--changed", ch.name]
+        return subprocess.run(args, capture_output=True, text=True)
+
+    def test_an_empty_changed_list_fails_closed(self):
+        """The CI step's `||` fallback can produce one, and it used to REOPEN the opt-out."""
+        result = self._check("This states no fact about Logic.\n", changed=[])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("cannot be derived", result.stderr)
+
+    def test_the_opt_out_is_refused_when_the_body_quotes_something_citable(self):
+        """An issue changes no files, so this is the only check available there."""
+        result = self._check(f'Logic shows "{REAL_VALUE}" here. This states no fact about Logic.\n')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("quotes", result.stderr)
+
+    def test_a_body_that_opts_out_and_quotes_nothing_citable_passes(self):
+        result = self._check("This renames a private helper and states no fact about Logic.\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
 class PullRequestBody(unittest.TestCase):
     """--text mode. The rule was NAMED for pull requests and enforced only for files."""
 

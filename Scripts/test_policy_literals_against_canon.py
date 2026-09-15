@@ -71,6 +71,21 @@ class Extraction(unittest.TestCase):
     def test_a_labelset_without_a_locales_field_still_parses(self):
         self.assertEqual(guard.policy_literals(SAMPLE), {"Record", "녹음", "録音", "Play"})
 
+    def test_cjk_literals_outside_a_labelset_are_harvested(self):
+        """74 Logic labels were living outside `LabelSet(` and every part of this saw none of them."""
+        source = '''
+        if desc == "재생" || desc == "녹음" { return .transport }
+        let menu = "파일"
+'''
+        found = guard.bare_literals(source)
+        self.assertEqual(found, {"재생", "녹음", "파일"})
+
+    def test_a_cjk_literal_inside_a_labelset_is_not_double_counted_as_bare(self):
+        self.assertEqual(guard.bare_literals(SAMPLE), set())
+
+    def test_a_cjk_literal_in_a_comment_is_not_harvested(self):
+        self.assertEqual(guard.bare_literals('    // 재생 은 주석이다\n'), set())
+
     def test_the_nbsp_in_a_variant_is_folded(self):
         self.assertIn("녹음", guard.policy_literals(SAMPLE))
 
@@ -90,7 +105,13 @@ class Ratchet(unittest.TestCase):
         root = tempfile.mkdtemp(prefix="policy-canon-")
         self.addCleanup(shutil.rmtree, root, ignore_errors=True)
         os.makedirs(os.path.join(root, "Scripts"))
-        os.makedirs(os.path.join(root, "docs", "canon"))
+        os.makedirs(os.path.join(root, "docs"))
+        # The WHOLE canon directory: the guard now verifies each classification against the
+        # committed absence sets, which needs MANIFEST.json and absence/*.u32 beside it. Copying
+        # only POLICY-LITERALS.json made every case fail on a missing manifest rather than on the
+        # defect it injected -- a fixture that is a subset of what the guard reads tests nothing.
+        shutil.copytree(os.path.join(REPO, "docs", "canon"),
+                        os.path.join(root, "docs", "canon"))
         for name in ("logic_canon.py", "nibarchive.py",
                      "check-policy-literals-against-canon.py"):
             shutil.copy2(os.path.join(REPO, "Scripts", name), os.path.join(root, "Scripts", name))

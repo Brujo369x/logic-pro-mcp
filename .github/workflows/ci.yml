@@ -46,6 +46,15 @@ jobs:
           # The guard fails outright under CI rather than degrading to comparing a file with itself.
           fetch-depth: 0
 
+      - name: Citations in the tree bind to files this change touches
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch --no-tags origin "$BASE" 2>/dev/null || true
+          git diff --name-only "origin/$BASE...HEAD" > /tmp/pr-changed.txt
+          test -s /tmp/pr-changed.txt
+          python3 Scripts/check-canon-citations.py --changed /tmp/pr-changed.txt
+
       - name: The pull request body cites Logic, or says it states no fact about Logic
         env:
           GH_TOKEN: ${{ github.token }}

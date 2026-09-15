@@ -450,7 +450,13 @@ def _pct_decode(text: str) -> str:
     out = bytearray()
     i = 0
     while i < len(text):
-        if text[i] == "%" and i + 2 < len(text) + 1:
+        if text[i] == "%":
+            # A bare `%` is refused rather than passed through. Passing it made decoding
+            # NON-INJECTIVE -- `100%` and `100%25` both decoded to `100%` -- so two different
+            # reference strings named one key. `_pct_encode` never emits a bare `%`, so this can
+            # only reach a hand-written reference, which is exactly where a silent alias is worst.
+            if i + 3 > len(text):
+                raise CanonRefError(f"truncated percent escape at the end of {text!r}")
             try:
                 out.extend(binascii.unhexlify(text[i + 1:i + 3]))
             except (binascii.Error, ValueError) as exc:
@@ -1145,7 +1151,13 @@ _SKIP_FILES = {
     os.path.join("Scripts", "logic_canon.py"),
     os.path.join("Scripts", "check-canon-citations.py"),
 }
-_TEXT_SUFFIXES = {".json", ".md", ".swift", ".py", ".sh", ".yml", ".yaml", ".tsv", ".txt"}
+#: Deliberately broad. A citation in a file type nobody listed is a citation nobody checks, and
+#: the first list stopped at nine suffixes -- so a reference in a `.rb` Formula, a `.toml`, a
+#: `.strings` fixture or an extensionless script was invisible. Reading a file that turns out to be
+#: binary costs a caught UnicodeDecodeError, which is cheaper than the hole.
+_TEXT_SUFFIXES = {".json", ".md", ".swift", ".py", ".sh", ".yml", ".yaml", ".tsv", ".txt",
+                  ".rb", ".toml", ".cfg", ".ini", ".xml", ".plist", ".strings", ".jsonc",
+                  ".mjs", ".js", ".ts", ".c", ".h", ".m", ".mm", ".bash", ".zsh", ".env", ""}
 
 
 def scan_repo_citations(repo: str = REPO) -> dict[str, list[str]]:
@@ -1181,6 +1193,43 @@ def scan_repo_citations(repo: str = REPO) -> dict[str, list[str]]:
 # ---------------------------------------------------------------------------
 # build
 # ---------------------------------------------------------------------------
+
+def round_trip_report(app: str) -> dict:
+    """Compose every QuickHelp entry the way Logic does, parse it back, and require the same keys.
+
+    This is the assertion the parser rests on, and it was a TEST -- one that skips without Logic,
+    which is every CI runner, so the strongest check in the suite ran nowhere that mattered.
+
+    The fix is not to weaken it. It is to run it where the corpus is: `build` is the only thing that
+    ever touches Apple's bytes, so `build` is where a claim about them belongs. A corpus that fails
+    the round trip does not get an index written for it, and everything offline is checked against
+    an index that could only have come from a corpus that passed.
+
+    Both tiers, and a runtime prefix on each, because the prefix is what a live reading carries.
+    """
+    out = {}
+    prefixes = ["\ud074", "\uc7ac\uc0dd   \u2305",
+                "\uc774 \ucee8\ud2b8\ub864\uc744 \uc0ac\uc6a9\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4."]
+    for locale in EXPECTED_LOCALES:
+        path = os.path.join(app, "Contents", "Resources", f"{locale}.lproj", "QuickHelp.plist")
+        if not os.path.exists(path):
+            continue
+        index = QuickHelpIndex.from_app(app, locale)
+        checked = bare = prefixed = 0
+        for position, (composed, keys) in enumerate(sorted(index.by_composed.items())):
+            if len(composed) < index.min_anchor:
+                continue
+            checked += 1
+            match = index.parse_axhelp(composed)
+            if match is not None and set(match.keys) == set(keys):
+                bare += 1
+            prefix = prefixes[position % len(prefixes)]
+            match = index.parse_axhelp(f"{prefix}, {composed}")
+            if match is not None and set(match.keys) == set(keys) and match.prefix == prefix:
+                prefixed += 1
+        out[locale] = {"compositions": checked, "whole": bare, "with_a_runtime_prefix": prefixed}
+    return out
+
 
 def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = REPO) -> dict:
     """Extract the corpus, write the absence sets, pin the manifest, resolve every citation.
@@ -1219,6 +1268,16 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
             values_by_locale.setdefault(locale, set()).add(folded)
             rows[(unit, locale, key, field)] = short_digest(value)
         if source == "quickhelp" and EXPECTED_LOCALES:
+            # BOTH directions. The first version compared only one way, so a Logic that ADDED a
+            # locale left the corpus quietly narrower than the application -- and every absence
+            # claim would then be taken over nine tenths of what Apple ships while reading as
+            # though it covered all of it.
+            extra = sorted(set(values_by_locale) - set(EXPECTED_LOCALES))
+            if extra:
+                raise CanonError(
+                    f"QuickHelp ships locales this build does not know about: {extra}. Add them to "
+                    f"EXPECTED_LOCALES -- an absence claim over a corpus narrower than the "
+                    f"application is not a proof about the application. Nothing has been written.")
             missing = sorted(set(EXPECTED_LOCALES) - set(values_by_locale))
             if missing:
                 # BEFORE any write. The check used to run after the loop below, which had already
@@ -1284,6 +1343,19 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
     # a hand-typed row makes any quote pass, and `absence/*.u32` is what an absence claim is proved
     # against, so a truncated file makes any string look absent. Both are generated files that look
     # exactly like edited ones.
+    if "quickhelp" in manifest["sources"]:
+        report = round_trip_report(app)
+        manifest["sources"]["quickhelp"]["round_trip"] = report
+        broken = {locale: row for locale, row in report.items()
+                  if row["whole"] != row["compositions"]
+                  or row["with_a_runtime_prefix"] != row["compositions"]}
+        if broken:
+            raise CanonError(
+                f"the parser does not round trip this corpus: {broken}. An index written over a "
+                f"corpus the parser cannot reverse is an index whose citations mean nothing, so "
+                f"nothing is written. This check lives here rather than in a test because a test "
+                f"that needs Logic runs nowhere that gates anything.")
+
     manifest["artifacts"] = artifact_digests()
     os.makedirs(CANON_DIR, exist_ok=True)
     with open(MANIFEST_PATH, "w", encoding="utf-8") as handle:
@@ -1340,6 +1412,34 @@ def artifact_digests() -> dict:
             if os.path.isfile(path):
                 out[os.path.relpath(path, CANON_DIR)] = _file_digest(path)
     return out
+
+
+def verify_absence_counts(manifest: dict) -> list:
+    """Every absence set holds the number of entries the manifest says it holds.
+
+    `verify_artifacts` digests the files, which catches an edit -- but only against a manifest
+    nobody also edited. This is the cheap second reading: the manifest states a COUNT per locale,
+    and a shrunken absence set has fewer. Removing an entry is how a string Logic ships is proved
+    absent, and the demonstration is one line: drop one value, rewrite the header, and
+    `is_absent` flips from False to True for a string that is in the corpus.
+
+    It is not a cryptographic control and nothing offline can be. It makes the forgery need three
+    consistent edits -- the binary set, its digest, and a number a reviewer reads -- instead of two.
+    """
+    problems = []
+    for source, block in (manifest.get("sources") or {}).items():
+        for locale, declared in (block.get("absence_entries") or {}).items():
+            try:
+                found = len(load_absence(source, locale))
+            except CanonError as exc:
+                problems.append(f"absence/{source}.{locale}.u32: {exc}")
+                continue
+            if found != declared:
+                problems.append(
+                    f"absence/{source}.{locale}.u32 holds {found} entries and MANIFEST.json "
+                    f"declares {declared}. A set that lost entries proves strings absent that "
+                    f"Logic ships.")
+    return problems
 
 
 def verify_index_against_absence() -> list:

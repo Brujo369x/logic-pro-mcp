@@ -132,7 +132,59 @@
         "pt",
         "zh_CN",
         "zh_TW"
-      ]
+      ],
+      "round_trip": {
+        "de": {
+          "compositions": 7026,
+          "whole": 7026,
+          "with_a_runtime_prefix": 7026
+        },
+        "en": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        },
+        "es": {
+          "compositions": 7036,
+          "whole": 7036,
+          "with_a_runtime_prefix": 7036
+        },
+        "fr": {
+          "compositions": 7034,
+          "whole": 7034,
+          "with_a_runtime_prefix": 7034
+        },
+        "it": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        },
+        "ja": {
+          "compositions": 7030,
+          "whole": 7030,
+          "with_a_runtime_prefix": 7030
+        },
+        "ko": {
+          "compositions": 7058,
+          "whole": 7058,
+          "with_a_runtime_prefix": 7058
+        },
+        "pt": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        },
+        "zh_CN": {
+          "compositions": 7031,
+          "whole": 7031,
+          "with_a_runtime_prefix": 7031
+        },
+        "zh_TW": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        }
+      }
     },
     "strings": {
       "absence_entries": {

@@ -12,6 +12,7 @@ with and without a runtime prefix, and requires the parser to name the key it st
 against every key rather than a sample, because the interesting cases are the rare ones.
 """
 import importlib.util
+import json
 import os
 import shutil
 import sys
@@ -305,6 +306,28 @@ class TheLoadBearingComparisons(unittest.TestCase):
         with self.assertRaises(canon.CanonRefError):
             canon.CanonRef.parse("logic-canon://quickhelp/QuickHelp/ko/#composed")
 
+    def test_decoding_is_injective(self):
+        """`100%` and `100%25` both decoded to `100%`, so two references named one key."""
+        with self.assertRaises(canon.CanonRefError):
+            canon._pct_decode("100%")
+        self.assertEqual(canon._pct_decode("100%25"), "100%")
+
+    def test_absence_counts_are_checked_against_the_manifest(self):
+        import struct
+        saved, canon.ABSENCE_DIR = canon.ABSENCE_DIR, self.tmp
+        try:
+            canon.write_absence("t", "ko", ["a-value", "b-value", "c-value"])
+            manifest = {"sources": {"t": {"absence_entries": {"ko": 3}}}}
+            self.assertEqual(canon.verify_absence_counts(manifest), [])
+            table = canon.load_absence("t", "ko")[:-1]
+            with open(canon.absence_path("t", "ko"), "wb") as handle:
+                handle.write(b"LCA1" + struct.pack(">I", len(table))
+                             + b"".join(struct.pack(">I", x) for x in table))
+            problems = canon.verify_absence_counts(manifest)
+            self.assertTrue(any("lost entries" in p for p in problems), problems)
+        finally:
+            canon.ABSENCE_DIR = saved
+
     def test_a_malformed_percent_escape_raises_rather_than_decoding_to_something(self):
         with self.assertRaises(canon.CanonRefError):
             canon._pct_decode("%ZZ")
@@ -403,6 +426,102 @@ class CitationAndArtifactChecks(unittest.TestCase):
         problems = canon.verify_index_against_absence()
         self.assertTrue(any("FORGED" in p for p in problems), problems)
 
+
+
+class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
+    """The round trip, run in CI, over a corpus SHAPED like Apple's but written by us.
+
+    The strongest assertion in this file -- compose every entry, parse it back, require the same
+    keys -- can only run where the corpus is, and the corpus is inside Logic, which no CI runner
+    has. So it moved to `build`, which refuses to write an index over a corpus it cannot reverse.
+
+    That leaves nothing running in CI, and a check that runs nowhere the merge is gated is the
+    shape this whole change exists to refuse. So: a surrogate.
+
+    The TEXT is ours. The SHAPE is read from `docs/canon/MANIFEST.json` -- the minimum composition
+    length, how many compositions share their string, and how many are suffixes of another -- which
+    are numbers the repository already publishes. Every structural case the real corpus has is
+    built here, so the code paths a real defect would take are the paths this exercises.
+
+    What it does NOT do, said plainly: it cannot catch a defect that depends on the CONTENT of
+    Apple's strings rather than their shape -- a normalization edge in Hangul, say. That one is
+    caught at build time or not at all, and the manifest records that it was.
+    """
+
+    def _shape(self):
+        path = os.path.join(REPO, "docs", "canon", "MANIFEST.json")
+        if not os.path.exists(path):
+            self.skipTest("no manifest to read the corpus shape from")
+        with open(path, encoding="utf-8") as handle:
+            manifest = json.load(handle)
+        return manifest["sources"]["quickhelp"]
+
+    def _surrogate(self, *, shared=3, suffix_pairs=40, shortest=8):
+        """A composition table with every structural case, in text nobody else wrote."""
+        by_composed = {}
+        # Plain entries, one key each, at and above the anchor floor.
+        for n in range(200):
+            by_composed[f"Widget {n} control. It does the thing numbered {n}."] = [f"PLAIN_{n}"]
+        # Compositions at exactly the corpus minimum length.
+        for n in range(5):
+            by_composed[("s" * shortest) + str(n)] = [f"SHORT_{n}"]
+        # Shared compositions: several keys behind one string, which the real corpus has 3,766 of.
+        for n in range(30):
+            by_composed[f"Shared surface {n}. Two controls read identically here."] = [
+                f"SHARED_{n}_{k}" for k in range(shared)]
+        # Suffix-containment pairs: a shorter composition that is the tail of a longer one, which
+        # is where longest-match is the only thing keeping the answer right.
+        for n in range(suffix_pairs):
+            tail = f"Gain knob {n}. Amplifies or attenuates the signal."
+            by_composed[tail] = [f"TAIL_{n}"]
+            by_composed[f"Filter {tail}"] = [f"HEAD_{n}"]
+        return canon.QuickHelpIndex("xx", {canon.normalize(k): v for k, v in by_composed.items()})
+
+    def test_every_composition_round_trips_whole(self):
+        index = self._surrogate()
+        wrong = [c for c, keys in index.by_composed.items()
+                 if (index.parse_axhelp(c) or type("x", (), {"keys": []})).keys != keys]
+        self.assertEqual(wrong[:3], [], f"{len(wrong)} of {len(index.by_composed)} did not round trip")
+
+    def test_a_runtime_prefix_never_changes_the_answer(self):
+        index = self._surrogate()
+        prefixes = ["Off", "Play   \u2305", "This control is unavailable. Reason: no track."]
+        wrong = []
+        for position, (composed, keys) in enumerate(sorted(index.by_composed.items())):
+            prefix = prefixes[position % len(prefixes)]
+            match = index.parse_axhelp(f"{prefix}, {composed}")
+            if match is None or match.keys != keys or match.prefix != prefix:
+                wrong.append(composed)
+        self.assertEqual(wrong[:3], [], f"{len(wrong)} prefixed compositions did not round trip")
+
+    def test_longest_match_wins_on_every_suffix_pair(self):
+        """The property the real corpus's 65 suffix pairs rest on, exercised on 40 built ones."""
+        index = self._surrogate()
+        for composed, keys in index.by_composed.items():
+            if keys[0].startswith("HEAD_"):
+                self.assertEqual(index.parse_axhelp(composed).keys, keys, composed)
+
+    def test_the_surrogate_is_shaped_like_the_real_corpus(self):
+        """Read the shape rather than assume it, or the surrogate drifts from what it stands for."""
+        shape = self._shape()
+        self.assertIn("round_trip", shape)
+        for locale, row in shape["round_trip"].items():
+            self.assertEqual(row["whole"], row["compositions"], locale)
+            self.assertEqual(row["with_a_runtime_prefix"], row["compositions"], locale)
+
+    def test_the_surrogate_would_catch_a_shortest_match_parser(self):
+        """A control that cannot fail is not a control.
+
+        Asserts the property directly rather than mutating the module: on a suffix pair, the
+        answer must be the LONGER composition's key. A parser that took the shortest match would
+        return the tail's key here, and this is the assertion that would then fail.
+        """
+        index = self._surrogate()
+        head = next(c for c, k in sorted(index.by_composed.items()) if k[0] == "HEAD_0")
+        tail = next(c for c, k in sorted(index.by_composed.items()) if k[0] == "TAIL_0")
+        self.assertTrue(head.endswith(tail), "the fixture must actually contain a suffix pair")
+        self.assertEqual(index.parse_axhelp(head).keys, ["HEAD_0"])
+        self.assertEqual(index.parse_axhelp(tail).keys, ["TAIL_0"])
 
 
 @unittest.skipUnless(HAVE_LOGIC, "needs Logic installed")
