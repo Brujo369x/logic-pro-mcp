@@ -48,10 +48,17 @@ jobs:
 
       - name: Citations in the tree bind to files this change touches
         env:
-          BASE: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
-          git fetch --no-tags origin "$BASE" 2>/dev/null || true
-          git diff --name-only "origin/$BASE...HEAD" > /tmp/pr-changed.txt
+          # The API, not `git diff`. The plumbing version assumed `actions/checkout` had created
+          # `origin/$BASE` and that the merge ref resolved -- true for a same-repo pull request and
+          # UNTESTED for one from a fork, which this repository takes. `gh pr view --json files`
+          # answers the same question through ONE mechanism, verified against two real fork pull
+          # requests (40 and 9 files). `test -s` keeps the empty case failing closed: an empty list
+          # means the query failed, and an empty list used to reopen the opt-out.
+          gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files -q '.files[].path' \
+            > /tmp/pr-changed.txt
           test -s /tmp/pr-changed.txt
           python3 Scripts/check-canon-citations.py --changed /tmp/pr-changed.txt
 
@@ -59,16 +66,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
-          BASE: ${{ github.event.pull_request.base.ref }}
         run: |
           gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body -q .body > /tmp/pr-body.md
           # Whether this change may opt out is derived from what it TOUCHES, not from what its
           # description says about itself. Without the file list the opt-out is one sentence
           # anybody can type, and review walked through it three ways.
-          git fetch --no-tags --depth=1 origin "$BASE" 2>/dev/null || true
-          git diff --name-only "origin/$BASE...HEAD" > /tmp/pr-changed.txt \
-            || git diff --name-only "$(git merge-base HEAD "origin/$BASE")" HEAD > /tmp/pr-changed.txt
-          wc -l < /tmp/pr-changed.txt
+          gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files -q '.files[].path' \
+            > /tmp/pr-changed.txt
+          test -s /tmp/pr-changed.txt
           python3 Scripts/check-canon-citations.py \
             --text /tmp/pr-body.md --changed /tmp/pr-changed.txt
 

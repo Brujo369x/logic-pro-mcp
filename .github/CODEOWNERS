@@ -22,9 +22,11 @@
 # it is a tracked file too -- so an offline check cannot tell a build from a forgery committed
 # alongside a matching manifest. Review 2026-09-15 demonstrated exactly that in three edits.
 #
-# No offline control closes it. A human one does: these paths get a review from someone who can ask
-# where the bytes came from. That is the honest boundary, and `docs/canon/README.md` says so
-# instead of implying the digests are a trust anchor they are not.
+# These entries are, measured 2026-09-15, INERT: the branch ruleset has
+# `require_code_owner_review: false` and `required_approving_review_count: 0`, which is the right
+# setting for a solo maintainer who cannot approve their own pull request. They are kept as a
+# statement of who owns these paths, and `docs/canon/README.md` says plainly that they are not a
+# control today.
 /docs/canon/                                 @MongLong0214
 /Scripts/logic_canon.py                      @MongLong0214
 /Scripts/check-canon-citations.py            @MongLong0214

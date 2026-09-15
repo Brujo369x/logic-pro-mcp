@@ -261,6 +261,46 @@ BINDING_RECORD_FIELDS = ("observations", "conclusion", "method", "question", "su
                          "canon_absent", "evidence")
 
 
+#: Comment syntaxes for the file types a binding can name. A value sitting only in a comment used
+#: to satisfy a `code` binding -- the docstring said so, and review confirmed it by putting one in
+#: a `//` line of an otherwise empty file and watching it pass. It was written up as a limitation
+#: whose fix "needs the binding to name a symbol AND the build to confirm the symbol carries it".
+#: That is the strong form. This is the cheap one, and it closes the case that was demonstrated:
+#: strip the comments, and a value living only in one is gone.
+_COMMENT_SYNTAX = {
+    ".swift": [(r"//[^\n]*", ""), (r"/\*.*?\*/", " ")],
+    ".py": [(r"#[^\n]*", "")],
+    ".sh": [(r"#[^\n]*", "")],
+    ".yml": [(r"#[^\n]*", "")],
+    ".yaml": [(r"#[^\n]*", "")],
+    ".c": [(r"//[^\n]*", ""), (r"/\*.*?\*/", " ")],
+    ".h": [(r"//[^\n]*", ""), (r"/\*.*?\*/", " ")],
+    ".m": [(r"//[^\n]*", ""), (r"/\*.*?\*/", " ")],
+    ".js": [(r"//[^\n]*", ""), (r"/\*.*?\*/", " ")],
+    ".ts": [(r"//[^\n]*", ""), (r"/\*.*?\*/", " ")],
+}
+
+
+def _without_comments(text: str, path: str) -> str:
+    """The file with its comments removed, for the suffixes whose syntax is known.
+
+    A suffix nobody listed is returned whole, which is the honest failure: JSON has no comments, so
+    a `code` binding onto a `.json` file is checked against every byte of it, and that is what the
+    file means.
+
+    The LIMIT that remains: a `//` inside a Swift string literal takes the rest of that line with
+    it, so a citation whose value contains `//` and is bound to Swift would be reported missing.
+    Nothing in the tree does that, and a false refusal a person can see beats a false pass nobody
+    can.
+    """
+    rules = _COMMENT_SYNTAX.get(os.path.splitext(path)[1])
+    if not rules:
+        return text
+    for pattern, replacement in rules:
+        text = re.sub(pattern, replacement, text, flags=re.S)
+    return text
+
+
 def check_binding(where: str, citation: dict, record: dict, failures: list,
                   changed_paths=None) -> None:
     """Rule 9: a citation must be LOAD-BEARING, not decorative.
@@ -310,7 +350,7 @@ def check_binding(where: str, citation: dict, record: dict, failures: list,
             failures.append(f"{where}: binding.path {path!r} does not exist")
             return
         with open(full, "r", encoding="utf-8", errors="replace") as handle:
-            body = canon.normalize(handle.read())
+            body = canon.normalize(_without_comments(handle.read(), path))
         if not any(needle in body for needle in needles):
             failures.append(
                 f"{where}: neither the cited value nor the key {ref.key!r} appears in {path}. "

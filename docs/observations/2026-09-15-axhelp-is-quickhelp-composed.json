@@ -89,6 +89,61 @@
       "what": "two apparent counterexamples, resolved",
       "audio_plug_in": "'오디오 플러그인' is AXDescription, not AXHelp, and comes from MAMixer.framework Localizable.strings. Different attribute, so it does not bear on the AXHelp rule.",
       "region_sentence": "'리전은 N 마디 에서 시작하여 …' does come from a Logic.framework template, and it is AXHelp. It is the runtime PREFIX; the same value's suffix is QuickHelp ARR_021_MidiRegion. Both sources are in one string."
+    },
+    {
+      "what": "the second layer, where QuickHelp does not explain the value at all",
+      "note": "These are Logic.framework's own string tables. The shortcut tier is the table's value plus a run of spaces and a key equivalent added at runtime; the template tier is one canonical format string rendering several live values.",
+      "shortcut_readings": [
+        {
+          "live": "Flex 보기/가리기   ⌘F",
+          "canonical": "Flex 보기/가리기",
+          "key_equivalent": "⌘F",
+          "key": "Show/Hide Flex"
+        },
+        {
+          "live": "오토메이션 보기/가리기   A",
+          "canonical": "오토메이션 보기/가리기",
+          "key_equivalent": "A",
+          "key": "Show/Hide Automation"
+        },
+        {
+          "live": "재생헤드 캐치   `",
+          "canonical": "재생헤드 캐치",
+          "key_equivalent": "`",
+          "key": "Catch Playhead"
+        }
+      ],
+      "template_readings": [
+        {
+          "live": "Aux 채널 스트립 표시",
+          "template": "%@ 채널 스트립 표시",
+          "argument": [
+            "Aux"
+          ]
+        },
+        {
+          "live": "MIDI 채널 스트립 표시",
+          "template": "%@ 채널 스트립 표시",
+          "argument": [
+            "MIDI"
+          ]
+        },
+        {
+          "live": "마스터/VCA 채널 스트립 표시",
+          "template": "%@ 채널 스트립 표시",
+          "argument": [
+            "마스터/VCA"
+          ]
+        },
+        {
+          "live": "버스 채널 스트립 표시",
+          "template": "%@ 채널 스트립 표시",
+          "argument": [
+            "버스"
+          ]
+        }
+      ],
+      "template_count": 8
     }
   ],
   "conclusion": "AXHelp is QuickHelp.plist with a runtime prefix. On 86 of 114 distinct live values the QuickHelp composition \"{Title}. {Text}\" appears, and in 86 of 86 it sits at the END of the value with no exception; 56 values are the QuickHelp composition alone and 30 carry a prefix ending in a comma. The prefix is live data -- the control's current value, its key equivalent, a region's bar range, or the reason it is disabled -- so one AXHelp reading yields both a canonical identifier and the control's state. Because QuickHelp ships in ten locales with identical 9835-key keysets, that identifier is the same in every locale, and for 9502 keys the set of keys sharing a string is identical in all ten, 5982 of them one to one. This is a locale-independent control handle taken from Logic's own data rather than from position or a translated label. It is NOT the handle I proposed earlier: nib qhid reaches QuickHelp keys (587 of 619) but only 1 of the 86 live-matched controls carried one, so qhid links static nib assets, not the surfaces this repository drives. Every matched key was symbolic; none of the 4061 numeric keys was reached.",
@@ -135,19 +190,17 @@
     {
       "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Show%2FHide%20Automation#value",
       "value": "오토메이션 보기/가리기",
-      "used_for": "the second resolver layer: this value plus a run of spaces and a key equivalent is the whole of a live AXHelp that QuickHelp cannot explain",
+      "used_for": "the second resolver layer: this value plus a run of spaces and a key equivalent is the whole of a live AXHelp that QuickHelp cannot explain. Bound to this record rather than to Scripts/logic_canon.py: the value appears there only inside a comment, and the comment-stripping added after review correctly refused it",
       "binding": {
-        "kind": "code",
-        "path": "Scripts/logic_canon.py"
+        "kind": "record"
       }
     },
     {
       "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Display%20%25%40%20Channel%20Strips#value",
       "value": "%@ 채널 스트립 표시",
-      "used_for": "the template layer: one canonical template renders eight of the live AXHelp values, with the channel-strip type as its argument",
+      "used_for": "the template layer: one canonical template renders eight of the live AXHelp values, with the channel-strip type as its argument. Bound to this record rather than to Scripts/logic_canon.py: the value appears there only inside a comment, and the comment-stripping added after review correctly refused it",
       "binding": {
-        "kind": "code",
-        "path": "Scripts/logic_canon.py"
+        "kind": "record"
       }
     }
   ],

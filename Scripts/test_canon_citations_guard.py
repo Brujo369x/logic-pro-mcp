@@ -392,6 +392,45 @@ class TheGapsReviewFound(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class ABindingIsNotSatisfiedByAComment(unittest.TestCase):
+    """The limitation that was written up as needing the strong fix, closed with the cheap one.
+
+    `check_binding` read the whole file, so a value sitting only in a `//` line satisfied a `code`
+    binding -- demonstrated by review on an otherwise empty file. Stripping comments closes the
+    case that was shown; what it does not close is a value inside a symbol the change never used,
+    which still wants the binding to name the symbol.
+    """
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("canon_guard_comments", GUARD)
+        self.guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.guard)
+        self.path = os.path.join(REPO, "Scripts", "_binding_probe.swift")
+        self.addCleanup(lambda: os.path.exists(self.path) and os.remove(self.path))
+
+    def _bind(self, body):
+        with open(self.path, "w", encoding="utf-8") as handle:
+            handle.write(body)
+        citation = {"ref": REAL_REF, "value": REAL_VALUE, "used_for": "probe",
+                    "binding": {"kind": "code", "path": "Scripts/_binding_probe.swift"}}
+        failures = []
+        self.guard.check_binding("probe", citation, {"observations": []}, failures)
+        return failures
+
+    def test_a_value_only_in_a_line_comment_is_refused(self):
+        self.assertTrue(self._bind(f"// {REAL_VALUE}\nfunc unrelated() {{}}\n"))
+
+    def test_a_value_only_in_a_block_comment_is_refused(self):
+        self.assertTrue(self._bind(f"/* {REAL_VALUE} */\nfunc unrelated() {{}}\n"))
+
+    def test_a_value_in_code_passes(self):
+        self.assertEqual(self._bind(f'let real = "{REAL_VALUE}"\n'), [])
+
+    def test_a_file_type_with_no_known_comment_syntax_is_read_whole(self):
+        """JSON has no comments, so stripping nothing is the honest answer for it."""
+        self.assertEqual(self.guard._without_comments("{\"a\": 1}", "x.json"), "{\"a\": 1}")
+
+
 class LogicFacingIsSelfMaintaining(unittest.TestCase):
     """Rule 14, driven against the real tree because that is what it is pointed at.
 

@@ -195,12 +195,21 @@ of trust is a file in the tree.
 |---|---|
 | an honest author who errs | nearly everything: a misquoted value, an unpinned reference, a malformed one, a schema-2 record, an edited index, a truncated absence set, a literal Logic does not ship |
 | an author routing around the rule | some of it. The opt-out is derived from the diff, the waiver lists are compared against the merge base, and the classification is committed — but a determined author has more room than an honest one |
-| a committer acting in bad faith | **nothing.** `MANIFEST.json` digests the index and the absence sets, and `MANIFEST.json` is a tracked file. Whoever can edit one can edit all three in one commit. Review 2026-09-15 did exactly that in three edits and the gate stayed green. |
+| a committer acting in bad faith | **out of scope, by decision.** `MANIFEST.json` digests the index and the absence sets and is itself a tracked file, so write access is enough to forge all three consistently — review 2026-09-15 did it in three edits. Signing the artefacts would close that for a leaked credential, and it was built and then removed as over-engineering for a repository with one maintainer. The assumption is written here rather than defended. |
 | a fork pull request | the most, since a fork cannot rewrite the guard on the base branch |
 
-`verify_index_against_absence` raises the cost of the third case from a text edit to a deliberate
-one — a forged row must also appear in a sorted binary absence set — and `.github/CODEOWNERS`
-puts a human on `docs/canon/`. Neither makes it impossible, and nothing offline can.
+Two controls raise the cost of an accident rather than of an attack, which is what they are for:
+`verify_index_against_absence` and the absence entry counts make a forged row need three
+consistent edits — the TSV, the binary absence set, and a number a reviewer reads — instead of one.
+
+`.github/CODEOWNERS` names an owner for `docs/canon/` and — measured 2026-09-15 — **does nothing**:
+the branch ruleset has `require_code_owner_review: false` and `required_approving_review_count: 0`.
+That is the right setting for a solo maintainer, who cannot approve their own pull request, and it
+means CODEOWNERS is a statement of ownership rather than a control. Said here rather than left to
+look like one.
+
+What none of them does is verify the artefacts came from **Logic**. Only `build`, on a machine with
+Logic, ever touches Apple's bytes; signing says who vouched for the result.
 
 What the gate actually proves is that **a quoted value matches a previously committed digest**. Only
 `build`, on a machine with Logic, ever touches Apple's bytes. That is worth having: it makes the
