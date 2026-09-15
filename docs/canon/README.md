@@ -89,11 +89,44 @@ logic-canon://<source>/<unit>/<locale>/<key>#<field>
 ]
 ```
 
+## Where it is enforced
+
+| | |
+|---|---|
+| files in the tree | `Scripts/check-canon-citations.py`, run by `run-repo-guards.py` in CI |
+| a pull request body | the `canon-citations-in-the-pull-request` CI job, which reads the body |
+| issue bodies | the issue templates require it; nothing checks an issue mechanically yet |
+
+A pull request body is not a file, so the tree-wide sweep could not see it — and the two documents
+a change is actually reviewed through were exempt from the rule they carry. That is the
+named-site / enforcement-site gap in its usual shape, and it is why rule 11 exists.
+
+A body may say `states no fact about Logic` instead of citing. Deliberately a sentence rather than
+a checkbox: a checkbox is ticked without reading.
+
+## The bindings — "was it actually used?"
+
+A reference that resolves proves the quote is Apple's text. It does not prove anything in the
+change rests on it, which is the other half of the requirement. So every citation declares where
+the value lands, and the value must literally be there:
+
+```jsonc
+"binding": {"kind": "code", "path": "Sources/.../X.swift"}   // the file must contain it
+"binding": {"kind": "record"}                                // this record must, outside `canon`
+```
+
+The first version of this had no bindings at all, and a citation could be decorative: correct
+digest, correct quote, and no line of code or reading that had anything to do with it.
+
 ## What this does **not** check
 
-That a citation is the **right** one. A reference resolving with the right digest proves the quote
-is Apple's text under that key. It does not prove that key describes the control the change is
-about. `used_for` is required and is read by a person.
+That a citation is the **right** one, and that a binding's occurrence is the one that matters.
+
+A reference resolving with the right digest proves the quote is Apple's text under that key. It
+does not prove that key describes the control the change is about. A binding proves the value is
+in the file; a value sitting in a comment satisfies it. Closing that second gap needs the binding
+to name a symbol AND the build to confirm the symbol carries the value — a different and much
+heavier rule. `used_for` is required and is read by a person.
 
 This is the same trust boundary `docs/observations/SCHEMA.md` already names for sightings, and
 moving it would take a citation that says what the value is used *for* in a form a machine can

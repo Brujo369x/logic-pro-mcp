@@ -31,12 +31,18 @@
     {
       "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Project%20or%20Section%E2%80%A6#value",
       "value": "Project or Section…",
-      "used_for": "the canonical spelling of the Bounce menu leaf, which this product carries with three ASCII full stops instead of the ellipsis Logic ships"
+      "used_for": "the canonical spelling of the Bounce menu leaf, which this product carries with three ASCII full stops instead of the ellipsis Logic ships. Bound to this record rather than to POLICY-LITERALS-WITHOUT-CANON.json, because that file holds the product spelling with three ASCII full stops and the binding check correctly refused to find Apple value in it",
+      "binding": {
+        "kind": "record"
+      }
     },
     {
       "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Project%20or%20Section%E2%80%A6#value",
       "value": "프로젝트 또는 섹션…",
-      "used_for": "the same leaf in Korean, where this product carries the same three-full-stop spelling"
+      "used_for": "the same leaf in Korean, where this product carries the same three-full-stop spelling",
+      "binding": {
+        "kind": "record"
+      }
     }
   ],
   "canon_absent": [
@@ -56,20 +62,28 @@
       ],
       "searched": [
         {
-          "source": "quickhelp",
-          "locale": "ko"
+          "source": "madsp",
+          "locale": "-"
+        },
+        {
+          "source": "nib",
+          "locale": "-"
         },
         {
           "source": "quickhelp",
           "locale": "en"
         },
         {
-          "source": "strings",
+          "source": "quickhelp",
           "locale": "ko"
         },
         {
           "source": "strings",
           "locale": "en"
+        },
+        {
+          "source": "strings",
+          "locale": "ko"
         }
       ],
       "why_runtime": "Each is either a label Logic composes at runtime, a label drawn from a framework outside this corpus, or a string that was typed rather than read. This record does not decide which; it establishes that no canonical source answers for them, which is the precondition for a measurement being the only route."

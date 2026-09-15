@@ -83,7 +83,7 @@ class GuardBehaviour(unittest.TestCase):
         self.record("2026-09-15-bad-ref.json", {
             "schema": 3, "id": "bad-ref",
             "canon": [{"ref": "logic-canon://quickhelp/ko/K#Title", "value": "x",
-                       "used_for": "y"}]})
+                       "used_for": "y", "binding": {"kind": "record"}}]})
         self.without_canon(["docs/observations/2000-01-01-seeded.json"])
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
@@ -94,7 +94,7 @@ class GuardBehaviour(unittest.TestCase):
         self.record("2026-09-15-unpinned.json", {
             "schema": 3, "id": "unpinned",
             "canon": [{"ref": "logic-canon://quickhelp/QuickHelp/ko/NO_SUCH_KEY#composed",
-                       "value": "x", "used_for": "y"}]})
+                       "value": "x", "used_for": "y", "binding": {"kind": "record"}}]})
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
         self.assertIn("is not in docs/canon/index", result.stderr)
@@ -104,7 +104,8 @@ class GuardBehaviour(unittest.TestCase):
         """One character wrong is the whole failure class this axis exists for."""
         self.record("2026-09-15-misquoted.json", {
             "schema": 3, "id": "misquoted",
-            "canon": [{"ref": REAL_REF, "value": REAL_VALUE + "x", "used_for": "y"}]})
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE + "x", "used_for": "y",
+                       "binding": {"kind": "record"}}]})
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
         self.assertIn("Logic's value hashes to", result.stderr)
@@ -112,14 +113,17 @@ class GuardBehaviour(unittest.TestCase):
     def test_the_correct_value_passes_so_the_previous_test_is_about_the_value(self):
         self.record("2026-09-15-quoted.json", {
             "schema": 3, "id": "quoted",
-            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "y"}]})
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "y",
+                       "binding": {"kind": "record"}}],
+            "observations": [{"what": REAL_VALUE}]})
         result = self.run_guard()
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_citation_missing_used_for_fails(self):
         self.record("2026-09-15-no-use.json", {
             "schema": 3, "id": "no-use",
-            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": ""}]})
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "",
+                       "binding": {"kind": "record"}}]})
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
         self.assertIn("`used_for` is required", result.stderr)
@@ -129,7 +133,9 @@ class GuardBehaviour(unittest.TestCase):
         self.record("2026-09-15-false-absence.json", {
             "schema": 3, "id": "false-absence",
             "canon_absent": [{"claim": "c", "strings": [REAL_VALUE],
-                              "searched": [{"source": "quickhelp", "locale": "ko"}],
+                              "searched": [{"source": "quickhelp", "locale": "ko"}, {"source": "strings", "locale": "ko"},
+                                          {"source": "madsp", "locale": "-"},
+                                          {"source": "nib", "locale": "-"}],
                               "why_runtime": "r"}]})
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
@@ -140,8 +146,11 @@ class GuardBehaviour(unittest.TestCase):
             "schema": 3, "id": "absence",
             "canon_absent": [{"claim": "c",
                               "strings": ["a string no shipped application contains anywhere 91xq"],
-                              "searched": [{"source": "quickhelp", "locale": "ko"}],
-                              "why_runtime": "r"}]})
+                              "searched": [{"source": "quickhelp", "locale": "ko"}, {"source": "strings", "locale": "ko"},
+                                          {"source": "madsp", "locale": "-"},
+                                          {"source": "nib", "locale": "-"}],
+                              "why_runtime": "r"}],
+            "host": {"locale": "ko-KR"}})
         result = self.run_guard()
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -187,6 +196,177 @@ class GuardBehaviour(unittest.TestCase):
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
         self.assertIn("were never comparable", result.stderr)
+
+    # -- rule 7: the waiver lists may only shrink, measured against a real merge base -------------
+    def _git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
+
+    def _make_repo_with_a_base(self):
+        """A real repository, because rule 7 compares against `git merge-base` and nothing else.
+
+        Without this the rule never runs in its own test: a plain temp directory has no base, the
+        guard prints a note and moves on, and the case would pass while checking nothing.
+        """
+        self._git("init", "-q", "-b", "main")
+        self._git("config", "user.email", "t@example.com")
+        self._git("config", "user.name", "t")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base")
+
+    def test_adding_to_a_waiver_list_fails(self):
+        self._make_repo_with_a_base()
+        self.without_canon(["docs/observations/2000-01-01-seeded.json",
+                            "docs/observations/2026-09-15-new.json"])
+        self.record("2026-09-15-new.json", {"schema": 1, "id": "new"})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("may only SHRINK", result.stderr)
+
+    def test_removing_from_a_waiver_list_passes(self):
+        self._make_repo_with_a_base()
+        os.remove(os.path.join(self.root, "docs", "observations", "2000-01-01-seeded.json"))
+        self.without_canon([])
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_shallow_checkout_under_ci_fails_rather_than_degrading(self):
+        env = dict(os.environ, CI="true")
+        result = subprocess.run(
+            [sys.executable, os.path.join(self.root, "Scripts", "check-canon-citations.py")],
+            capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("fetch-depth: 0", result.stderr)
+
+    # -- rule 9: a citation must be load-bearing -------------------------------------------------
+    def test_a_citation_with_no_binding_fails(self):
+        self.record("2026-09-15-unbound.json", {
+            "schema": 3, "id": "unbound",
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "y"}]})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("`binding` is required", result.stderr)
+
+    def test_a_citation_nothing_in_the_record_refers_to_fails(self):
+        """Citing is not using. The record must mention the value or its key somewhere else."""
+        self.record("2026-09-15-decorative.json", {
+            "schema": 3, "id": "decorative",
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "y",
+                       "binding": {"kind": "record"}}],
+            "observations": [{"what": "nothing to do with the citation"}]})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("decorative", result.stderr)
+
+    def test_a_code_binding_whose_file_lacks_the_value_fails(self):
+        self.record("2026-09-15-wrong-file.json", {
+            "schema": 3, "id": "wrong-file",
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "y",
+                       "binding": {"kind": "code", "path": "Scripts/nibarchive.py"}}]})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("does not contain it", result.stderr)
+
+    def test_a_code_binding_naming_a_file_that_does_not_exist_fails(self):
+        self.record("2026-09-15-no-file.json", {
+            "schema": 3, "id": "no-file",
+            "canon": [{"ref": REAL_REF, "value": REAL_VALUE, "used_for": "y",
+                       "binding": {"kind": "code", "path": "Scripts/nope.swift"}}]})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("does not exist", result.stderr)
+
+    # -- rule 10: the committed artefacts are pinned ---------------------------------------------
+    def test_an_edited_index_fails(self):
+        """The whole offline check rests on these bytes, and an edited file looks like a built one."""
+        path = os.path.join(self.root, "docs", "canon", "index", "quickhelp.tsv")
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write("QuickHelp\tko\tINVENTED\tcomposed\t000000000000\n")
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("does not match the digest", result.stderr)
+
+    def test_a_truncated_absence_set_fails(self):
+        path = os.path.join(self.root, "docs", "canon", "absence", "quickhelp.ko.u32")
+        with open(path, "rb") as handle:
+            blob = handle.read()
+        with open(path, "wb") as handle:
+            handle.write(blob[:len(blob) - 4])
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("does not match the digest", result.stderr)
+
+    def test_a_manifest_with_no_artifacts_block_fails(self):
+        path = os.path.join(self.root, "docs", "canon", "MANIFEST.json")
+        with open(path, "r", encoding="utf-8") as handle:
+            manifest = json.load(handle)
+        manifest.pop("artifacts", None)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(manifest, handle)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("carries no `artifacts` block", result.stderr)
+
+    # -- rule 8: one Logic, not two --------------------------------------------------------------
+    def test_an_index_pinning_a_different_logic_than_the_ledger_fails(self):
+        os.makedirs(os.path.join(self.root, "docs", "observations"), exist_ok=True)
+        with open(os.path.join(self.root, "docs", "observations", "LOGIC-BUILD.json"),
+                  "w", encoding="utf-8") as handle:
+            json.dump({"app": "Logic Pro", "version": "99.9", "build": "1"}, handle)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("must describe the same application", result.stderr)
+
+    # -- rule 3 again, now that absence must search everything -----------------------------------
+    def test_an_absence_that_skips_a_pinned_corpus_fails(self):
+        self.record("2026-09-15-cherry-picked.json", {
+            "schema": 3, "id": "cherry-picked",
+            "canon_absent": [{"claim": "c", "strings": ["a string nothing writes 91xq"],
+                              "searched": [{"source": "quickhelp", "locale": "ko"}],
+                              "why_runtime": "r"}],
+            "host": {"locale": "ko-KR"}})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("must search EVERY corpus", result.stderr)
+
+
+class PullRequestBody(unittest.TestCase):
+    """--text mode. The rule was NAMED for pull requests and enforced only for files."""
+
+    def _check(self, body):
+        handle = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8")
+        handle.write(body)
+        handle.close()
+        self.addCleanup(os.remove, handle.name)
+        return subprocess.run([sys.executable, GUARD, "--text", handle.name],
+                              capture_output=True, text=True)
+
+    def test_a_body_with_a_resolving_citation_and_its_value_passes(self):
+        result = self._check(f"before\n{REAL_REF}\n  value: {REAL_VALUE}\nafter\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_reference_without_its_value_fails(self):
+        result = self._check(f"we rely on {REAL_REF} here\n")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("appears without the value", result.stderr)
+
+    def test_a_wrong_value_fails(self):
+        result = self._check(f"{REAL_REF}\n  value: {REAL_VALUE}x\n")
+        self.assertEqual(result.returncode, 1)
+
+    def test_a_body_with_nothing_fails(self):
+        result = self._check("just a description of a refactor\n")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no opt-out", result.stderr)
+
+    def test_the_opt_out_sentence_passes(self):
+        result = self._check("This states no fact about Logic; it renames a private helper.\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_an_unresolvable_reference_fails(self):
+        result = self._check(
+            "logic-canon://quickhelp/QuickHelp/ko/NOT_A_KEY#composed\n  value: whatever\n")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("is not in docs/canon/index", result.stderr)
 
 
 if __name__ == "__main__":

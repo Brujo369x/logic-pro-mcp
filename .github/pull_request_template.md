@@ -35,7 +35,9 @@ logic-canon://<source>/<unit>/<locale>/<key>#<field>
 
 ```
 
-- [ ] No reference above → this change states no fact about Logic (say why in one line):
+- [ ] No reference above → write the sentence `states no fact about Logic` with the reason.
+      CI reads this body and refuses a pull request that carries neither a citation nor that
+      sentence. A reference alone is not a citation: the value it resolves to must be here too.
 
 ## Verification
 

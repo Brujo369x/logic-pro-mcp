@@ -25,6 +25,35 @@ jobs:
   # scope the build jobs do not have. Adding `issues: read` to the workflow-level `permissions`
   # would hand it to every job instead of the one that needs it. It is also not in
   # `run-repo-guards.py`, whose contract is plain Python needing neither Xcode nor a network.
+  # A pull request body is not a file in the tree, so `check-canon-citations.py`'s tree-wide sweep
+  # cannot see it -- and the two documents a change is actually reviewed through were therefore
+  # exempt from the rule they are supposed to carry. `docs/canon/README.md` says every artefact
+  # this repository produces cites Logic or says it cannot; without this job, "every artefact"
+  # quietly meant "every file".
+  #
+  # Its own job because it needs the pull request body, which the build jobs have no reason to read.
+  canon-citations-in-the-pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # The waiver ratchet compares against `git merge-base`, and a shallow clone has no base.
+          # The guard fails outright under CI rather than degrading to comparing a file with itself.
+          fetch-depth: 0
+
+      - name: The pull request body cites Logic, or says it states no fact about Logic
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body -q .body > /tmp/pr-body.md
+          python3 Scripts/check-canon-citations.py --text /tmp/pr-body.md
+
   roadmap:
     runs-on: ubuntu-latest
     timeout-minutes: 5

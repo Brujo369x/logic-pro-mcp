@@ -1172,11 +1172,56 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                 f"QuickHelp is missing locales {missing}. A corpus that lost a locale makes every "
                 f"absence claim over it false, so this stops the build rather than shrinking.")
 
+    # Every committed artefact is digested INTO the manifest. Without this the offline check has
+    # no integrity at all: `index/<source>.tsv` is the table a quoted value is compared against, so
+    # a hand-typed row makes any quote pass, and `absence/*.u32` is what an absence claim is proved
+    # against, so a truncated file makes any string look absent. Both are generated files that look
+    # exactly like edited ones.
+    manifest["artifacts"] = artifact_digests()
     os.makedirs(CANON_DIR, exist_ok=True)
     with open(MANIFEST_PATH, "w", encoding="utf-8") as handle:
         json.dump(manifest, handle, ensure_ascii=False, indent=2, sort_keys=True)
         handle.write("\n")
     return manifest
+
+
+def artifact_digests() -> dict:
+    """sha256 of every committed index and absence file, keyed by path relative to docs/canon."""
+    out = {}
+    for directory in (INDEX_DIR, ABSENCE_DIR):
+        if not os.path.isdir(directory):
+            continue
+        for name in sorted(os.listdir(directory)):
+            path = os.path.join(directory, name)
+            if os.path.isfile(path):
+                out[os.path.relpath(path, CANON_DIR)] = _file_digest(path)
+    return out
+
+
+def verify_artifacts(manifest: dict) -> list:
+    """Refuse an index or absence set whose bytes are not the bytes `build` wrote.
+
+    Returns complaints rather than raising, so a caller reports every drifted file at once. A
+    missing `artifacts` block is itself a failure: an index built before this check existed carries
+    no integrity claim, and treating "no claim" as "fine" makes the check satisfiable by deleting
+    it.
+    """
+    declared = manifest.get("artifacts")
+    if declared is None:
+        return ["docs/canon/MANIFEST.json carries no `artifacts` block, so nothing pins the bytes "
+                "of the index and absence files a citation is checked against. Rebuild."]
+    found = artifact_digests()
+    problems = []
+    for path in sorted(set(declared) | set(found)):
+        if path not in found:
+            problems.append(f"docs/canon/{path} is declared in MANIFEST.json and is not on disk")
+        elif path not in declared:
+            problems.append(f"docs/canon/{path} is on disk and is not declared in MANIFEST.json -- "
+                            f"a file nobody pinned is a file anybody can write")
+        elif declared[path] != found[path]:
+            problems.append(f"docs/canon/{path} does not match the digest MANIFEST.json pins. "
+                            f"It was edited, or it was built by a different run.")
+    return problems
 
 
 # ---------------------------------------------------------------------------

@@ -110,27 +110,45 @@
     {
       "ref": "logic-canon://quickhelp/QuickHelp/ko/KCE_024_Record#composed",
       "value": "녹음 버튼. 선택한 트랙 또는 녹음 준비된 여러 트랙에 녹음합니다.",
-      "used_for": "the key the AXHelp parser returns for the transport record button, and the value it anchors on"
+      "used_for": "the key the AXHelp parser returns for the transport record button, and the value it anchors on",
+      "binding": {
+        "kind": "code",
+        "path": "Scripts/test_logic_canon.py"
+      }
     },
     {
       "ref": "logic-canon://quickhelp/QuickHelp/ko/TRA_073_TunerButton#composed",
       "value": "튜너 버튼. 시스템에 연결된 악기를 조정합니다.",
-      "used_for": "the reading that makes splitting AXHelp on the comma indefensible: its live value carries a two-sentence disabled-reason prefix in front of this composition"
+      "used_for": "the reading that makes splitting AXHelp on the comma indefensible: its live value carries a two-sentence disabled-reason prefix in front of this composition",
+      "binding": {
+        "kind": "record"
+      }
     },
     {
       "ref": "logic-canon://quickhelp/QuickHelp/ko/ARR_021_MidiRegion#composed",
       "value": "MIDI 리전. MIDI 노트 및 컨트롤러 이벤트를 포함합니다. 가운데를 드래그하여 이동하고, 하단 가장자리를 드래그하여 크기를 조정하며, 상단 오른쪽 모서리를 드래그하여 루핑합니다. 도구를 사용하여 그 외의 편집을 수행합니다.",
-      "used_for": "the composition that sits behind a region's live bar-range prefix, showing that one AXHelp carries both a canonical identity and runtime state"
+      "used_for": "the composition that sits behind a region's live bar-range prefix, showing that one AXHelp carries both a canonical identity and runtime state",
+      "binding": {
+        "kind": "record"
+      }
     },
     {
       "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Show%2FHide%20Automation#value",
       "value": "오토메이션 보기/가리기",
-      "used_for": "the second resolver layer: this value plus a run of spaces and a key equivalent is the whole of a live AXHelp that QuickHelp cannot explain"
+      "used_for": "the second resolver layer: this value plus a run of spaces and a key equivalent is the whole of a live AXHelp that QuickHelp cannot explain",
+      "binding": {
+        "kind": "code",
+        "path": "Scripts/logic_canon.py"
+      }
     },
     {
       "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Display%20%25%40%20Channel%20Strips#value",
       "value": "%@ 채널 스트립 표시",
-      "used_for": "the template layer: one canonical template renders eight of the live AXHelp values, with the channel-strip type as its argument"
+      "used_for": "the template layer: one canonical template renders eight of the live AXHelp values, with the channel-strip type as its argument",
+      "binding": {
+        "kind": "code",
+        "path": "Scripts/logic_canon.py"
+      }
     }
   ],
   "canon_absent": [
@@ -141,20 +159,28 @@
       ],
       "searched": [
         {
-          "source": "quickhelp",
-          "locale": "ko"
-        },
-        {
-          "source": "strings",
-          "locale": "ko"
-        },
-        {
           "source": "madsp",
           "locale": "-"
         },
         {
           "source": "nib",
           "locale": "-"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "en"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "ko"
+        },
+        {
+          "source": "strings",
+          "locale": "en"
+        },
+        {
+          "source": "strings",
+          "locale": "ko"
         }
       ],
       "why_runtime": "An exhaustive scan of all 75,535 non-media files in the bundle, in UTF-8 and both UTF-16 byte orders, found it nowhere, and a separate scan of all 1,169 nibs found it nowhere. It is most plausibly drawn from AppKit, whose localised strings live in the dyld shared cache rather than in files this corpus can hold -- and that plausibility is stated as unverified: the shared cache was not opened."
