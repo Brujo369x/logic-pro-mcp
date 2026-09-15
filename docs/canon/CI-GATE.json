@@ -1,0 +1,11 @@
+{
+  "note": "What the required CI gate must contain. Read from a file so the merge-base ratchet can see it: held as module constants, a job could be excused or a step deleted in the same commit that did it.",
+  "not_required": {
+    "build": "it IS the gate; a job cannot require itself"
+  },
+  "required_commands": [
+    "Scripts/check-canon-citations.py --changed",
+    "Scripts/check-canon-citations.py \\",
+    "python3 Scripts/run-repo-guards.py"
+  ]
+}

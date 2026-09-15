@@ -1,0 +1,317 @@
+{
+  "artifacts": {
+    "absence/madsp.-.u32": "1402d0aea9a289b16bf15768528068f6a915bed279000dfbf650cf4fe1fd351f",
+    "absence/nib.-.u32": "7e2d01e8bc426022e74b705ccc72b0e7235125abe2cf6fe7681a27397fd47db9",
+    "absence/quickhelp.de.u32": "a40ae686d5d934bd5de10c5c0dd80b5571a10972e9e47fbcb1162ade3c99dec9",
+    "absence/quickhelp.en.u32": "013eb5b67deb0018343f2526c282d38d6581041450069b0cae8dfac50794682d",
+    "absence/quickhelp.es.u32": "7c94b261b37d7e33185e920f295f629c0d282ff6bf7619d725d9bb0318cf1ff5",
+    "absence/quickhelp.fr.u32": "88ef55cfdb909cf87b5f7a2f952e3827bf02ce0e1fb813aec32d76bab94772f5",
+    "absence/quickhelp.it.u32": "7f66ca7c77c4d266415cc93ea5b33a423d806bdeb11b7445dc986b210b3a9c4a",
+    "absence/quickhelp.ja.u32": "ed15e67f72cbdd746762d3854e96e5e526a9077945ec5bf6a0711533dc9233da",
+    "absence/quickhelp.ko.u32": "e4d43712ff4dddc359f06c5fab21818e14226c27322373c4a342f60f02f218ae",
+    "absence/quickhelp.pt.u32": "2fc24534a754115c83f75f0872a3e9181da66530d5c7a97da49ffcafd63396de",
+    "absence/quickhelp.zh_CN.u32": "02f906efaa2ea8cd7c814cdd49946bbf8b593693ad1072fafabeb9e003ac16ce",
+    "absence/quickhelp.zh_TW.u32": "2289052b00e4dea60f9bfabe81fac20c99dba8e02c472d46a215b28c3996aeac",
+    "absence/strings.-.u32": "267ed74080c75ab7f08f5413326b5d3c489e73c96b5bc5d5f5d26f177609752a",
+    "absence/strings.de.u32": "a68c485c6f144e1f814c0580bcf40f7a4536bc6e0ca323a58b66559039077bb7",
+    "absence/strings.en.u32": "87129c6c78c82636178c33f8d2e914e4ea0b33ef8709cf9951d1a45ddb4d5aba",
+    "absence/strings.es.u32": "b36664fe4a1d8891c3b616e6222c64f524c5ada9884f0d911d8651e274d96bdd",
+    "absence/strings.fr.u32": "21f824a217055ab844fa0eca3a7b2d290b87947f1536bda17188f982057cf4b8",
+    "absence/strings.it.u32": "952048cf0ef829c65a7f1adfab274a53e3a2dd5e6cd15484308cd62b7f150bb6",
+    "absence/strings.ja.u32": "512f433e355b59bb06cce306ca29550f24567e6d1953484914fa89475e80823b",
+    "absence/strings.ko.u32": "c46fe73adfa846d3ab862da73fa27c97c514c93879a801e6ce074a99edeb07b3",
+    "absence/strings.pt.u32": "c4344fce99114ae70f09e361817c564f8fce9b2c54d0a3316b3b51d6cd8eaca7",
+    "absence/strings.zh_CN.u32": "00411c6c92eb549954f8a9f025f0bbbff1318392cc6ec0a906f53c105eb607eb",
+    "absence/strings.zh_TW.u32": "ef81ff10d762c8422eabdfa6a06770c5dc4db62922b7318742d778cee7e58bcb",
+    "index/madsp.tsv": "664b694f0bacce322cf8b15a4539594f2106d2d5b7c38b10b0e3e508b30d2320",
+    "index/nib.tsv": "553195c3d71ee2a71df337975994e7884f227b5a4a36a331b52db02d1d530d79",
+    "index/quickhelp.tsv": "94046f4ccb47eaf494fb50368c690542361fce2117b40399168ab194ffb9504e",
+    "index/strings.tsv": "5daae0f0e19d02a965aa2ef80c2000192eec4cd85347e5849682bf7c7c749ca3"
+  },
+  "extractor_version": 1,
+  "logic": {
+    "app": "Logic Pro",
+    "build": "6674",
+    "version": "12.3"
+  },
+  "schema": 1,
+  "sources": {
+    "madsp": {
+      "absence_entries": {
+        "-": 3914
+      },
+      "absence_false_positive": {
+        "-": 9.11299e-07
+      },
+      "cited_rows": 1,
+      "corpus_digest": "3e015ce94a8c7ff1889b360fc443fb96667cce1302649a9d4d467b9a298bb64e",
+      "entries": 14940,
+      "files": 128,
+      "locales": [
+        "-"
+      ]
+    },
+    "nib": {
+      "absence_entries": {
+        "-": 778
+      },
+      "absence_false_positive": {
+        "-": 1.81142e-07
+      },
+      "cited_rows": 2,
+      "corpus_digest": "50cc58b947e7a3bba4e11c438d8555e7e5737a823ba5b3b10cb51ff0bfbd7a07",
+      "entries": 3313,
+      "files": 1169,
+      "locales": [
+        "-"
+      ]
+    },
+    "quickhelp": {
+      "absence_entries": {
+        "de": 20557,
+        "en": 20670,
+        "es": 20656,
+        "fr": 20614,
+        "it": 20671,
+        "ja": 20609,
+        "ko": 20714,
+        "pt": 20671,
+        "zh_CN": 20581,
+        "zh_TW": 20671
+      },
+      "absence_false_positive": {
+        "de": 4.7863e-06,
+        "en": 4.812609e-06,
+        "es": 4.80935e-06,
+        "fr": 4.799571e-06,
+        "it": 4.812842e-06,
+        "ja": 4.798407e-06,
+        "ko": 4.822854e-06,
+        "pt": 4.812842e-06,
+        "zh_CN": 4.791887e-06,
+        "zh_TW": 4.812842e-06
+      },
+      "cited_rows": 5,
+      "corpus_digest": "21cc7dce8e354afa1ab3de915762a9b01054735823bd32c99114cd8fa5b2cadb",
+      "entries": 390820,
+      "files": 20,
+      "identical_files": {
+        "0887797c1da8": [
+          "es"
+        ],
+        "35be87dfebb9": [
+          "fr"
+        ],
+        "3ed7aa22fef4": [
+          "en",
+          "it",
+          "pt",
+          "zh_TW"
+        ],
+        "cab7ca56e60a": [
+          "ja"
+        ],
+        "e93f20810469": [
+          "zh_CN"
+        ],
+        "f3b55e5c4263": [
+          "ko"
+        ],
+        "f8367e5b2386": [
+          "de"
+        ]
+      },
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "zh_CN",
+        "zh_TW"
+      ],
+      "round_trip": {
+        "de": {
+          "compositions": 7026,
+          "whole": 7026,
+          "with_a_runtime_prefix": 7026
+        },
+        "en": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        },
+        "es": {
+          "compositions": 7036,
+          "whole": 7036,
+          "with_a_runtime_prefix": 7036
+        },
+        "fr": {
+          "compositions": 7034,
+          "whole": 7034,
+          "with_a_runtime_prefix": 7034
+        },
+        "it": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        },
+        "ja": {
+          "compositions": 7030,
+          "whole": 7030,
+          "with_a_runtime_prefix": 7030
+        },
+        "ko": {
+          "compositions": 7058,
+          "whole": 7058,
+          "with_a_runtime_prefix": 7058
+        },
+        "pt": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        },
+        "zh_CN": {
+          "compositions": 7031,
+          "whole": 7031,
+          "with_a_runtime_prefix": 7031
+        },
+        "zh_TW": {
+          "compositions": 7056,
+          "whole": 7056,
+          "with_a_runtime_prefix": 7056
+        }
+      },
+      "shape": {
+        "de": {
+          "compositions": 7026,
+          "median_length": 120,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 989,
+          "shortest": 17,
+          "suffix_pairs": 2
+        },
+        "en": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        },
+        "es": {
+          "compositions": 7036,
+          "median_length": 120,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 997,
+          "shortest": 18,
+          "suffix_pairs": 3
+        },
+        "fr": {
+          "compositions": 7034,
+          "median_length": 124,
+          "most_keys_on_one_composition": 60,
+          "shared_by_more_than_one_key": 993,
+          "shortest": 16,
+          "suffix_pairs": 8
+        },
+        "it": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        },
+        "ja": {
+          "compositions": 7030,
+          "median_length": 57,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 996,
+          "shortest": 9,
+          "suffix_pairs": 7
+        },
+        "ko": {
+          "compositions": 7058,
+          "median_length": 54,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 989,
+          "shortest": 11,
+          "suffix_pairs": 14
+        },
+        "pt": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        },
+        "zh_CN": {
+          "compositions": 7031,
+          "median_length": 34,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 997,
+          "shortest": 8,
+          "suffix_pairs": 7
+        },
+        "zh_TW": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        }
+      }
+    },
+    "strings": {
+      "absence_entries": {
+        "-": 29,
+        "de": 47515,
+        "en": 48985,
+        "es": 47926,
+        "fr": 47732,
+        "it": 47633,
+        "ja": 47170,
+        "ko": 47115,
+        "pt": 47918,
+        "zh_CN": 49602,
+        "zh_TW": 46696
+      },
+      "absence_false_positive": {
+        "-": 6.752e-09,
+        "de": 1.1062948e-05,
+        "en": 1.1405209e-05,
+        "es": 1.1158641e-05,
+        "fr": 1.1113472e-05,
+        "it": 1.1090422e-05,
+        "ja": 1.0982621e-05,
+        "ko": 1.0969816e-05,
+        "pt": 1.1156779e-05,
+        "zh_CN": 1.1548866e-05,
+        "zh_TW": 1.087226e-05
+      },
+      "cited_rows": 4,
+      "corpus_digest": "830a5131378ede72bb0a20211985166f367b7a35a30a85d875c9c25ff0b89e1a",
+      "entries": 605190,
+      "files": 2538,
+      "locales": [
+        "-",
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "zh_CN",
+        "zh_TW"
+      ]
+    }
+  }
+}

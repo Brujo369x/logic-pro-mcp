@@ -116,3 +116,22 @@ body:
         - [ ] Public contract/docs are updated if behavior changed.
     validations:
       required: true
+
+  - type: textarea
+    id: logic_canon
+    attributes:
+      label: Logic canon
+      description: |
+        Every statement this issue makes about Logic must cite Apple's own data, or say that no
+        canonical source can answer it. Paste each reference with the value it resolves to, from
+        `Scripts/logic_canon.py resolve <ref>`. For anything uncitable, paste the output of
+        `Scripts/logic_canon.py absent <source> <locale> '<string>'`. See docs/canon/README.md.
+
+        Write "states no fact about Logic" if that is the case, and say why in one line.
+      placeholder: |
+        logic-canon://<source>/<unit>/<locale>/<key>#<field>
+          value:    ...
+          used for: ...
+      render: text
+    validations:
+      required: true

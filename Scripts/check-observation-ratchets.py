@@ -93,7 +93,10 @@ def live_state(repo=REPO):
     records = [json.load(open(path, encoding="utf-8"))
                for path in sorted(glob.glob(os.path.join(obs_dir, "*.json")))
                if re.match(r"^\d{4}-\d{2}-\d{2}-.*\.json$", os.path.basename(path))]
-    schema_v1 = {r.get("id") for r in records if r.get("schema", 1) != 2}
+    # `< 2`, not `!= 2`. Written as inequality first, which counted schema 3 -- the canon axis,
+    # which is strictly MORE than schema 2 -- as a record that had not caught up to schema 2. A
+    # ratchet whose membership test is equality turns every future schema into a regression.
+    schema_v1 = {r.get("id") for r in records if r.get("schema", 1) < 2}
     manual = {r.get("id") for r in records if (r.get("reverify") or {}).get("kind") == "manual"}
     # A record whose readings live only in its own `observations` array cites nothing anyone else
     # can re-open. That is allowed — the schema says so — but it is a GAP, and it was invisible:

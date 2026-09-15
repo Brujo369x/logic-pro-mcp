@@ -1,0 +1,105 @@
+{
+  "id": "2026-09-15-policy-literals-against-logics-own-data",
+  "date": "2026-09-15",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674"
+  },
+  "produced_by": "python3 Scripts/check-policy-literals-against-canon.py",
+  "corpus": {
+    "quickhelp_locales": [
+      "de",
+      "en",
+      "es",
+      "fr",
+      "it",
+      "ja",
+      "ko",
+      "pt",
+      "zh_CN",
+      "zh_TW"
+    ],
+    "strings_files": 2537,
+    "strings_entries": 605160
+  },
+  "counts": {
+    "labelsets": 156,
+    "literals": 379,
+    "quickhelp_title": 113,
+    "other_strings": 226
+  },
+  "absent_from_the_corpus": [
+    "Auto Punch",
+    "Auto-Punch",
+    "Delete Tracks and Content",
+    "One File per Track",
+    "Package",
+    "Project or Section...",
+    "Rec",
+    "Set Locators…",
+    "Spuren Titel",
+    "Spuren enthält",
+    "Tempo-Informationen",
+    "audio effect",
+    "choose project",
+    "contents",
+    "external",
+    "software",
+    "stereo out",
+    "track content",
+    "track contents",
+    "track headers",
+    "tracks content",
+    "tracks contents",
+    "tracks header",
+    "tracks headers",
+    "クリック",
+    "トラックコンテンツ",
+    "가로 확대",
+    "가로 확대/축소",
+    "게인 축소",
+    "드러머",
+    "레코드 활성화",
+    "로케이터 설정…",
+    "세션 플레이어",
+    "읽기, 오토메이션이 활성화됨",
+    "채널 스트립에 플러그인 삽입",
+    "클릭",
+    "트랙 콘텐츠",
+    "트림",
+    "팬",
+    "프로젝트 또는 섹션..."
+  ],
+  "re_asked_with_a_different_character": [
+    {
+      "product": "Project or Section...",
+      "logic": "Project or Section…",
+      "found": true,
+      "locales": [
+        "en",
+        "ko"
+      ]
+    },
+    {
+      "product": "프로젝트 또는 섹션...",
+      "logic": "프로젝트 또는 섹션…",
+      "found": true,
+      "locales": [
+        "ko"
+      ]
+    },
+    {
+      "product": "Auto Punch",
+      "logic": "Autopunch",
+      "found": true,
+      "found_as": "zCb-cM-hG2.title"
+    },
+    {
+      "product": "Auto-Punch",
+      "logic": "Autopunch",
+      "found": true,
+      "found_as": "zCb-cM-hG2.title"
+    }
+  ]
+}

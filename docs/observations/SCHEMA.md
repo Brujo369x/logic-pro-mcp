@@ -268,3 +268,90 @@ Scripts/observations-status.py --unproven # everything the ledger does not know,
 2. Re-run each `reverify` command.
 3. Agreeing runs get a fresh record with the new `host` and `supersedes` set to the old id.
    Disagreeing runs get the same, and their `depends` paths need fixing.
+
+## Schema 3 — the canon axis
+
+A record at schema 3 says where each of its facts about Logic came from: Apple's bytes, or a
+measurement taken because Apple's bytes could not answer. `docs/canon/README.md` holds the design;
+this is the part a record author needs.
+
+```jsonc
+  "schema": 3,
+
+  "canon": [                          // facts taken from Logic's own data
+    {"ref":   "logic-canon://<source>/<unit>/<locale>/<key>#<field>",
+     "value": "녹음 버튼. 선택한 트랙 또는 녹음 준비된 여러 트랙에 녹음합니다.",
+     "used_for": "the key the AXHelp parser returns for the transport record button"}
+  ],
+
+  "canon_absent": [                   // facts no canonical source can answer
+    {"claim":   "one live AXHelp value has no canonical source anywhere in the bundle",
+     "strings": ["이 버튼을 누르면 윈도우를 확대/축소합니다."],
+     "searched": [{"source":"quickhelp","locale":"ko"}, {"source":"strings","locale":"ko"}],
+     "why_runtime": "an exhaustive scan of all 75,535 bundle files in three encodings found it nowhere"}
+  ]
+```
+
+```jsonc
+  "canon_not_applicable": {          // this record is not about a string Logic ships
+    "reason": "read order, not any string in a .strings table"
+  }
+```
+
+A schema-3 record needs one of the three. A record that cites nothing, claims nothing is uncitable
+and does not say the axis is inapplicable is a record whose relationship to Logic's own data was
+never stated.
+
+`canon_not_applicable` exists because several records state facts about Logic's **behaviour** —
+"the routing graph publishes nothing or 23 nodes depending on read order", "the marker list settles
+in seconds and a poll that does not wait reads a stale answer". There is no key to cite and nothing
+to prove absent, and forcing a citation there produces a perfunctory one, which is the failure this
+axis exists to end arriving through the front door.
+
+It is **not** a free pass. The guard reads the record's own readings, and if any of them resolves in
+the corpus then a citation was available and the declaration is false. Measured against the
+thirteen new records of one open branch: **eight quote nothing citable and may decline; five quote
+strings Logic ships** — `Neue Spur`, `Erzeugen`, `컨트롤러 할당…` — and are named by the check. The
+split is derived, not chosen.
+
+`Scripts/check-canon-citations.py` refuses:
+
+| | |
+|---|---|
+| a reference that does not parse | |
+| a reference not in `docs/canon/index/` | nobody resolved it against Logic |
+| a quoted value whose digest differs from Apple's | **the rule this axis exists for** |
+| an absence claim over a corpus with no absence set | an absence over nothing is not a proof |
+| an absence claim for a string Logic ships | it can be cited, so it must be |
+| a schema-3 record with neither key | |
+| a NEW record at schema 2 or lower | `docs/canon/WITHOUT-CANON.json` may only shrink |
+
+### Why the ratchet is seeded full
+
+104 records predate this rule and are listed in `WITHOUT-CANON.json`. Turning 104 records red at
+once is how a rule gets deleted rather than satisfied; letting the 105th in quietly is how it
+becomes decorative. The list may only shrink, and a member naming a file that is gone fails —
+the same shape as `check-guards-have-self-tests.py`'s known-bare set, for the same reason.
+
+### How this interacts with the label projection
+
+`docs/locale/ui-labels.json` carries variants backed by a **sighting** in a record — a row that
+carried the string. A sighting says a person saw it. A citation says Apple ships it. They answer
+different questions and the second does not retire the first: a string can be in Logic's data and
+never reach the interface (the live UI shows untranslated `German` and `MIDI Region` although ko
+translations for both keys exist), and a string can reach the interface with no file behind it.
+
+Measured 2026-09-15 across `AXLocalePolicy`'s 379 distinct literals: 113 are a QuickHelp Title,
+226 more are somewhere in the bundle's 605,190 `.strings` entries, and **40 are in no file of the
+app bundle**. Roughly half of those 40 are deliberate lowercase fragments for `.contains` matching
+and were never whole labels; the rest are labels Logic composes at runtime, labels from a framework
+outside this corpus, or labels somebody typed. Nothing in the ledger could tell them apart, which
+is what the canon axis is for. The live count is printed by
+`Scripts/check-policy-literals-against-canon.py`; do not restate it from memory.
+
+### What a citation does not prove
+
+That it is the **right** citation. A reference resolving with the right digest proves the quote is
+Apple's text under that key. It does not prove that key describes the control the record is about.
+`used_for` is required and is read by a person — the same trust boundary this file already names
+for sightings.

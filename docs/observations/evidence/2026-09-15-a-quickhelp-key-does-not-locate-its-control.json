@@ -1,0 +1,242 @@
+{
+  "id": "2026-09-15-a-quickhelp-key-does-not-locate-its-control",
+  "date": "2026-09-15",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674"
+  },
+  "produced_by": "python3 Scripts/logic_canon.py census",
+  "counts": {
+    "quickhelp_keys": 9835,
+    "qhid_values": 619,
+    "qhid_reaching_a_key": 587,
+    "percent": 5.97,
+    "qhid_pointing_at_no_key": 32,
+    "keys_with_an_anchor": 9571
+  },
+  "coverage_by_family": [
+    {
+      "family": "PFS",
+      "covered": 227,
+      "of": 243,
+      "percent": 93.4
+    },
+    {
+      "family": "SET",
+      "covered": 270,
+      "of": 305,
+      "percent": 88.5
+    },
+    {
+      "family": "BTE",
+      "covered": 10,
+      "of": 32,
+      "percent": 31.2
+    },
+    {
+      "family": "TRF",
+      "covered": 5,
+      "of": 33,
+      "percent": 15.2
+    },
+    {
+      "family": "ART",
+      "covered": 4,
+      "of": 32,
+      "percent": 12.5
+    },
+    {
+      "family": "KCE",
+      "covered": 18,
+      "of": 595,
+      "percent": 3.0
+    },
+    {
+      "family": "CAS",
+      "covered": 1,
+      "of": 57,
+      "percent": 1.8
+    },
+    {
+      "family": "LMT",
+      "covered": 2,
+      "of": 228,
+      "percent": 0.9
+    },
+    {
+      "family": "INS",
+      "covered": 1,
+      "of": 139,
+      "percent": 0.7
+    },
+    {
+      "family": "GMN",
+      "covered": 0,
+      "of": 50,
+      "percent": 0.0
+    },
+    {
+      "family": "NUMERIC",
+      "covered": 0,
+      "of": 4061,
+      "percent": 0.0
+    },
+    {
+      "family": "OTHER",
+      "covered": 0,
+      "of": 1995,
+      "percent": 0.0
+    },
+    {
+      "family": "TRA",
+      "covered": 0,
+      "of": 106,
+      "percent": 0.0
+    },
+    {
+      "family": "TLB",
+      "covered": 0,
+      "of": 34,
+      "percent": 0.0
+    },
+    {
+      "family": "PRM",
+      "covered": 0,
+      "of": 43,
+      "percent": 0.0
+    },
+    {
+      "family": "ARR",
+      "covered": 0,
+      "of": 86,
+      "percent": 0.0
+    },
+    {
+      "family": "CSS",
+      "covered": 0,
+      "of": 97,
+      "percent": 0.0
+    },
+    {
+      "family": "SEQ",
+      "covered": 0,
+      "of": 100,
+      "percent": 0.0
+    },
+    {
+      "family": "AFE",
+      "covered": 0,
+      "of": 58,
+      "percent": 0.0
+    },
+    {
+      "family": "LIB",
+      "covered": 0,
+      "of": 33,
+      "percent": 0.0
+    },
+    {
+      "family": "LLI",
+      "covered": 0,
+      "of": 54,
+      "percent": 0.0
+    },
+    {
+      "family": "LLP",
+      "covered": 0,
+      "of": 101,
+      "percent": 0.0
+    },
+    {
+      "family": "LPB",
+      "covered": 0,
+      "of": 38,
+      "percent": 0.0
+    },
+    {
+      "family": "TOO",
+      "covered": 0,
+      "of": 45,
+      "percent": 0.0
+    },
+    {
+      "family": "SSM",
+      "covered": 0,
+      "of": 43,
+      "percent": 0.0
+    },
+    {
+      "family": "SPE",
+      "covered": 0,
+      "of": 173,
+      "percent": 0.0
+    },
+    {
+      "family": "MEM",
+      "covered": 0,
+      "of": 59,
+      "percent": 0.0
+    },
+    {
+      "family": "GMT",
+      "covered": 0,
+      "of": 44,
+      "percent": 0.0
+    },
+    {
+      "family": "GMM",
+      "covered": 0,
+      "of": 34,
+      "percent": 0.0
+    },
+    {
+      "family": "TRL",
+      "covered": 0,
+      "of": 75,
+      "percent": 0.0
+    },
+    {
+      "family": "SEM",
+      "covered": 0,
+      "of": 56,
+      "percent": 0.0
+    },
+    {
+      "family": "SCO",
+      "covered": 0,
+      "of": 32,
+      "percent": 0.0
+    },
+    {
+      "family": "GMF",
+      "covered": 0,
+      "of": 69,
+      "percent": 0.0
+    },
+    {
+      "family": "GMR",
+      "covered": 0,
+      "of": 31,
+      "percent": 0.0
+    },
+    {
+      "family": "MWM",
+      "covered": 0,
+      "of": 48,
+      "percent": 0.0
+    },
+    {
+      "family": "PAB",
+      "covered": 0,
+      "of": 33,
+      "percent": 0.0
+    },
+    {
+      "family": "GLO",
+      "covered": 0,
+      "of": 37,
+      "percent": 0.0
+    }
+  ]
+}

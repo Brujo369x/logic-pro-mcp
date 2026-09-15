@@ -267,8 +267,8 @@ def check(path):
     # to nothing. `../locale/ui-labels.json` would let a record cite the very file whose claims it
     # backs, which is the shape the label guard refuses on the other side.
     schema = doc.get("schema", 1)
-    if schema not in (1, 2):
-        bad.append(f"{stem}: schema is {schema!r}; this repository has 1 and 2")
+    if schema not in (1, 2, 3):
+        bad.append(f"{stem}: schema is {schema!r}; this repository has 1, 2 and 3")
     evidence = doc.get("evidence")
     if evidence is not None:
         if not isinstance(evidence, list):
