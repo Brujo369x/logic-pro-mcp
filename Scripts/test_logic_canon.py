@@ -221,6 +221,27 @@ class Templates(unittest.TestCase):
         self.assertIsNotNone(pattern)
         self.assertEqual(pattern.match("Aux 채널 스트립 표시").groups(), ("Aux",))
 
+    def test_a_value_two_templates_could_render_resolves_to_neither(self):
+        """The same refusal `AXHelpMatch.key` makes when a composition is shared.
+
+        `templates` is sorted by length and the first hit used to win, which is an arbitrary choice
+        between two templates of similar specificity. Measured in ko: 27 templates render another
+        canonical value outright, and no live value matches two -- so this refuses a hazard rather
+        than a known failure.
+        """
+        index = canon.StringsIndex("ko", {}, [
+            (canon.template_to_regex("Channel strip %@ here"), "u", "A", "Channel strip %@ here"),
+            (canon.template_to_regex("Channel %@ here"), "u", "B", "Channel %@ here"),
+        ])
+        self.assertIsNone(index.lookup("Channel strip seven here"))
+
+    def test_a_value_only_one_template_renders_resolves(self):
+        index = canon.StringsIndex("ko", {}, [
+            (canon.template_to_regex("Channel strip %@ here"), "u", "A", "Channel strip %@ here"),
+        ])
+        found = index.lookup("Channel strip seven here")
+        self.assertEqual((found.key, found.tier, found.arguments), ("A", "template", ("seven",)))
+
     def test_a_template_does_not_match_a_value_it_cannot_render(self):
         pattern = canon.template_to_regex("%@ 채널 스트립 표시")
         self.assertIsNone(pattern.match("전혀 다른 문자열입니다"))

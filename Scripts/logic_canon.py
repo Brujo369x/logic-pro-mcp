@@ -1933,13 +1933,21 @@ class StringsIndex:
                                   field="value", tier="shortcut", canonical=base,
                                   suffix=tail, keys=[k for _, k in hits])
 
-        for pattern, unit, key, template in self.templates:
-            found = pattern.match(folded)
-            if found:
-                return Resolution(source="strings", unit=unit, locale=self.locale, key=key,
-                                  field="value", tier="template", canonical=template,
-                                  arguments=found.groups())
-        return None
+        # Every template, not the first that matches. `templates` is sorted by length and the
+        # first hit used to win, which is an arbitrary choice between two templates of similar
+        # specificity -- the same manufacture `AXHelpMatch.key` refuses when a composition is
+        # shared. Measured in ko: 27 templates render another canonical value outright, and no
+        # live value matches two. So this refuses a hazard rather than a known failure, which is
+        # the moment to refuse it.
+        hits = [(pattern.match(folded), unit, key, template)
+                for pattern, unit, key, template in self.templates]
+        hits = [hit for hit in hits if hit[0]]
+        if len(hits) != 1:
+            return None
+        found, unit, key, template = hits[0]
+        return Resolution(source="strings", unit=unit, locale=self.locale, key=key,
+                          field="value", tier="template", canonical=template,
+                          arguments=found.groups())
 
 
 class AXStringResolver:

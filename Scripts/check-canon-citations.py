@@ -269,8 +269,17 @@ BINDING_RECORD_FIELDS = ("observations", "conclusion", "method", "question", "su
 NOT_APPLICABLE_MIN = 8
 
 
+#: The fields rule 13's bound reads. `observations` alone was not enough: moving the citable
+#: string into `conclusion`, `method` or `limits` defeated the bound entirely, which makes the
+#: declaration available to any record willing to phrase itself differently. Prose is included
+#: deliberately -- the test is an EXACT corpus match on a run of eight characters or more, which an
+#: English sentence does not produce by accident, and a record whose conclusion quotes a string
+#: Logic ships had a citation available wherever it put it.
+NOT_APPLICABLE_FIELDS = ("observations", "conclusion", "method", "question", "subject", "limits")
+
+
 def _observation_strings(record: dict) -> list:
-    """Every string in the record's READINGS, flattened. Readings only, never prose."""
+    """Every string in the record's substantive fields, flattened."""
     out = []
 
     def walk(node):
@@ -283,7 +292,8 @@ def _observation_strings(record: dict) -> list:
         elif isinstance(node, str) and len(node) >= NOT_APPLICABLE_MIN:
             out.append(node)
 
-    walk(record.get("observations", []))
+    for field in NOT_APPLICABLE_FIELDS:
+        walk(record.get(field))
     return out
 
 
