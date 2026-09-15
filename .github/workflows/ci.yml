@@ -391,13 +391,38 @@ jobs:
     # it can fail, and the only required context does not look at it. A stale roadmap, a drifted ADR
     # index or a wrong Formula sha256 would have turned `roadmap` red while `build` stayed green and
     # the ruleset permitted the merge. Found by review 2026-09-15.
-    needs: [compile, test, roadmap]
+    needs: [compile, test, roadmap, canon-citations-in-the-pull-request]
     if: always()
     timeout-minutes: 5
     steps:
       - name: Every gate must have passed
+        # `canon-citations-in-the-pull-request` joins this list in the same change that adds the
+        # job, for the reason written five lines above -- and it was left out of the first version
+        # of that change anyway. The job ran, it could fail, and the only required context did not
+        # look at it. That is the same defect this comment already records, committed again by the
+        # change whose whole subject is enforcement sites drifting from named sites.
+        #
+        # It is the one gate here that can legitimately be SKIPPED: it runs only on
+        # `pull_request`, because a pull request body is what it reads. A push has no body, so
+        # `skipped` is accepted there and refused on a pull request -- spelled out rather than
+        # folded into a truthy test, because `[ "" = "success" ]` and `[ "skipped" = "success" ]`
+        # both read as "did not succeed" and only one of them is.
+        env:
+          EVENT: ${{ github.event_name }}
+          COMPILE: ${{ needs.compile.result }}
+          TEST: ${{ needs.test.result }}
+          ROADMAP: ${{ needs.roadmap.result }}
+          CANON: ${{ needs.canon-citations-in-the-pull-request.result }}
         run: |
-          echo "compile=${{ needs.compile.result }} test=${{ needs.test.result }} roadmap=${{ needs.roadmap.result }}"
-          [ "${{ needs.compile.result }}" = "success" ] || { echo "::error::compile did not succeed"; exit 1; }
-          [ "${{ needs.test.result }}" = "success" ] || { echo "::error::test did not succeed"; exit 1; }
-          [ "${{ needs.roadmap.result }}" = "success" ] || { echo "::error::roadmap did not succeed"; exit 1; }
+          echo "compile=$COMPILE test=$TEST roadmap=$ROADMAP canon=$CANON event=$EVENT"
+          [ "$COMPILE" = "success" ] || { echo "::error::compile did not succeed"; exit 1; }
+          [ "$TEST" = "success" ] || { echo "::error::test did not succeed"; exit 1; }
+          [ "$ROADMAP" = "success" ] || { echo "::error::roadmap did not succeed"; exit 1; }
+          if [ "$EVENT" = "pull_request" ]; then
+            [ "$CANON" = "success" ] || {
+              echo "::error::canon-citations-in-the-pull-request did not succeed"; exit 1; }
+          else
+            [ "$CANON" = "skipped" ] || [ "$CANON" = "success" ] || {
+              echo "::error::canon-citations-in-the-pull-request was neither skipped nor green"
+              exit 1; }
+          fi
