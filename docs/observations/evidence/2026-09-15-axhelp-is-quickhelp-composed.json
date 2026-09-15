@@ -1,0 +1,185 @@
+{
+  "id": "2026-09-15-axhelp-is-quickhelp-composed",
+  "date": "2026-09-15",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR"
+  },
+  "canonical_sources": [
+    {
+      "path": "Contents/Resources/<locale>.lproj/QuickHelp.plist",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "zh_CN",
+        "zh_TW"
+      ],
+      "keys_per_locale": 9835,
+      "keysets_identical_across_locales": true,
+      "ko_sha256": "f3b55e5c426314cde30ed76eec84c49394a4cb8cc44b50bb656f8e56c3b92bc0"
+    },
+    {
+      "path": "Contents/**/Base.lproj/*.nib",
+      "attribute": "qhid (NSIBUserDefinedRuntimeAttributesConnector keyPath)",
+      "unique_values": 619,
+      "records": 1242
+    }
+  ],
+  "live_input": {
+    "file": "/tmp/axlive2.tsv",
+    "rows": 2748,
+    "attribute_rows": {
+      "AXTitle": 697,
+      "AXDescription": 1100,
+      "AXHelp": 710,
+      "AXValue": 241
+    },
+    "axhelp_unique_values": 114
+  },
+  "measurements": {
+    "axhelp_matched_to_quickhelp": {
+      "matched": 87,
+      "of": 114,
+      "exact_Title_dot_Text": 56,
+      "prefix_truncated_by_dump": 1,
+      "contained_with_prefix_of_axtitle_and_shortcut": 30,
+      "matched_keys_symbolic": 87,
+      "matched_keys_numeric": 0
+    },
+    "matched_keys_also_carrying_nib_qhid": 1,
+    "nib_qhid_present_in_quickhelp_keys": {
+      "matched": 587,
+      "of": 619
+    },
+    "nib_qhid_key_form": {
+      "symbolic": 619,
+      "numeric": 0
+    },
+    "quickhelp_key_forms": {
+      "other": 1995,
+      "symbolic": 3779,
+      "numeric": 4061
+    },
+    "reverse_index_locale_invariance": {
+      "keys_whose_collision_set_is_identical_in_all_10_locales": 9502,
+      "of": 9835,
+      "of_those_one_to_one": 5982,
+      "per_locale_agreement_with_en": {
+        "de": 9704,
+        "en": 9835,
+        "es": 9774,
+        "fr": 9719,
+        "it": 9835,
+        "ja": 9729,
+        "ko": 9738,
+        "pt": 9835,
+        "zh_CN": 9747,
+        "zh_TW": 9835
+      }
+    },
+    "composition_rule": {
+      "form": "AXHelp = [{runtime prefix}, ]{QuickHelp Title}. {QuickHelp Text}",
+      "quickhelp_fragment_is_a_suffix": {
+        "yes": 86,
+        "no": 0,
+        "of": 86
+      },
+      "prefix_absent": 56,
+      "prefix_present": 30,
+      "prefix_kinds_seen": {
+        "current value": "'끔, 센드 온 페이더 팝업 메뉴. …' (MIX_040_SendsOnFader)",
+        "own title + key equivalent": "'재생   ⌅, 재생 버튼. …' (TRA_015_PlayButton)",
+        "live object state": "'리전은 1 마디 에서 시작하여 2 마디 에서 끝납니다., MIDI 리전. …' (ARR_021_MidiRegion)",
+        "disabled reason": "'이 컨트롤을 사용할 수 없습니다. 원인: 오디오 트랙이 선택되지 않았습니다., 튜너 버튼. …' (TRA_073_TunerButton)"
+      }
+    },
+    "counterexamples_checked": {
+      "audio_plug_in_label": {
+        "attribute": "AXDescription",
+        "source": "MAMixer.framework ko.lproj/Localizable.strings",
+        "in_quickhelp": false,
+        "note": "not a counterexample to the AXHelp rule; it is a different attribute"
+      },
+      "region_bar_sentence": {
+        "attribute": "AXHelp",
+        "template_source": "Logic.framework ko.lproj/Localizable.strings 'Region starts at %@ and ends at %@'",
+        "resolution": "appears as the runtime PREFIX of an AXHelp whose suffix is QuickHelp ARR_021_MidiRegion; both sources are present in one value"
+      }
+    }
+  },
+  "samples": {
+    "axhelp_to_key": [
+      {
+        "key": "INS_008_EQDisplay",
+        "axhelp": "EQ 디스플레이. 채널 EQ를 추가하거나 삽입된 채널 또는 리니어 페이즈 EQ를 열려면 클릭합니다. Shift-클릭하여 리니어 페이즈 EQ를 추가합니다. EQ를 사용하여 특정 주파수 범위의 레벨을 조절하여 오디오 신호를 형성합니다."
+      },
+      {
+        "key": "LIB_042_FilterMenu",
+        "axhelp": "Filter 팝업 메뉴. 모든 패치를 표시하거나 특정 사운드 팩에 대한 패치를 표시합니다."
+      },
+      {
+        "key": "COM_025_ShowLiveLoopsGridBtn",
+        "axhelp": "Live Loop 그리드 보기/가리기"
+      },
+      {
+        "key": "INS_086_MidiSlot",
+        "axhelp": "MIDI 이펙트 슬롯. MIDI 이펙트를 삽입합니다. 사용 중인 슬롯을 클릭하여 플러그인을 엽니다."
+      },
+      {
+        "key": "INS_120_MasAssistant",
+        "axhelp": "Mastering Assistant. 클릭하여 Mastering Assistant를 삽입합니다."
+      },
+      {
+        "key": "TRA_070_SmartControlsButton",
+        "axhelp": "Smart Controls   B, Smart Controls 버튼. 개별 채널 스트립 또는 플러그인을 편집할 필요 없이 현재 패치의 사운드를 빠르게 수정할 수 있습니다."
+      },
+      {
+        "key": "TRL_049_TrackStackTriangle",
+        "axhelp": "Track Stack 펼침 화살표. 서브 트랙을 보거나 가립니다. 메인 트랙의 컨트롤을 사용하여 Track Stack의 모든 서브 트랙을 제어합니다."
+      },
+      {
+        "key": "MIX_036_TrackStackTriangle",
+        "axhelp": "Track Stack 펼침 화살표. 서브 트랙을 보거나 가립니다. 믹서 메뉴 막대에서 보기 > Track Stack 따르기를 선택했는지 확인하십시오."
+      },
+      {
+        "key": "TRL_034_IndividualTrackZoom",
+        "axhelp": "개별 트랙 확대/축소. 트랙 하단의 분리선을 드래그하여 수직 트랙 확대/축소 레벨을 조절합니다. 동일한 트랙 유형의 모든 트랙을 조절하려면 Command-드래그합니다. 모든 트랙을 기본 확대/축소 레벨로 재설정하려면 Shift-클릭합니다."
+      },
+      {
+        "key": "LIB_005_SearchField",
+        "axhelp": "검색 필드. 패치 및 프리셋을 이름으로 검색합니다. 돋보기를 클릭하여 최근 검색을 보거나 또는 검색 기록을 지웁니다."
+      },
+      {
+        "key": "MIX_032_GainReductionMeter",
+        "axhelp": "게인 감소 측정기. 첫 Compressor 플러그인의 게인 감소를 봅니다. Compressor가 삽입되지 않았다면, 삽입된 Limiter 또는 어댑티브 Limiter의 게인 감소를 나타냅니다."
+      },
+      {
+        "key": "INS_015_GroupSlot",
+        "axhelp": "그룹 슬롯. 채널 스트립을 그룹에 추가합니다. 전체 그룹에 대해 동시에 편집할 수 있는 채널 스트립 컨트롤을 정의할 수도 있습니다."
+      }
+    ],
+    "axhelp_unmatched": [
+      "Aux 채널 스트립 표시",
+      "Command-클릭 도구",
+      "Flex 보기/가리기   ⌘F",
+      "MIDI 채널 스트립 표시",
+      "넓은 채널 스트립",
+      "드래그 모드",
+      "마스터/VCA 채널 스트립 표시",
+      "모든 채널 스트립 보기",
+      "버스 채널 스트립 표시",
+      "수직 자동 확대/축소",
+      "수직 확대/축소",
+      "수평 자동 확대/축소"
+    ]
+  },
+  "reproduce": "python3 Scripts/test_logic_canon.py"
+}

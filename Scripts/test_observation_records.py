@@ -180,8 +180,14 @@ case("a reading in a second SUPPORTED locale is accepted",
 case("a record without schema or evidence is still valid",
      problems(record()) == [], f"{problems(record())!r}")
 
-bad = problems(record(schema=3))
+# Schema 3 is the canon axis and is valid; 4 does not exist. This case used to use 3, and moving
+# it is the whole point of having it -- the boundary walks forward with the schema instead of
+# quietly becoming a test that nothing is ever added.
+bad = problems(record(schema=4))
 case("an unknown schema is rejected", any("schema" in b for b in bad), f"{bad!r}")
+
+bad = problems(record(schema=3))
+case("schema 3 is accepted", not any("schema" in b for b in bad), f"{bad!r}")
 
 bad = problems(record(evidence=["evidence/does-not-exist.json"]))
 case("evidence that does not exist is rejected", any("does not exist" in b for b in bad), f"{bad!r}")

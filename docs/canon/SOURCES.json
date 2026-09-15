@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "note": "The Logic assets this repository treats as source of truth, and what each can answer. A source is listed here only after something measured what it contains; the counts are from Scripts/logic_canon.py build against the Logic in MANIFEST.json.",
+  "sources": {
+    "quickhelp": {
+      "path": "Contents/Resources/<locale>.lproj/QuickHelp.plist",
+      "answers": "the identity of a CONTROL, as a key that is the same in every locale",
+      "fields": ["Title", "Text", "Anchor", "composed"],
+      "keys": 9835,
+      "locale_names": 10,
+      "distinct_files": 7,
+      "distinct_files_note": "en, it, pt and zh_TW ship the same bytes (sha256 3ed7aa22...), so it, pt and zh_TW are untranslated English. A claim of agreement 'across ten locales' counts three agreements that are true by construction.",
+      "reaches_live_axhelp": "measured: a composition of Title and Text is the SUFFIX of a live AXHelp value on 86 of 114 distinct ko-KR readings",
+      "limits": [
+        "3766 of 9835 ko keys share their composition with another key, so a string identifies a SET of keys and not always one",
+        "the ja and zh_CN join rule is unverified and their punctuation argues against it -- see LOCALE_JOIN_CONFIDENCE in Scripts/logic_canon.py",
+        "93 of 9835 keys have ever been confirmed live across every census this repository holds"
+      ]
+    },
+    "strings": {
+      "path": "**/<locale>.lproj/*.strings",
+      "answers": "the text of a LABEL, which is weaker than a control identity because labels are reused",
+      "fields": ["value"],
+      "files": 2537,
+      "entries": 605160,
+      "locale_names": 10,
+      "reaches_live_axhelp": "measured: 27 of the 28 live ko-KR AXHelp values QuickHelp cannot explain resolve here, all of them in Logic.framework and none in any other framework",
+      "limits": [
+        "English is structurally absent from 97 of 135 tables that back a live match: en text lives inside Base.lproj nibs and only translated locales get a .strings overlay. A resolver keyed on <locale>.lproj/<name>.strings silently loses en.",
+        "across the nine non-English locales, 135 measured tables showed zero key-set drift",
+        "a value may be present in the table and NOT used by the interface: the live UI shows untranslated 'German' and 'MIDI Region' although ko translations for both keys exist"
+      ]
+    },
+    "madsp": {
+      "path": "Contents/Frameworks/MADSP.framework/Versions/A/Resources/<plug-in>.plist",
+      "answers": "a stock plug-in's parameter table: parameterID, name, control type",
+      "fields": ["name", "preferredControlType"],
+      "files": 128,
+      "entries": 14940,
+      "locale_names": 1,
+      "limits": [
+        "not localised: the parameter names are fixed in the plist and the ten Localizable.strings beside them hold 23 error and side-chain strings with no parameter names in them",
+        "parameterID is an ordinal private to each plug-in, not a global identifier, and 55 of 127 tables have gaps in it",
+        "nothing measured connects a parameterID to an element in the live accessibility tree"
+      ]
+    },
+    "nib": {
+      "path": "**/*.nib (NSIBUserDefinedRuntimeAttributesConnector)",
+      "answers": "which SCREEN FILE holds a control, by the qhid runtime attribute",
+      "fields": ["nibs"],
+      "files": 1169,
+      "entries": 3313,
+      "locale_names": 1,
+      "limits": [
+        "619 distinct qhid values reach 587 QuickHelp keys, which is 6.0% of 9835; 32 point at keys QuickHelp does not have",
+        "coverage is concentrated in Preferences and Song Settings (PFS 93%, SET 89%) and is zero for TRA, ARR, SPE, SEQ, LLP, CSS, MIX and INS -- the main window",
+        "zero coverage of the 6056 numeric-triple and other keys: plug-in editors are not built from nibs",
+        "only 1 of the 86 live QuickHelp-matched controls carried a qhid, so this is a static asset link and not a live control identifier"
+      ]
+    }
+  },
+  "not_canonical": {
+    "help_book": "Contents/Info.plist declares CFBundleHelpBookFolder=logic.help and that folder is on no disk here. Anchor resolves only over the network, at support.apple.com/guide/logicpro/<anchor>/mac, so an Anchor-to-screen mapping is not a local canonical fact.",
+    "content_databases": "ContentDatabaseV01.db, index.db-fts and PackageContents.dbz are a content catalogue, a search index and an install manifest. Their label columns are empty (ZLABEL 0 of 533) or absent, and they carry no interface strings.",
+    "keymap_momd": "MAKeymap.framework's Keymap_CD.momd is the Sampler's zone and group model, not key commands. The name invites the opposite reading."
+  }
+}

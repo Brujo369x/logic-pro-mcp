@@ -1,0 +1,163 @@
+{
+  "id": "2026-09-15-axhelp-is-quickhelp-composed",
+  "date": "2026-09-15",
+  "subject": "Whether a live control can be named from Logic's own data, without position and without a translated label",
+  "question": "AX exposes localised strings. Is there a canonical Logic asset that a live AX reading can be reversed into, yielding the same identifier in every locale?",
+  "verdict": "partial",
+  "issues": [
+    292,
+    299,
+    892
+  ],
+  "surface": "arrange.transport",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/test_logic_canon.py",
+    "expected": "35 tests pass, including test_the_live_axhelp_corpus_is_explained_by_canonical_data which asserts 114 distinct AXHelp values with exactly one unresolved",
+    "cost": "~2s; reads the app bundle, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+  ],
+  "method": "Composed each QuickHelp entry as \"{Title}. {Text}\" in all ten locales, then tried to reverse the 114 distinct AXHelp values of a live ko-KR dump back into QuickHelp keys. Separately checked whether the nib runtime attribute qhid reaches the same keys. The dump truncates long values, so exact matching was supplemented with prefix and containment matching, counted separately.",
+  "observations": [
+    {
+      "what": "QuickHelp.plist across locales",
+      "locales": 10,
+      "keys_each": 9835,
+      "keysets_identical": true,
+      "empty_entries": 0,
+      "key_forms": {
+        "numeric": 4061,
+        "symbolic": 3779,
+        "other": 1995
+      }
+    },
+    {
+      "what": "live AXHelp reversed into QuickHelp keys",
+      "unique_axhelp_values": 114,
+      "matched": 87,
+      "exact_Title_dot_Text": 56,
+      "prefix_only_because_dump_truncated": 1,
+      "contained_after_an_AXTitle_and_shortcut_prefix": 30,
+      "matched_keys_all_symbolic": true,
+      "matched_keys_numeric": 0
+    },
+    {
+      "what": "the composition rule, measured rather than guessed",
+      "form": "AXHelp = [{runtime prefix}, ]{QuickHelp Title}. {QuickHelp Text}",
+      "quickhelp_fragment_sits_at_the_end": "86 of 86 containment matches, no exception",
+      "prefix_absent": 56,
+      "prefix_present": 30,
+      "prefix_carries": [
+        "the control's current value",
+        "its own title and key equivalent",
+        "live object state (a region's bar range)",
+        "the reason the control is disabled"
+      ],
+      "examples": [
+        "KCE_024_Record -> '녹음   R, 녹음 버튼. 선택한 트랙 또는 녹음 준비된 여러 트랙에 녹음합니다.'",
+        "ARR_021_MidiRegion -> '리전은 1 마디 에서 시작하여 2 마디 에서 끝납니다., MIDI 리전. MIDI 노트 및 …'",
+        "TRA_073_TunerButton -> '이 컨트롤을 사용할 수 없습니다. 원인: 오디오 트랙이 선택되지 않았습니다., 튜너 버튼. …'"
+      ]
+    },
+    {
+      "what": "the reverse index's locale invariance",
+      "keys_whose_collision_set_is_identical_in_all_10_locales": 9502,
+      "of": 9835,
+      "of_those_one_to_one": 5982,
+      "worst_locale_agreement_with_en": {
+        "de": 9704,
+        "fr": 9719
+      }
+    },
+    {
+      "what": "nib qhid, which I had proposed as the handle",
+      "unique_values": 619,
+      "all_symbolic": true,
+      "present_in_QuickHelp_keys": 587,
+      "of_the_87_live_matched_controls_carrying_a_qhid": 1
+    },
+    {
+      "what": "two apparent counterexamples, resolved",
+      "audio_plug_in": "'오디오 플러그인' is AXDescription, not AXHelp, and comes from MAMixer.framework Localizable.strings. Different attribute, so it does not bear on the AXHelp rule.",
+      "region_sentence": "'리전은 N 마디 에서 시작하여 …' does come from a Logic.framework template, and it is AXHelp. It is the runtime PREFIX; the same value's suffix is QuickHelp ARR_021_MidiRegion. Both sources are in one string."
+    }
+  ],
+  "conclusion": "AXHelp is QuickHelp.plist with a runtime prefix. On 86 of 114 distinct live values the QuickHelp composition \"{Title}. {Text}\" appears, and in 86 of 86 it sits at the END of the value with no exception; 56 values are the QuickHelp composition alone and 30 carry a prefix ending in a comma. The prefix is live data -- the control's current value, its key equivalent, a region's bar range, or the reason it is disabled -- so one AXHelp reading yields both a canonical identifier and the control's state. Because QuickHelp ships in ten locales with identical 9835-key keysets, that identifier is the same in every locale, and for 9502 keys the set of keys sharing a string is identical in all ten, 5982 of them one to one. This is a locale-independent control handle taken from Logic's own data rather than from position or a translated label. It is NOT the handle I proposed earlier: nib qhid reaches QuickHelp keys (587 of 619) but only 1 of the 86 live-matched controls carried one, so qhid links static nib assets, not the surfaces this repository drives. Every matched key was symbolic; none of the 4061 numeric keys was reached.",
+  "limits": [
+    "One dump, one locale (ko-KR), one set of open windows. 114 distinct AXHelp values is a small slice of the application, and no claim is made about what fraction of all controls expose AXHelp at all.",
+    "The suffix rule is what makes the containment tier trustworthy, and it was checked only on these 86. A QuickHelp string short enough to occur by accident inside an unrelated AXHelp would still match; the shortest fragment relied on here is 26 characters.",
+    "The dump truncates values at 163 characters. Values longer than that were matched on their visible part.",
+    "This establishes AXHelp -> key. It does not establish key -> control: nothing here shows a wanted key can be used to FIND a control on screen, only that a control already in hand can be named.",
+    "The 28 unmatched values were not explained. Several are short mixer view toggles ('Aux 채널 스트립 표시', '넓은 채널 스트립') that are likely drawn from a framework Localizable.strings the way '오디오 플러그인' is.",
+    "Locale invariance was computed from the shipped plists, not observed live. Whether Logic running in de-DE emits the de-DE composition was not measured.",
+    "The prefix grammar is described from 30 examples. Whether the separator is always a comma, and whether a prefix can itself contain the separator, was not established -- a parser must therefore anchor on the QuickHelp suffix, not split on the comma."
+  ],
+  "supersedes": null,
+  "schema": 3,
+  "evidence": [
+    "evidence/2026-09-15-axhelp-is-quickhelp-composed.json"
+  ],
+  "canon": [
+    {
+      "ref": "logic-canon://quickhelp/QuickHelp/ko/KCE_024_Record#composed",
+      "value": "녹음 버튼. 선택한 트랙 또는 녹음 준비된 여러 트랙에 녹음합니다.",
+      "used_for": "the key the AXHelp parser returns for the transport record button, and the value it anchors on"
+    },
+    {
+      "ref": "logic-canon://quickhelp/QuickHelp/ko/TRA_073_TunerButton#composed",
+      "value": "튜너 버튼. 시스템에 연결된 악기를 조정합니다.",
+      "used_for": "the reading that makes splitting AXHelp on the comma indefensible: its live value carries a two-sentence disabled-reason prefix in front of this composition"
+    },
+    {
+      "ref": "logic-canon://quickhelp/QuickHelp/ko/ARR_021_MidiRegion#composed",
+      "value": "MIDI 리전. MIDI 노트 및 컨트롤러 이벤트를 포함합니다. 가운데를 드래그하여 이동하고, 하단 가장자리를 드래그하여 크기를 조정하며, 상단 오른쪽 모서리를 드래그하여 루핑합니다. 도구를 사용하여 그 외의 편집을 수행합니다.",
+      "used_for": "the composition that sits behind a region's live bar-range prefix, showing that one AXHelp carries both a canonical identity and runtime state"
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Show%2FHide%20Automation#value",
+      "value": "오토메이션 보기/가리기",
+      "used_for": "the second resolver layer: this value plus a run of spaces and a key equivalent is the whole of a live AXHelp that QuickHelp cannot explain"
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Display%20%25%40%20Channel%20Strips#value",
+      "value": "%@ 채널 스트립 표시",
+      "used_for": "the template layer: one canonical template renders eight of the live AXHelp values, with the channel-strip type as its argument"
+    }
+  ],
+  "canon_absent": [
+    {
+      "claim": "one live AXHelp value has no canonical source anywhere in the Logic bundle",
+      "strings": [
+        "이 버튼을 누르면 윈도우를 확대/축소합니다."
+      ],
+      "searched": [
+        {
+          "source": "quickhelp",
+          "locale": "ko"
+        },
+        {
+          "source": "strings",
+          "locale": "ko"
+        },
+        {
+          "source": "madsp",
+          "locale": "-"
+        },
+        {
+          "source": "nib",
+          "locale": "-"
+        }
+      ],
+      "why_runtime": "An exhaustive scan of all 75,535 non-media files in the bundle, in UTF-8 and both UTF-16 byte orders, found it nowhere, and a separate scan of all 1,169 nibs found it nowhere. It is most plausibly drawn from AppKit, whose localised strings live in the dyld shared cache rather than in files this corpus can hold -- and that plausibility is stated as unverified: the shared cache was not opened."
+    }
+  ]
+}
