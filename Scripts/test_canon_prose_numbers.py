@@ -92,6 +92,20 @@ class ProseNumbers(unittest.TestCase):
         self._readme("113 of 114 readings resolve across 10 locales and 4 sources.\n")
         self.assertEqual(guard.problems(self.root), [])
 
+    def test_a_comma_separated_pair_is_read_as_one_number(self):
+        """A KNOWN LIMIT, pinned so it is visible rather than discovered.
+
+        `TrackDispatcher:127,166` means lines 127 and 166, and the thousands-separator pattern
+        reads it as 127,166. Nothing distinguishes the two without knowing the sentence. It is
+        tolerable only because the scope is `docs/canon/README.md`, where a comma between digits is
+        a thousands separator by convention -- and it is the concrete reason the scope is not
+        widened to files full of `file.swift:12,34` citations.
+        """
+        self._readme("See AccessibilityChannel:127,166 for the two call sites.\n")
+        found = guard.problems(self.root)
+        self.assertTrue(any("127166" in line for line in found),
+                        f"the limit is real; if this ever passes the pattern changed: {found!r}")
+
     def test_an_empty_haystack_refuses_rather_than_accepting_everything(self):
         """A reader that finds nothing would pass any number at all -- silently."""
         os.remove(os.path.join(self.root, "docs", "canon", "SOURCES.json"))

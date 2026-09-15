@@ -16,6 +16,18 @@ records only, never source prose:
 
     docs/canon/SOURCES.json      docs/canon/MANIFEST.json      docs/observations/*.json
 
+WHY ONLY THIS FILE, MEASURED RATHER THAN ASSUMED
+-------------------------------------------------
+Widening to every prose file in the tree was measured and is wrong. Fifty-six of them carry a
+four-digit number no artifact backs, and a sample says what those are: source line numbers
+(`TrackDispatcher:127,166`, which this file's own pattern reads as one number rather than as two
+line numbers), hex colours in badge URLs, MIDI note bytes, Swift test counts. None is a claim about
+Logic's data, and flagging them would train a reader to skip the output.
+
+`docs/canon/README.md` is the scope because it is the only prose here whose numbers describe the
+canonical corpus. Observation records are covered separately and more strictly:
+`check-observation-records.py` already requires a number in a conclusion to appear in a reading.
+
 WHY THIS IS NOT A RULE INSIDE check-canon-citations.py
 ------------------------------------------------------
 It reads the whole observations directory, so it answers differently in a tree with fewer records.
