@@ -503,6 +503,9 @@
     "pluginWindowEditorViewMenuItem",
     "pluginWindowSmartControlsControl",
     "pluginWindowViewSwitcher",
+    "projectChooserCommitButton",
+    "projectChooserEmptyProjectLabel",
+    "projectChooserWindowTitle",
     "projectPickerWindow",
     "regionHelpKeyword",
     "regionKindAudio",
@@ -617,6 +620,9 @@
     "pluginWindowEditorViewMenuItem",
     "pluginWindowSmartControlsControl",
     "pluginWindowViewSwitcher",
+    "projectChooserCommitButton",
+    "projectChooserEmptyProjectLabel",
+    "projectChooserWindowTitle",
     "projectPickerWindow",
     "regionHelpKeyword",
     "regionKindAudio",
@@ -743,6 +749,9 @@
     "pluginWindowEditorViewMenuItem",
     "pluginWindowSmartControlsControl",
     "pluginWindowViewSwitcher",
+    "projectChooserCommitButton",
+    "projectChooserEmptyProjectLabel",
+    "projectChooserWindowTitle",
     "projectPickerWindow",
     "regionHelpKeyword",
     "regionKindAudio",
@@ -1037,44 +1046,29 @@
   "unmeasured_coverage.de-DE": {
    "date": "2026-09-15",
    "members": [
-    "beatsDisplayModeItem",
-    "displayModePopupLabel",
-    "midiImportCommitButton",
-    "midiImportDeclineTempoButton",
-    "midiImportPanelTitle",
-    "midiImportTempoAlertText",
-    "subdivisionSliderLabel",
-    "tickSliderLabel"
+    "projectChooserCommitButton",
+    "projectChooserEmptyProjectLabel",
+    "projectChooserWindowTitle"
    ],
-   "reason": "The ledger was deleted on 2026-09-13 together with the release-qualification subsystem and restored on 2026-09-15. These members are the gaps that opened in the two days nothing was counting them: label variants and records written on 2026-09-13 and 2026-09-14 for the transport display-mode work, the MIDI-import panel and the German locale readings. They are admitted as a starting ceiling rather than closed, because closing them needs live readings and a raise is the honest way to carry a gap somebody has looked at. The guard that would have refused them at the time did not exist; it does now, and it refuses this file without this entry."
+   "reason": "The three New Project chooser labels are measured in ko-KR only (record `2026-09-15-the-korean-project-chooser-names-itself`). en-US, ja-JP and de-DE are unmeasured and carry no variant, deliberately: #883 showed that a translated guess looks right and matches nothing, so the honest state is a counted gap rather than a plausible string. Closing each needs the chooser opened on a Logic running that language."
   },
   "unmeasured_coverage.en-US": {
    "date": "2026-09-15",
    "members": [
-    "beatsDisplayModeItem",
-    "displayModePopupLabel",
-    "midiImportCommitButton",
-    "midiImportDeclineTempoButton",
-    "midiImportPanelTitle",
-    "midiImportTempoAlertText",
-    "subdivisionSliderLabel",
-    "tickSliderLabel"
+    "projectChooserCommitButton",
+    "projectChooserEmptyProjectLabel",
+    "projectChooserWindowTitle"
    ],
-   "reason": "The ledger was deleted on 2026-09-13 together with the release-qualification subsystem and restored on 2026-09-15. These members are the gaps that opened in the two days nothing was counting them: label variants and records written on 2026-09-13 and 2026-09-14 for the transport display-mode work, the MIDI-import panel and the German locale readings. They are admitted as a starting ceiling rather than closed, because closing them needs live readings and a raise is the honest way to carry a gap somebody has looked at. The guard that would have refused them at the time did not exist; it does now, and it refuses this file without this entry."
+   "reason": "The three New Project chooser labels are measured in ko-KR only (record `2026-09-15-the-korean-project-chooser-names-itself`). en-US, ja-JP and de-DE are unmeasured and carry no variant, deliberately: #883 showed that a translated guess looks right and matches nothing, so the honest state is a counted gap rather than a plausible string. Closing each needs the chooser opened on a Logic running that language."
   },
   "unmeasured_coverage.ja-JP": {
    "date": "2026-09-15",
    "members": [
-    "beatsDisplayModeItem",
-    "displayModePopupLabel",
-    "midiImportCommitButton",
-    "midiImportDeclineTempoButton",
-    "midiImportPanelTitle",
-    "midiImportTempoAlertText",
-    "subdivisionSliderLabel",
-    "tickSliderLabel"
+    "projectChooserCommitButton",
+    "projectChooserEmptyProjectLabel",
+    "projectChooserWindowTitle"
    ],
-   "reason": "The ledger was deleted on 2026-09-13 together with the release-qualification subsystem and restored on 2026-09-15. These members are the gaps that opened in the two days nothing was counting them: label variants and records written on 2026-09-13 and 2026-09-14 for the transport display-mode work, the MIDI-import panel and the German locale readings. They are admitted as a starting ceiling rather than closed, because closing them needs live readings and a raise is the honest way to carry a gap somebody has looked at. The guard that would have refused them at the time did not exist; it does now, and it refuses this file without this entry."
+   "reason": "The three New Project chooser labels are measured in ko-KR only (record `2026-09-15-the-korean-project-chooser-names-itself`). en-US, ja-JP and de-DE are unmeasured and carry no variant, deliberately: #883 showed that a translated guess looks right and matches nothing, so the honest state is a counted gap rather than a plausible string. Closing each needs the chooser opened on a Logic running that language."
   },
   "unmeasured_coverage.ko-KR": {
    "date": "2026-09-15",

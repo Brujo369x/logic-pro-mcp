@@ -6,7 +6,9 @@
  "question": "What does the chooser call itself, its commit button and its Empty Project tile on a non-English Logic?",
  "verdict": "works",
  "surface": "project.lifecycle",
- "issues": [885],
+ "issues": [
+  885
+ ],
  "host": {
   "app": "Logic Pro",
   "version": "12.3",
@@ -36,24 +38,116 @@
   },
   {
    "what": "its buttons, verbatim AXButton titles",
-   "strings": ["기존 프로젝트 열기…", "취소", "선택", "추가 사운드 가져오기"]
+   "strings": [
+    "기존 프로젝트 열기…",
+    "취소",
+    "선택",
+    "추가 사운드 가져오기"
+   ]
   },
   {
    "what": "sidebar categories, verbatim AXStaticText values",
-   "strings": ["새로운 프로젝트", "최근 사용", "Live Loop 그리드", "프로젝트 템플릿", "나의 템플릿"],
+   "strings": [
+    "새로운 프로젝트",
+    "최근 사용",
+    "Live Loop 그리드",
+    "프로젝트 템플릿",
+    "나의 템플릿"
+   ],
    "default_landing": "Live Loop 그리드"
   },
   {
    "what": "tiles and details panel after selecting 새로운 프로젝트, verbatim AXStaticText values",
-   "strings": ["비어 있는 프로젝트", "Live Loop", "세부사항", "비어 있는 프로젝트 생성"]
+   "strings": [
+    "비어 있는 프로젝트",
+    "Live Loop",
+    "세부사항",
+    "비어 있는 프로젝트 생성"
+   ]
   },
   {
    "what": "the two Korean spellings Logic uses for Don't Save, read on the way to the chooser",
-   "saved_project_with_unsaved_changes": ["저장", "저장하지 않음", "취소"],
-   "never_saved_untitled_document": ["저장", "저장 안 함", "취소"]
+   "saved_project_with_unsaved_changes": [
+    "저장",
+    "저장하지 않음",
+    "취소"
+   ],
+   "never_saved_untitled_document": [
+    "저장",
+    "저장 안 함",
+    "취소"
+   ]
+  },
+  {
+   "what": "the same readings as element rows -- role plus the attribute that carried the string",
+   "rows": [
+    {
+     "role": "AXWindow",
+     "subrole": "AXStandardWindow",
+     "title": "프로젝트 선택"
+    },
+    {
+     "role": "AXButton",
+     "title": "선택"
+    },
+    {
+     "role": "AXButton",
+     "title": "취소"
+    },
+    {
+     "role": "AXButton",
+     "title": "기존 프로젝트 열기…"
+    },
+    {
+     "role": "AXButton",
+     "description": "추가 사운드 가져오기"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "새로운 프로젝트"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "최근 사용"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "Live Loop 그리드"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "프로젝트 템플릿"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "나의 템플릿"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "비어 있는 프로젝트"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "Live Loop"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "세부사항"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "비어 있는 프로젝트 생성"
+    },
+    {
+     "role": "AXStaticText",
+     "value": "프로젝트 선택"
+    }
+   ]
   }
  ],
- "evidence": ["evidence/2026-09-15-ko-KR-project-chooser.census.json"],
+ "evidence": [
+  "evidence/2026-09-15-ko-KR-project-chooser.census.json"
+ ],
  "conclusion": "The three English literals `project.new` matches on have Korean counterparts and all three were read: the window is titled 프로젝트 선택, the commit button's AXButton title is 선택, and the Empty Project tile's AXStaticText value is 비어 있는 프로젝트. The details panel reads 비어 있는 프로젝트 생성 when that tile is the selection, which is a coordinate-free way to confirm WHICH tile is selected. Separately: Logic uses TWO different Korean labels for Don't Save — 저장하지 않음 for a saved project with unsaved changes, 저장 안 함 for a never-saved untitled document — so a matcher built on either one alone breaks on the other dialog.",
  "limits": [
   "ko-KR only. ja-JP and de-DE are not measured for this window, and nothing here licenses translating them.",
