@@ -18,30 +18,36 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUARD = os.path.join(REPO, "Scripts", "check-canon-citations.py")
 
-REAL_REF = None   # a key with a composition of its own, chosen in setUpModule
+REAL_REF = None    # both are read from a committed record in setUpModule, never from Logic
 REAL_VALUE = None  # resolved from the real bundle in setUpModule, or the module skips
 
 
 def setUpModule():
-    global REAL_VALUE
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "logic_canon_for_guard_test", os.path.join(REPO, "Scripts", "logic_canon.py"))
-    canon = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(canon)
-    app = "/Applications/Logic Pro.app"
-    if not os.path.isdir(app):
-        raise unittest.SkipTest("needs Logic installed to obtain a real canonical value")
-    index = canon.QuickHelpIndex.from_app(app, "ko")
-    # Any key whose composition is its alone. A shared composition would make the "quoted value is
-    # wrong" test ambiguous about WHICH key it failed on, and 3,766 of 9,835 ko keys share one.
-    global REAL_REF
-    for composed, keys in sorted(index.by_composed.items()):
-        if len(keys) == 1:
-            REAL_VALUE = composed
-            REAL_REF = f"logic-canon://quickhelp/QuickHelp/ko/{keys[0]}#composed"
-            return
-    raise unittest.SkipTest("no QuickHelp key in this Logic has a composition of its own")
+    """Take a real canonical value from the committed tree, not from Logic.
+
+    The first version asked Logic for it and raised `SkipTest` at module level when Logic was
+    absent -- which is every CI runner. `run-repo-guards.py` keys on the exit code, so the suite
+    reported `ok` having executed ZERO assertions: the guard ran in CI and its proof that the guard
+    works did not. Measured by review 2026-09-15.
+
+    A schema-3 record already carries Apple's text in `canon[].value`, with the reference beside
+    it, and `docs/canon/index/` pins its digest. So the fixture is in the repository, and the whole
+    suite runs anywhere.
+    """
+    global REAL_VALUE, REAL_REF
+    for name in sorted(os.listdir(os.path.join(REPO, "docs", "observations"))):
+        if not name.endswith(".json"):
+            continue
+        with open(os.path.join(REPO, "docs", "observations", name), encoding="utf-8") as handle:
+            try:
+                record = json.load(handle)
+            except json.JSONDecodeError:
+                continue
+        for citation in record.get("canon", []):
+            if citation.get("ref") and citation.get("value"):
+                REAL_REF, REAL_VALUE = citation["ref"], citation["value"]
+                return
+    raise unittest.SkipTest("no committed record carries a canonical citation to build on")
 
 
 class GuardBehaviour(unittest.TestCase):
@@ -141,14 +147,25 @@ class GuardBehaviour(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("is PRESENT in quickhelp/ko", result.stderr)
 
+    def _every_corpus(self):
+        """Derived from the manifest, exactly as the guard derives it.
+
+        Written out by hand first, and the hand-written list went stale the moment the rule changed
+        from "the record's locale" to "every locale" -- a fixture that names what it is testing
+        rather than deriving it tests the fixture.
+        """
+        with open(os.path.join(self.root, "docs", "canon", "MANIFEST.json"), encoding="utf-8") as h:
+            manifest = json.load(h)
+        return [{"source": source, "locale": locale}
+                for source, block in sorted(manifest["sources"].items())
+                for locale in sorted(block["locales"])]
+
     def test_a_real_absence_passes(self):
         self.record("2026-09-15-absence.json", {
             "schema": 3, "id": "absence",
             "canon_absent": [{"claim": "c",
                               "strings": ["a string no shipped application contains anywhere 91xq"],
-                              "searched": [{"source": "quickhelp", "locale": "ko"}, {"source": "strings", "locale": "ko"},
-                                          {"source": "madsp", "locale": "-"},
-                                          {"source": "nib", "locale": "-"}],
+                              "searched": self._every_corpus(),
                               "why_runtime": "r"}],
             "host": {"locale": "ko-KR"}})
         result = self.run_guard()
@@ -349,9 +366,18 @@ class PullRequestBody(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("appears without the value", result.stderr)
 
-    def test_a_wrong_value_fails(self):
+    def test_a_wrong_value_is_refused_the_same_way_a_missing_one_is(self):
+        """Named for what the code does, not for a discrimination it does not make.
+
+        `_quotes_the_value` asks whether SOME line hashes to the committed digest, so in `--text`
+        mode a wrong value and an absent value are one event. The case used to be called
+        `test_a_wrong_value_fails` and asserted only the exit code, which would have passed on any
+        failure at all. Review 2026-09-15 read the stderr and found it identical in kind to its
+        neighbour's.
+        """
         result = self._check(f"{REAL_REF}\n  value: {REAL_VALUE}x\n")
         self.assertEqual(result.returncode, 1)
+        self.assertIn("appears without the value it resolves to", result.stderr)
 
     def test_a_body_with_nothing_fails(self):
         result = self._check("just a description of a refactor\n")

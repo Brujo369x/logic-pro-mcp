@@ -35,9 +35,12 @@ logic-canon://<source>/<unit>/<locale>/<key>#<field>
 
 ```
 
-- [ ] No reference above → write the sentence `states no fact about Logic` with the reason.
-      CI reads this body and refuses a pull request that carries neither a citation nor that
-      sentence. A reference alone is not a citation: the value it resolves to must be here too.
+- [ ] No reference above → this change asserts nothing about Logic. Say so in the exact wording
+      `docs/canon/README.md` gives under **The opt-out**, and give the reason. It is deliberately
+      NOT written here: a template that types the sentence for you is a sentence nobody meant, and
+      the first version of this file shipped it pre-typed, so every untouched template passed.
+      A reference alone is not a citation either — the value it resolves to must be in this body.
+      The opt-out is refused outright for a change that edits a Logic-facing path.
 
 ## Verification
 

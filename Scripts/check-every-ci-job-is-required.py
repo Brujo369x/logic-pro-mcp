@@ -17,6 +17,12 @@ what a comment can and cannot do.
 
 So: every job in the workflow is in `build.needs`, or is named here with a reason. The waiver list
 may only shrink.
+
+Scope, stated rather than assumed: this audits `ci.yml` alone -- the workflow that carries the
+required gate. `canon-issue.yml` runs on `issues`, has no merge to block and no `build` job, so a
+`needs` rule would be meaningless there; it comments instead of failing, and that is its whole
+contract. A future workflow that DOES gate a merge needs its own entry here or this guard will not
+see it.
 """
 import os
 import sys

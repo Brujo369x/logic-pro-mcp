@@ -279,7 +279,7 @@ this is the part a record author needs.
   "schema": 3,
 
   "canon": [                          // facts taken from Logic's own data
-    {"ref":   "logic-canon://quickhelp/QuickHelp/ko/KCE_024_Record#composed",
+    {"ref":   "logic-canon://<source>/<unit>/<locale>/<key>#<field>",
      "value": "녹음 버튼. 선택한 트랙 또는 녹음 준비된 여러 트랙에 녹음합니다.",
      "used_for": "the key the AXHelp parser returns for the transport record button"}
   ],
@@ -322,10 +322,13 @@ different questions and the second does not retire the first: a string can be in
 never reach the interface (the live UI shows untranslated `German` and `MIDI Region` although ko
 translations for both keys exist), and a string can reach the interface with no file behind it.
 
-Measured 2026-09-15 across `AXLocalePolicy`'s 379 distinct literals: 120 are a QuickHelp Title,
-222 more are somewhere in the bundle's 605,160 `.strings` entries, and **37 are nowhere in Logic
-at all**. Some of those 37 are deliberate substrings for `.contains` matching and some are labels
-nobody can find. Nothing in the ledger could tell them apart, which is what the canon axis is for.
+Measured 2026-09-15 across `AXLocalePolicy`'s 379 distinct literals: 113 are a QuickHelp Title,
+226 more are somewhere in the bundle's 605,190 `.strings` entries, and **40 are in no file of the
+app bundle**. Roughly half of those 40 are deliberate lowercase fragments for `.contains` matching
+and were never whole labels; the rest are labels Logic composes at runtime, labels from a framework
+outside this corpus, or labels somebody typed. Nothing in the ledger could tell them apart, which
+is what the canon axis is for. The live count is printed by
+`Scripts/check-policy-literals-against-canon.py`; do not restate it from memory.
 
 ### What a citation does not prove
 

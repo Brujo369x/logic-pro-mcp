@@ -50,9 +50,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
         run: |
           gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body -q .body > /tmp/pr-body.md
-          python3 Scripts/check-canon-citations.py --text /tmp/pr-body.md
+          # Whether this change may opt out is derived from what it TOUCHES, not from what its
+          # description says about itself. Without the file list the opt-out is one sentence
+          # anybody can type, and review walked through it three ways.
+          git fetch --no-tags --depth=1 origin "$BASE" 2>/dev/null || true
+          git diff --name-only "origin/$BASE...HEAD" > /tmp/pr-changed.txt \
+            || git diff --name-only "$(git merge-base HEAD "origin/$BASE")" HEAD > /tmp/pr-changed.txt
+          wc -l < /tmp/pr-changed.txt
+          python3 Scripts/check-canon-citations.py \
+            --text /tmp/pr-body.md --changed /tmp/pr-changed.txt
 
   roadmap:
     runs-on: ubuntu-latest
@@ -370,20 +379,11 @@ jobs:
           fi
           echo "Coverage gate passed: region $REGION_PCT% / line $LINE_PCT%."
 
-  # The branch ruleset requires the context `build` and nothing else. This job IS that context: it
-  # does no work and exists so that one required name transitively requires every real gate. It must
-  # run with `if: always()` and inspect results explicitly — a job skipped because a dependency
-  # failed reports as skipped, and GitHub does not treat a skipped required check as a failure.
-  # The single required status check on `main`, and deliberately the only one.
-  #
-  # This job runs no build of its own — it is the aggregator. `if: always()` makes it run even when a
-  # dependency failed, and it then refuses unless every gate succeeded. Requiring it is therefore
-  # equivalent to requiring `compile` and `test`, with two advantages: renaming or adding a gate does not
-  # need the branch ruleset edited in lockstep, and a job that legitimately does not run on some event
-  # cannot leave a required check pending forever and wedge the merge button.
-  #
-  # If you are here because "only `build` is required" looked like a hole: it is not. Add new gates to
-  # `needs` and assert their result below; do not add them to the ruleset.
+      # The branch ruleset requires `build`, `compile` and `test` as contexts -- measured
+    # 2026-09-15 via `gh api repos/.../rulesets`, after a comment here claimed `build`
+    # and nothing else. That comment is what the next author would trust when deciding
+    # whether `needs` matters, and it was wrong; `needs` matters for every job that is
+    # NOT one of those three, which is what `check-every-ci-job-is-required.py` enforces.
   build:
     runs-on: ubuntu-latest
     # `roadmap` joins this list in the same change that restores the job. The instruction three

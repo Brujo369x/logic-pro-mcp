@@ -168,19 +168,87 @@
         },
         {
           "source": "quickhelp",
+          "locale": "de"
+        },
+        {
+          "source": "quickhelp",
           "locale": "en"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "es"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "fr"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "it"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "ja"
         },
         {
           "source": "quickhelp",
           "locale": "ko"
         },
         {
+          "source": "quickhelp",
+          "locale": "pt"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "zh_CN"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "zh_TW"
+        },
+        {
+          "source": "strings",
+          "locale": "-"
+        },
+        {
+          "source": "strings",
+          "locale": "de"
+        },
+        {
           "source": "strings",
           "locale": "en"
         },
         {
           "source": "strings",
+          "locale": "es"
+        },
+        {
+          "source": "strings",
+          "locale": "fr"
+        },
+        {
+          "source": "strings",
+          "locale": "it"
+        },
+        {
+          "source": "strings",
+          "locale": "ja"
+        },
+        {
+          "source": "strings",
           "locale": "ko"
+        },
+        {
+          "source": "strings",
+          "locale": "pt"
+        },
+        {
+          "source": "strings",
+          "locale": "zh_CN"
+        },
+        {
+          "source": "strings",
+          "locale": "zh_TW"
         }
       ],
       "why_runtime": "An exhaustive scan of all 75,535 non-media files in the bundle, in UTF-8 and both UTF-16 byte orders, found it nowhere, and a separate scan of all 1,169 nibs found it nowhere. It is most plausibly drawn from AppKit, whose localised strings live in the dyld shared cache rather than in files this corpus can hold -- and that plausibility is stated as unverified: the shared cache was not opened."

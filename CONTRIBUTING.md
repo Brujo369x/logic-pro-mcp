@@ -10,6 +10,31 @@ Start here:
 - Comment on the issue before starting if the issue has ambiguity about scope or acceptance criteria.
 - Keep each PR narrow. One issue, one behavioral change, one verification story.
 
+## Citing Logic's own data
+
+A change that states a fact about Logic cites Logic. `docs/canon/README.md` is the design; this is
+what you need to do.
+
+**You do not need Logic installed for most of it.** The corpus is committed under `docs/canon/`, so
+these work anywhere:
+
+```
+Scripts/logic_canon.py resolve <ref>              # what value does this reference name?
+Scripts/logic_canon.py check '<ref>=<value>'      # does this quote hold?
+Scripts/logic_canon.py absent <source> <locale> '<string>'   # prove a string is not in the corpus
+Scripts/check-canon-citations.py                  # the gate CI runs
+```
+
+**You do need Logic to pin a key nobody has cited yet.** `resolve` reads the committed index, and
+only `Scripts/logic_canon.py build` on a machine with Logic can add to it. If you need a key that
+is not there, say so in the pull request and a maintainer will pin it — do not work around it by
+quoting a value the index cannot check.
+
+**If your change states nothing about Logic**, write the sentence `docs/canon/README.md` gives
+under *The opt-out*, with the reason. It is refused for a change that edits a Logic-facing path,
+because what a change touches decides that, not what it says about itself.
+
+
 ## Prerequisites
 
 - macOS 14+

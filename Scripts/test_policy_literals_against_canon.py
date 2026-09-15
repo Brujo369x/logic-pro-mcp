@@ -53,28 +53,38 @@ class Extraction(unittest.TestCase):
 class Ratchet(unittest.TestCase):
     """The guard is a ratchet on NAMES. It must fail on a gain and on a stale allowance."""
 
-    def _run(self, allowed_literals, policy_source=None):
+    def _run(self, allowed_literals, policy_source=None, extra=None):
+        """Build a temp repo carrying EVERY Swift file that declares a LabelSet.
+
+        Copying only `AXLocalePolicy.swift` made the fixture disagree with the guard the moment the
+        guard learned to scan all of `Sources/` -- the four sites in other files then read as
+        classifications for literals nobody used. The fixture derives its file list the same way
+        the guard does, so it cannot fall behind again.
+        """
+        import shutil
         root = tempfile.mkdtemp(prefix="policy-canon-")
-        self.addCleanup(__import__("shutil").rmtree, root, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
         os.makedirs(os.path.join(root, "Scripts"))
         os.makedirs(os.path.join(root, "docs", "canon"))
-        os.makedirs(os.path.join(root, "Sources", "LogicProMCP", "Accessibility"))
         for name in ("logic_canon.py", "nibarchive.py",
                      "check-policy-literals-against-canon.py"):
-            __import__("shutil").copy2(os.path.join(REPO, "Scripts", name),
-                                       os.path.join(root, "Scripts", name))
-        source = policy_source
-        if source is None:
-            with open(os.path.join(REPO, "Sources", "LogicProMCP", "Accessibility",
-                                   "AXLocalePolicy.swift"), encoding="utf-8") as handle:
-                source = handle.read()
-        with open(os.path.join(root, "Sources", "LogicProMCP", "Accessibility",
-                               "AXLocalePolicy.swift"), "w", encoding="utf-8") as handle:
-            handle.write(source)
-        with open(os.path.join(root, "docs", "canon",
-                               "POLICY-LITERALS-WITHOUT-CANON.json"), "w",
+            shutil.copy2(os.path.join(REPO, "Scripts", name), os.path.join(root, "Scripts", name))
+        policy_rel = os.path.join("Sources", "LogicProMCP", "Accessibility", "AXLocalePolicy.swift")
+        for path in guard.swift_sources():
+            rel = os.path.relpath(path, REPO)
+            target = os.path.join(root, rel)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            if rel == policy_rel and policy_source is not None:
+                with open(target, "w", encoding="utf-8") as handle:
+                    handle.write(policy_source)
+            else:
+                shutil.copy2(path, target)
+        literals = dict(allowed_literals)
+        for name in (extra or []):
+            literals[name] = "nowhere"
+        with open(os.path.join(root, "docs", "canon", "POLICY-LITERALS.json"), "w",
                   encoding="utf-8") as handle:
-            json.dump({"literals": allowed_literals}, handle, ensure_ascii=False)
+            json.dump({"literals": literals}, handle, ensure_ascii=False)
         return subprocess.run(
             [sys.executable, os.path.join(root, "Scripts",
                                           "check-policy-literals-against-canon.py")],
@@ -82,15 +92,13 @@ class Ratchet(unittest.TestCase):
 
     def _current_allowed(self):
         with open(os.path.join(REPO, "docs", "canon",
-                               "POLICY-LITERALS-WITHOUT-CANON.json"), encoding="utf-8") as handle:
+                               "POLICY-LITERALS.json"), encoding="utf-8") as handle:
             return json.load(handle)["literals"]
 
-    @unittest.skipUnless(os.path.isdir("/Applications/Logic Pro.app"), "needs Logic")
     def test_the_real_tree_passes(self):
         result = self._run(self._current_allowed())
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    @unittest.skipUnless(os.path.isdir("/Applications/Logic Pro.app"), "needs Logic")
     def test_a_literal_logic_does_not_ship_fails(self):
         with open(os.path.join(REPO, "Sources", "LogicProMCP", "Accessibility",
                                "AXLocalePolicy.swift"), encoding="utf-8") as handle:
@@ -104,13 +112,12 @@ class Ratchet(unittest.TestCase):
 '''
         result = self._run(self._current_allowed(), policy_source=injected)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("joined the set that Logic does not ship", result.stderr)
+        self.assertIn("classified nowhere", result.stderr)
 
-    @unittest.skipUnless(os.path.isdir("/Applications/Logic Pro.app"), "needs Logic")
     def test_an_allowance_for_a_literal_that_is_gone_fails(self):
-        result = self._run(self._current_allowed() + ["a literal nobody writes 77zz"])
+        result = self._run(self._current_allowed(), extra=["a literal nobody writes 77zz"])
         self.assertEqual(result.returncode, 1)
-        self.assertIn("allowed but no longer absent", result.stderr)
+        self.assertIn("outlived its reason", result.stderr)
 
 
 if __name__ == "__main__":

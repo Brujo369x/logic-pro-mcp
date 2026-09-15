@@ -13,7 +13,9 @@ against every key rather than a sample, because the interesting cases are the ra
 """
 import importlib.util
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -262,6 +264,145 @@ class Layering(unittest.TestCase):
     def test_a_value_no_source_explains_resolves_to_nothing(self):
         resolver = self._resolver({}, {"k": "something else entirely"})
         self.assertIsNone(resolver.resolve("이 버튼을 누르면 윈도우를 확대/축소합니다."))
+
+
+class TheLoadBearingComparisons(unittest.TestCase):
+    """Cases for the functions a mutation run found nothing was watching.
+
+    Review 2026-09-15 mutated eighteen behaviours in `logic_canon.py` and ten survived this suite --
+    including `check_citation`'s digest comparison, which the module docstring calls the whole point
+    of the citation format, and `_u32`'s width, which the absence set's collision argument rests on.
+    Each case below kills one of those mutants.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="canon-widths-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def test_short_digest_is_twelve_hex(self):
+        """The index's digest width. The collision argument is stated over 48 bits."""
+        self.assertEqual(len(canon.short_digest("anything")), 12)
+        self.assertTrue(canon.digest("anything").startswith(canon.short_digest("anything")))
+
+    def test_the_absence_element_is_the_first_32_bits_of_the_same_digest(self):
+        """`verify_index_against_absence` joins the two structures on this identity."""
+        text = "a value"
+        self.assertEqual(canon._u32(text), int(canon.short_digest(text)[:8], 16))
+        self.assertLess(canon._u32(text), 2 ** 32)
+
+    def test_the_published_false_positive_rate_is_over_the_32_bit_space(self):
+        self.assertAlmostEqual(canon.absence_false_positive(2 ** 32), 1.0)
+        self.assertAlmostEqual(canon.absence_false_positive(4294), 1e-6, places=9)
+        self.assertEqual(canon.absence_false_positive(0), 0.0)
+
+    def test_normalize_composes_decomposed_korean(self):
+        """The NBSP fold was tested and the NFC fold was not. Hangul reaches us both ways."""
+        decomposed = "\u1100\u1161"          # ᄀ + ᅡ
+        self.assertEqual(canon.normalize(decomposed), "\uac00")   # 가
+        self.assertEqual(canon.digest(decomposed), canon.digest("\uac00"))
+
+    def test_a_reference_with_an_empty_key_is_refused(self):
+        with self.assertRaises(canon.CanonRefError):
+            canon.CanonRef.parse("logic-canon://quickhelp/QuickHelp/ko/#composed")
+
+    def test_a_malformed_percent_escape_raises_rather_than_decoding_to_something(self):
+        with self.assertRaises(canon.CanonRefError):
+            canon._pct_decode("%ZZ")
+
+    def test_an_absence_set_without_its_magic_is_refused(self):
+        path = os.path.join(self.tmp, "t.ko.u32")
+        with open(path, "wb") as handle:
+            handle.write(b"XXXX" + (0).to_bytes(4, "big"))
+        saved, canon.ABSENCE_DIR = canon.ABSENCE_DIR, self.tmp
+        try:
+            with self.assertRaises(canon.CanonError):
+                canon.load_absence("t", "ko")
+        finally:
+            canon.ABSENCE_DIR = saved
+
+    def test_an_absence_set_whose_length_disagrees_with_its_header_is_refused(self):
+        path = os.path.join(self.tmp, "t.ko.u32")
+        with open(path, "wb") as handle:
+            handle.write(b"LCA1" + (5).to_bytes(4, "big") + b"\x00" * 4)
+        saved, canon.ABSENCE_DIR = canon.ABSENCE_DIR, self.tmp
+        try:
+            with self.assertRaises(canon.CanonError):
+                canon.load_absence("t", "ko")
+        finally:
+            canon.ABSENCE_DIR = saved
+
+    def test_decode_refuses_bytes_that_only_decode_with_a_nul_in_them(self):
+        """The cheapest signal that a UTF-16 guess was wrong on UTF-8 input."""
+        self.assertIsNone(canon.decode_bytes(b"a\x00b\x00c"))
+
+    def test_an_index_row_with_the_wrong_field_count_is_refused(self):
+        os.makedirs(os.path.join(self.tmp, "index"), exist_ok=True)
+        path = os.path.join(self.tmp, "index", "t.tsv")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("a\tb\tc\n")
+        saved, canon.INDEX_DIR = canon.INDEX_DIR, os.path.join(self.tmp, "index")
+        try:
+            with self.assertRaises(canon.CanonError):
+                canon.load_index("t")
+        finally:
+            canon.INDEX_DIR = saved
+
+
+class CitationAndArtifactChecks(unittest.TestCase):
+    """`check_citation` and `verify_artifacts` driven directly, against a scratch canon directory."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="canon-check-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.saved = (canon.INDEX_DIR, canon.ABSENCE_DIR, canon.CANON_DIR)
+        canon.CANON_DIR = self.tmp
+        canon.INDEX_DIR = os.path.join(self.tmp, "index")
+        canon.ABSENCE_DIR = os.path.join(self.tmp, "absence")
+        self.addCleanup(self._restore)
+        canon.write_index("t", {("U", "ko", "K", "value"): canon.short_digest("REAL VALUE")})
+        canon.write_absence("t", "ko", ["REAL VALUE"])
+
+    def _restore(self):
+        canon.INDEX_DIR, canon.ABSENCE_DIR, canon.CANON_DIR = self.saved
+
+    def test_the_right_value_passes(self):
+        canon.check_citation("logic-canon://t/U/ko/K#value", "REAL VALUE")
+
+    def test_one_character_wrong_fails(self):
+        with self.assertRaises(canon.CanonResolveError) as caught:
+            canon.check_citation("logic-canon://t/U/ko/K#value", "REAL VALUEx")
+        self.assertIn("Logic's value hashes to", str(caught.exception))
+
+    def test_a_reference_nobody_pinned_fails(self):
+        with self.assertRaises(canon.CanonResolveError):
+            canon.check_citation("logic-canon://t/U/ko/OTHER#value", "REAL VALUE")
+
+    def test_verify_artifacts_notices_an_edited_index(self):
+        manifest = {"artifacts": canon.artifact_digests()}
+        self.assertEqual(canon.verify_artifacts(manifest), [])
+        with open(os.path.join(canon.INDEX_DIR, "t.tsv"), "a", encoding="utf-8") as handle:
+            handle.write("U\tko\tINVENTED\tvalue\t000000000000\n")
+        problems = canon.verify_artifacts(manifest)
+        self.assertTrue(any("does not match the digest" in p for p in problems), problems)
+
+    def test_verify_artifacts_refuses_a_manifest_with_no_claim(self):
+        problems = canon.verify_artifacts({})
+        self.assertTrue(any("carries no `artifacts` block" in p for p in problems), problems)
+
+    def test_verify_artifacts_notices_a_file_nobody_pinned(self):
+        manifest = {"artifacts": canon.artifact_digests()}
+        canon.write_index("extra", {("U", "ko", "K", "value"): "000000000000"})
+        problems = canon.verify_artifacts(manifest)
+        self.assertTrue(any("is on disk and is not declared" in p for p in problems), problems)
+
+    def test_an_index_row_whose_value_is_in_no_absence_set_is_refused(self):
+        """The one external check an offline run has: a row not in the corpus was not taken from it."""
+        self.assertEqual(canon.verify_index_against_absence(), [])
+        canon.write_index("t", {("U", "ko", "K", "value"): canon.short_digest("REAL VALUE"),
+                                ("U", "ko", "FORGED", "value"): canon.short_digest("NEVER SHIPPED")})
+        problems = canon.verify_index_against_absence()
+        self.assertTrue(any("FORGED" in p for p in problems), problems)
+
 
 
 @unittest.skipUnless(HAVE_LOGIC, "needs Logic installed")

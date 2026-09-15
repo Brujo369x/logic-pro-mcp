@@ -46,7 +46,7 @@ reports it from the real entry count.
 
 THE DECODING TRAP, WHICH COST A DAY
 -----------------------------------
-`.strings` files in this bundle are UTF-16, UTF-8, or Apple binary plists, and 514 are the last.
+`.strings` files in this bundle are UTF-16, UTF-8, or Apple binary plists, and 861 are the last.
 Decoding a UTF-8 file as UTF-16 raises nothing: the byte length is even, every pair is a valid code
 unit, and the result is mojibake that yields zero parsed entries. A parser that "found nothing"
 looks exactly like a file with nothing in it. `Carlton.strings` was reported empty this way; it
@@ -60,6 +60,9 @@ from __future__ import annotations
 
 import argparse
 import binascii
+import bisect
+import collections
+import glob
 import hashlib
 import json
 import os
@@ -154,6 +157,15 @@ def normalize(text: str) -> str:
     # them rewrote the runtime prefix the parser is supposed to hand back untouched. 1,765 of
     # 7,058 compositions failed to round trip for that reason alone. A fold nobody measured a need
     # for is a fold that only loses information.
+    # `strip()` is the half of this fold nobody documented, and it is NOT the same trade as the
+    # NBSP fold. Folding NBSP makes a human-typed citation match a string Logic writes with an
+    # invisible character; stripping MERGES two values Apple ships as genuinely different table
+    # entries. Measured 2026-09-15 across the `.strings` corpus: 601 normalized forms are reached
+    # by more than one raw value, 338 through NBSP and 263 through `strip()` alone -- `'Bass'` and
+    # `' Bass'`, `'Pan'` and `'Pan '`. Within one source and locale that means one key's digest can
+    # satisfy a quote belonging to another, and an absence claim for `' Bass'` is refuted by the
+    # presence of `'Bass'`. Kept, because a citation typed by eye cannot carry leading whitespace
+    # and refusing it would reject honest quotes; recorded, because the cost was not stated before.
     return unicodedata.normalize("NFC", text).replace(_NBSP, " ").strip()
 
 
@@ -234,8 +246,12 @@ def decode_bytes(raw: bytes) -> str | None:
 # the .strings parser
 # ---------------------------------------------------------------------------
 
+#: `\0` is deliberately NOT here: it is handled by the octal branch, which reads `\0`, `\00` and
+#: `\000` the way CFPropertyList does. A lowercase `\u` is also absent -- CFPropertyList treats it
+#: as a literal `u`, and an earlier version decoded it as a code point, which is the opposite of
+#: what Apple's parser does.
 _ESCAPES = {
-    '"': '"', "\\": "\\", "n": "\n", "t": "\t", "r": "\r", "0": "\0",
+    '"': '"', "\\": "\\", "n": "\n", "t": "\t", "r": "\r",
     "a": "\a", "b": "\b", "f": "\f", "v": "\v", "'": "'",
 }
 
@@ -264,13 +280,38 @@ def _scan_quoted(text: str, i: int) -> tuple[str, int]:
         if i >= len(text):
             raise CanonDecodeError("string ends inside an escape sequence")
         esc = text[i]
-        if esc in ("U", "u"):
+        if esc == "U":
             hex4 = text[i + 1:i + 5]
             if len(hex4) < 4 or any(c not in "0123456789abcdefABCDEF" for c in hex4):
                 raise CanonDecodeError(f"malformed \\U escape at offset {i}")
-            out.append(chr(int(hex4, 16)))
+            code = int(hex4, 16)
             i += 5
+            # A SURROGATE PAIR. CFPropertyList joins them; the first version emitted two lone
+            # surrogates instead, so `\U D83D \U DE00` became garbage rather than an emoji -- and
+            # `digest()` hashes the garbage without raising, so a wrong digest would be committed
+            # with no signal at all. No string in this Logic uses one, which is why the corpus
+            # comparison against `plutil` was clean over all 2,538 files and this stayed latent.
+            # Found by review 2026-09-15. It goes live on the first Logic that ships an emoji.
+            if 0xD800 <= code <= 0xDBFF and text[i:i + 2] == "\\U":
+                low = text[i + 2:i + 6]
+                if len(low) == 4 and all(c in "0123456789abcdefABCDEF" for c in low):
+                    trail = int(low, 16)
+                    if 0xDC00 <= trail <= 0xDFFF:
+                        out.append(chr(0x10000 + ((code - 0xD800) << 10) + (trail - 0xDC00)))
+                        i += 6
+                        continue
+            out.append(chr(code))
             continue
+        if esc.isdigit():
+            # An OCTAL escape, which CFPropertyList reads and the first version passed through as
+            # its own digits: `\101` became `101` rather than `A`. Also latent in this build.
+            digits = ""
+            while len(digits) < 3 and i < len(text) and text[i] in "01234567":
+                digits += text[i]
+                i += 1
+            if digits:
+                out.append(chr(int(digits, 8)))
+                continue
         if esc in _ESCAPES:
             out.append(_ESCAPES[esc])
             i += 1
@@ -556,9 +597,12 @@ def extract_strings(app: str):
             if not name.endswith(".strings"):
                 continue
             path = os.path.join(root, name)
-            locale = _locale_of(path)
-            if locale is None:
-                continue
+            # A `.strings` file outside every `.lproj` is not localised, and it is still part of
+            # the corpus. Dropping it was a hole in the ABSENCE direction, which is the direction
+            # that cannot be checked by looking: `MAGFUserInterface.strings` holds 30 English
+            # interface strings at a framework's Resources root, and any one of them would have
+            # been proved "absent from Logic" while sitting in Logic. Found by review 2026-09-15.
+            locale = _locale_of(path) or "-"
             with open(path, "rb") as handle:
                 raw = handle.read()
             try:
@@ -639,7 +683,16 @@ def extract_nib_runtime_attributes(app: str):
 
     found: dict[tuple[str, str], set[str]] = {}
     failures: list[str] = []
-    for root, _dirs, files in os.walk(app):
+    for root, dirs, files in os.walk(app):
+        # A bundle-style `.nib` is a DIRECTORY, and testing only `files` would skip it in silence
+        # while `corpus_digest` -- which walks the same way -- would not notice the corpus had
+        # shrunk. This build has none (1,169 files, 0 directories), so the check is a tripwire for
+        # the next Apple packaging change rather than a fix for a present hole.
+        for name in dirs:
+            if name.endswith(".nib"):
+                raise CanonDecodeError(
+                    f"{_rel(app, os.path.join(root, name))} is a .nib DIRECTORY. This extractor "
+                    f"reads files only, so the corpus would silently be short.")
         for name in sorted(files):
             if not name.endswith(".nib"):
                 continue
@@ -674,20 +727,23 @@ EXTRACTORS = {
 # the AXHelp parser
 # ---------------------------------------------------------------------------
 
-#: The shortest composition allowed to anchor a match. Set to 8 -- the corpus minimum -- which
-#: means it discards nothing, and that is the measured answer rather than a cautious one.
+#: The shortest composition allowed to anchor a match. Set to 8 -- the corpus minimum -- so it
+#: discards nothing. `logic_canon.py thresholds` prints what any other floor would cost.
 #:
 #: The floor was 12 in the first revision, on the reasoning that a short composition could appear
-#: inside an unrelated AXHelp by coincidence. Measured across all seven distinct QuickHelp files,
-#: the floor buys almost nothing and costs real coverage: in six of the seven, raising it to 25
-#: removes ZERO suffix-containment pairs, and in zh_CN removing 5 of 11 pairs costs 504 keys, 5.1%
-#: of the corpus. What actually resolves those pairs is longest-match, which was then tested
-#: adversarially against all 128 real suffix pairs in the corpus and got 128 of 128 right.
+#: inside an unrelated AXHelp by coincidence. Raising it buys little and costs real coverage, and
+#: what actually resolves the suffix-containment pairs is longest-match.
 #:
-#: So the floor stays only as a guard against a RUNTIME prefix -- text that is not in the corpus at
-#: all -- ending in a string that happens to be a whole short composition. Nothing has measured
-#: that risk, and `logic_canon.py thresholds` prints what raising the floor would cost if it ever
-#: needs raising.
+#: The justification written here first carried four numbers and every one of them was wrong --
+#: "128 real suffix pairs", "six of the seven", "5 of 11", "504 keys, 5.1%". Measured by review
+#: 2026-09-15 and re-measured here: 65 pairs across the ten locale names, 47 across the seven
+#: distinct files; a floor of 25 removes none in five of the seven, and in zh_CN it removes 4 of 7
+#: at a cost of 1,533 of 7,031 compositions -- 21.8%, not 5.1%. The numbers are not restated in
+#: this comment any more, because a number in a comment is a measurement nobody re-runs:
+#: `logic_canon.py thresholds` and `logic_canon.py census` print them.
+#:
+#: So the floor stays only as a guard against a RUNTIME prefix -- text not in the corpus at all --
+#: ending in a string that happens to be a whole short composition. Nothing has measured that risk.
 DEFAULT_MIN_ANCHOR = 8
 
 
@@ -776,7 +832,7 @@ class QuickHelpIndex:
             keys.sort()
         return cls(locale, by_composed, unit=unit, min_anchor=min_anchor)
 
-    def parse_axhelp(self, value: str) -> AXHelpMatch | None:
+    def parse_axhelp(self, value: str, *, allow_truncated: bool = True) -> AXHelpMatch | None:
         """Reverse one live AXHelp reading into the QuickHelp key or keys that composed it.
 
         Anchors on the SUFFIX and never splits on punctuation. Splitting on the comma is the
@@ -816,20 +872,33 @@ class QuickHelpIndex:
         # whether the value -- or the value after some prefix -- is the START of exactly one
         # composition. Ambiguity here is refused rather than guessed: a truncated reading that
         # could belong to several keys identifies none of them.
+        if not allow_truncated:
+            return None
+
+        # Every split point, not the first one that happens to be unique. Returning on the first
+        # made the tier locally correct and globally wrong: a decoy composition beginning with
+        # "<runtime prefix><head of the true one>" is matched at start=0, and the true source --
+        # which would have matched at a later start -- is never reached. Demonstrated on a
+        # constructed corpus by review 2026-09-15; not found in the shipped table, which makes it a
+        # gap in the algorithm rather than a known-bad reading.
+        found = []
         for start in range(0, len(folded) - self.min_anchor + 1):
             tail = folded[start:]
             hits = [(composed, keys) for composed, keys in self.by_composed.items()
                     if len(composed) > len(tail) and composed.startswith(tail)]
             if len(hits) == 1:
-                composed, keys = hits[0]
-                prefix = folded[:start].rstrip()
-                if prefix.endswith(","):
-                    prefix = prefix[:-1].rstrip()
-                return AXHelpMatch("truncated", prefix, list(keys), composed,
-                                   self.locale, self.unit)
-            if hits:
+                found.append((start, hits[0][0], hits[0][1]))
+            elif hits:
+                # Ambiguous at this split point. A truncated reading that could belong to several
+                # keys identifies none of them, and a longer prefix cannot rescue it.
                 return None
-        return None
+        if len(found) != 1:
+            return None
+        start, composed, keys = found[0]
+        prefix = folded[:start].rstrip()
+        if prefix.endswith(","):
+            prefix = prefix[:-1].rstrip()
+        return AXHelpMatch("truncated", prefix, list(keys), composed, self.locale, self.unit)
 
     def suffix_collisions(self) -> list[tuple[str, str]]:
         """Compositions that are suffixes of other compositions, which is where longest-match can
@@ -865,10 +934,14 @@ def absence_path(source: str, locale: str) -> str:
 def load_index(source: str) -> dict[tuple[str, str, str, str], str]:
     """The committed key->digest table for one source.
 
-    The index holds ONLY keys something in this repository cites. That is a deliberate bound: a
-    full QuickHelp index is 295,050 rows across ten locales and would make every citation change a
-    multi-megabyte diff, which is how a checked-in artefact stops being read. Growth is driven by
+    The index holds ONLY keys something in this repository cites. That is a deliberate bound: the
+    full QuickHelp index is 390,820 rows and would make every citation change a multi-megabyte
+    diff, which is how a checked-in artefact stops being read. Growth is driven by
     `build --refresh-citations`, which scans the tree for references and resolves exactly those.
+
+    An earlier version of this docstring said 295,050 -- 9835 x 10 x 3, arithmetic over three
+    fields, taken without running the extractor and omitting the `composed` field the index
+    actually stores. `logic_canon.py census` prints the real figure.
     """
     path = index_path(source)
     if not os.path.exists(path):
@@ -935,7 +1008,6 @@ def is_absent(source: str, locale: str, text: str) -> bool:
     set. So a True here is a real absence and a False sends the claim back for a look on a machine
     with Logic -- the asymmetry the module docstring promises.
     """
-    import bisect
     table = load_absence(source, locale)
     needle = _u32(text)
     position = bisect.bisect_left(table, needle)
@@ -968,7 +1040,7 @@ def corpus_files(app: str, source: str) -> list[str]:
     elif source == "strings":
         for root, _dirs, files in os.walk(app):
             for name in files:
-                if name.endswith(".strings") and _locale_of(os.path.join(root, name)):
+                if name.endswith(".strings"):
                     out.append(_rel(app, os.path.join(root, name)))
     elif source == "madsp":
         resources = os.path.join(
@@ -1064,8 +1136,15 @@ _SKIP_DIRS = {".git", ".build", "node_modules", "__pycache__", "index", "absence
 #: unresolvable references on purpose -- that is what proves the guard refuses them -- so scanning
 #: them would make the guard fail on its own evidence. The cost is stated rather than hidden: a
 #: genuine citation written inside a test is not pinned and not checked.
-_SKIP_FILES = {"test_logic_canon.py", "test_canon_citations_guard.py", "logic_canon.py",
-               "check-canon-citations.py"}
+#: Repository-RELATIVE paths, not basenames. Matched by basename first, which exempted any file
+#: anywhere in the tree sharing one of these names -- `docs/notes/logic_canon.py` carrying an
+#: unresolvable reference passed. Citation scanning must not be opt-out by filename.
+_SKIP_FILES = {
+    os.path.join("Scripts", "test_logic_canon.py"),
+    os.path.join("Scripts", "test_canon_citations_guard.py"),
+    os.path.join("Scripts", "logic_canon.py"),
+    os.path.join("Scripts", "check-canon-citations.py"),
+}
 _TEXT_SUFFIXES = {".json", ".md", ".swift", ".py", ".sh", ".yml", ".yaml", ".tsv", ".txt"}
 
 
@@ -1084,7 +1163,7 @@ def scan_repo_citations(repo: str = REPO) -> dict[str, list[str]]:
             if os.path.commonpath([os.path.abspath(root), generated]) == generated:
                 continue
             for name in sorted(files):
-                if name in _SKIP_FILES:
+                if os.path.relpath(os.path.join(root, name), repo) in _SKIP_FILES:
                     continue
                 if os.path.splitext(name)[1] not in _TEXT_SUFFIXES:
                     continue
@@ -1108,8 +1187,24 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
 
     Needs Logic. Everything else in this module needs only what this writes.
     """
+    # Start from what is already pinned. `build --source strings` used to write a manifest holding
+    # ONLY that source, and `required_corpora` reads the manifest -- so a documented flag silently
+    # shrank every absence proof to the corpora that happened to be rebuilt, with no warning and
+    # with `verify_artifacts` still green because the orphaned absence files were re-digested.
+    # Found by review 2026-09-15.
+    previous = load_manifest() if os.path.exists(MANIFEST_PATH) else {}
     manifest = {"schema": 1, "extractor_version": EXTRACTOR_VERSION,
-                "logic": app_build(app), "sources": {}}
+                "logic": app_build(app),
+                "sources": dict(previous.get("sources") or {})}
+    if previous.get("logic") and previous["logic"] != manifest["logic"]:
+        # A partial rebuild on a DIFFERENT Logic would leave some sources describing one build and
+        # some another, and nothing downstream could tell. Refuse rather than mix.
+        if set(sources) != set(EXTRACTORS):
+            raise CanonError(
+                f"this Logic is {manifest['logic']} and the pinned manifest is {previous['logic']}. "
+                f"A partial rebuild across builds would leave sources describing different "
+                f"applications. Rebuild every source.")
+        manifest["sources"] = {}
     cited = scan_repo_citations(repo) if refresh_citations else {}
     by_source: dict[str, dict[tuple[str, str, str, str], str]] = {}
 
@@ -1123,6 +1218,16 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
             folded = normalize(value)
             values_by_locale.setdefault(locale, set()).add(folded)
             rows[(unit, locale, key, field)] = short_digest(value)
+        if source == "quickhelp" and EXPECTED_LOCALES:
+            missing = sorted(set(EXPECTED_LOCALES) - set(values_by_locale))
+            if missing:
+                # BEFORE any write. The check used to run after the loop below, which had already
+                # overwritten the absence files -- so the promise to "stop the build rather than
+                # shrink" protected the manifest and not the artefacts.
+                raise CanonError(
+                    f"QuickHelp is missing locales {missing}. A corpus that lost a locale makes "
+                    f"every absence claim over it false, so this stops the build rather than "
+                    f"shrinking. Nothing has been written.")
         paths = corpus_files(app, source)
         absence_counts = {}
         for locale, values in sorted(values_by_locale.items()):
@@ -1157,20 +1262,22 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                     continue
                 wanted[ref.index_row()] = row
             # Keep rows already committed even when nothing cites them this run, so that removing
-            # one citation does not silently un-pin a digest another branch is still resting on.
-            wanted.update(load_index(source))
-            write_index(source, wanted)
+            # one citation does not silently un-pin a digest another branch is still resting on --
+            # but the FRESH digest wins where both have the row. Written the other way round first,
+            # and `dict.update` overwrites: a rebuild after a Logic update kept every stale digest,
+            # so a citation whose string Apple had changed went on resolving. That is the exact
+            # failure `docs/canon/README.md` says a rebuild exists to surface, and the code did the
+            # opposite. Found by review 2026-09-15 with a synthetic two-build corpus.
+            merged = load_index(source)
+            merged.update(wanted)
+            write_index(source, merged)
+            wanted = merged
             manifest["sources"][source]["cited_rows"] = len(wanted)
             if unresolved:
                 manifest["sources"][source]["unresolved_citations"] = sorted(set(unresolved))
 
-    if EXPECTED_LOCALES and "quickhelp" in manifest["sources"]:
-        seen = set(manifest["sources"]["quickhelp"]["locales"])
-        missing = sorted(set(EXPECTED_LOCALES) - seen)
-        if missing:
-            raise CanonError(
-                f"QuickHelp is missing locales {missing}. A corpus that lost a locale makes every "
-                f"absence claim over it false, so this stops the build rather than shrinking.")
+    if "quickhelp" in manifest["sources"]:
+        manifest["sources"]["quickhelp"]["identical_files"] = verify_quickhelp_aliases(app)
 
     # Every committed artefact is digested INTO the manifest. Without this the offline check has
     # no integrity at all: `index/<source>.tsv` is the table a quoted value is compared against, so
@@ -1185,6 +1292,43 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
     return manifest
 
 
+def verify_quickhelp_aliases(app: str) -> dict:
+    """Check the alias table against the bytes, and record what was actually found.
+
+    `QUICKHELP_LOCALE_ALIASES` was a dead constant: defined, never read, and therefore a comment
+    with the shape of a rule. It asserts that `it`, `pt` and `zh_TW` ship English -- which is load
+    bearing, because it is why a claim of agreement "across ten locales" counts three agreements
+    that are true by construction. If Apple translates one of them in a later build, nothing would
+    have noticed and the claim would quietly become three claims too strong.
+
+    So `build` groups the files by digest and refuses a grouping that disagrees with the table. The
+    grouping also goes into the manifest, where a change is visible in the diff rather than only in
+    a number nobody recomputes.
+    """
+    resources = os.path.join(app, "Contents", "Resources")
+    by_digest: dict[str, list[str]] = {}
+    for entry in sorted(os.listdir(resources)):
+        if not entry.endswith(".lproj"):
+            continue
+        path = os.path.join(resources, entry, "QuickHelp.plist")
+        if os.path.exists(path):
+            by_digest.setdefault(_file_digest(path), []).append(entry[: -len(".lproj")])
+    groups = {digest[:12]: sorted(locales) for digest, locales in by_digest.items()}
+
+    same_as = {}
+    for locales in by_digest.values():
+        if "en" in locales:
+            for locale in locales:
+                if locale != "en":
+                    same_as[locale] = "en"
+    if same_as != QUICKHELP_LOCALE_ALIASES:
+        raise CanonError(
+            f"QUICKHELP_LOCALE_ALIASES says {QUICKHELP_LOCALE_ALIASES} and this Logic ships "
+            f"{same_as}. The table is why a claim across ten locale NAMES is not a claim across "
+            f"ten independent files, so it may not drift silently.")
+    return groups
+
+
 def artifact_digests() -> dict:
     """sha256 of every committed index and absence file, keyed by path relative to docs/canon."""
     out = {}
@@ -1196,6 +1340,39 @@ def artifact_digests() -> dict:
             if os.path.isfile(path):
                 out[os.path.relpath(path, CANON_DIR)] = _file_digest(path)
     return out
+
+
+def verify_index_against_absence() -> list:
+    """Every committed index row's value must also be in its corpus's absence set.
+
+    A free invariant, and the only external check an offline run has. `short_digest` is the first
+    12 hex of the value's SHA-256 and the absence set stores the first 8, so the index row already
+    contains the key the absence set is searched by. A value Logic ships is in both by construction.
+
+    What it buys: forging a citation now means editing THREE files consistently -- the index row,
+    `MANIFEST.json`'s digest of it, and the sorted binary absence set -- instead of two. It does
+    not make forgery impossible and nothing offline can; see the threat model in
+    `docs/canon/README.md`. It raises the cost of the cheapest version from a text edit to a
+    deliberate one, which is the difference between a shortcut somebody takes under deadline and an
+    act nobody performs by accident.
+    """
+    problems = []
+    for path in sorted(glob.glob(os.path.join(INDEX_DIR, "*.tsv"))):
+        source = os.path.basename(path)[: -len(".tsv")]
+        for (unit, locale, key, field), short in load_index(source).items():
+            try:
+                table = load_absence(source, locale)
+            except CanonError as exc:
+                problems.append(f"index/{source}.tsv row {key!r}: {exc}")
+                continue
+            needle = int(short[:8], 16)
+            position = bisect.bisect_left(table, needle)
+            if not (position < len(table) and table[position] == needle):
+                problems.append(
+                    f"index/{source}.tsv pins {key!r} ({unit}, {locale}, {field}) at digest "
+                    f"{short}, and no value in absence/{source}.{locale}.u32 hashes to it. A row "
+                    f"whose value is not in the corpus was not taken from the corpus.")
+    return problems
 
 
 def verify_artifacts(manifest: dict) -> list:
@@ -1313,6 +1490,41 @@ def _cmd_thresholds(args) -> int:
     return 0
 
 
+def _cmd_census(args) -> int:
+    """Print every number this repository's prose is allowed to quote about the corpus.
+
+    It exists because twelve numbers written into docstrings and documents did not reproduce --
+    in a change whose subject is typed values standing where measured ones should be. A number
+    that lives in prose is a measurement nobody re-runs; a number printed by a command is one
+    anybody can.
+    """
+    app = args.app
+    out = {"logic": app_build(app)}
+    for source in sorted(EXTRACTORS):
+        rows = list(EXTRACTORS[source](app))
+        by_locale = collections.Counter(locale for _u, locale, _k, _f, _v in rows)
+        out[source] = {"files": len(corpus_files(app, source)), "entries": len(rows),
+                       "locales": dict(sorted(by_locale.items()))}
+    encodings = collections.Counter()
+    for root, _dirs, files in os.walk(app):
+        for name in files:
+            if name.endswith(".strings"):
+                with open(os.path.join(root, name), "rb") as handle:
+                    head = handle.read(8)
+                encodings["bplist" if head[:8] == _BPLIST
+                          else "utf16-bom" if head[:2] in _BOM_UTF16 else "other"] += 1
+    out["strings_encodings"] = dict(encodings)
+    suffix = {}
+    for locale in EXPECTED_LOCALES:
+        index = QuickHelpIndex.from_app(app, locale, min_anchor=DEFAULT_MIN_ANCHOR)
+        suffix[locale] = {"compositions": len(index.by_composed),
+                          "suffix_pairs": len(index.suffix_collisions())}
+    out["quickhelp_suffix_pairs"] = suffix
+    out["quickhelp_suffix_pairs_total"] = sum(v["suffix_pairs"] for v in suffix.values())
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_status(args) -> int:
     manifest = load_manifest()
     print(f"index pinned to Logic {manifest['logic']['version']} ({manifest['logic']['build']}), "
@@ -1367,6 +1579,9 @@ def main(argv=None) -> int:
     thresholds_cmd.add_argument("--locale", default="ko")
     thresholds_cmd.set_defaults(func=_cmd_thresholds)
 
+    census_cmd = sub.add_parser("census", help="every corpus number prose is allowed to quote")
+    census_cmd.set_defaults(func=_cmd_census)
+
     status_cmd = sub.add_parser("status", help="has the pinned corpus drifted from the installed Logic")
     status_cmd.set_defaults(func=_cmd_status)
 
@@ -1417,6 +1632,14 @@ _FORMAT_SPEC = re.compile(r"%(?:\d+\$)?[-+ #0]*[\d*]*(?:\.[\d*]+)?(?:hh|h|ll|l|q
 #: exactly that, and it turned a 113-of-114 measurement into a false 114-of-114.
 MIN_TEMPLATE_LITERAL = 4
 
+#: ...and the floor alone is not enough, because literal text does not have to be SHARED OUT.
+#: Measured in the shipped bundle by review 2026-09-15: `"%d-bit %@ %@ %@"` clears a four-character
+#: floor on the strength of `-bit` and then matches `24-bit <anything> <anything> <anything>` --
+#: three unconstrained captures behind one hyphenated word. So the literal must also scale with the
+#: number of conversions. Three non-space characters per conversion rejects that template (4 < 12)
+#: and keeps `%@ 채널 스트립 표시` (7 >= 3), which is the one that renders eight live values.
+MIN_LITERAL_PER_CONVERSION = 3
+
 
 def template_to_regex(template: str) -> re.Pattern | None:
     """Compile a printf-style canonical string into a matcher for the value it renders to.
@@ -1427,8 +1650,9 @@ def template_to_regex(template: str) -> re.Pattern | None:
     """
     if not _FORMAT_SPEC.search(template):
         return None
-    literal = _FORMAT_SPEC.sub("", template)
-    if len(re.sub(r"\s+", "", literal)) < MIN_TEMPLATE_LITERAL:
+    conversions = len(_FORMAT_SPEC.findall(template))
+    literal = len(re.sub(r"\s+", "", _FORMAT_SPEC.sub("", template)))
+    if literal < MIN_TEMPLATE_LITERAL or literal < MIN_LITERAL_PER_CONVERSION * conversions:
         return None
     out, last = [], 0
     for spec in _FORMAT_SPEC.finditer(template):
@@ -1442,24 +1666,43 @@ def template_to_regex(template: str) -> re.Pattern | None:
 class Resolution:
     """One live AX string, traced back to the canonical bytes that produced it."""
 
-    __slots__ = ("source", "unit", "locale", "key", "field", "tier", "prefix", "suffix",
+    __slots__ = ("source", "unit", "locale", "_key", "field", "tier", "prefix", "suffix",
                  "arguments", "canonical", "keys")
 
     def __init__(self, *, source, unit, locale, key, field, tier, canonical,
                  prefix="", suffix="", arguments=(), keys=None):
         self.source, self.unit, self.locale = source, unit, locale
-        self.key, self.field, self.tier = key, field, tier
+        self._key, self.field, self.tier = key, field, tier
         self.canonical, self.prefix, self.suffix = canonical, prefix, suffix
         self.arguments = tuple(arguments)
         self.keys = tuple(keys) if keys else (key,)
 
     @property
+    def key(self):
+        """The single key this value names, or None when several share the string.
+
+        `AXHelpMatch.key` has refused to pick one since it was written -- "picking one of them
+        would manufacture a precision the data does not have" -- and `AXStringResolver.resolve`
+        then wrote `key=match.keys[0]` anyway, as did `StringsIndex.lookup` with `hits[0]`. The
+        named site and the enforcement site disagreed inside one file. Measured: 11 of 114 live
+        values resolve to more than one key, and `드래그 모드` to four.
+        """
+        return self._key if len(self.keys) == 1 else None
+
+    @property
     def ref(self) -> str:
-        return str(CanonRef(self.source, self.unit, self.locale, self.key, self.field))
+        """The reference for the single key, or None when the value names several."""
+        return (str(CanonRef(self.source, self.unit, self.locale, self.keys[0], self.field))
+                if len(self.keys) == 1 else None)
+
+    def refs(self) -> list:
+        """Every key this value could name. The honest shape when the string is shared."""
+        return [str(CanonRef(self.source, self.unit, self.locale, key, self.field))
+                for key in self.keys]
 
     def as_dict(self) -> dict:
         return {"source": self.source, "unit": self.unit, "locale": self.locale,
-                "key": self.key, "keys": list(self.keys), "field": self.field,
+                "key": self.key, "keys": list(self.keys), "refs": self.refs(), "field": self.field,
                 "tier": self.tier, "prefix": self.prefix, "suffix": self.suffix,
                 "arguments": list(self.arguments), "ref": self.ref,
                 "canonical": self.canonical}
@@ -1552,9 +1795,29 @@ class AXStringResolver:
         self.strings = StringsIndex.from_app(app, locale)
 
     def resolve(self, value: str) -> Resolution | None:
-        match = self.quickhelp.parse_axhelp(value)
+        """QuickHelp's WHOLE and SUFFIX matches, then the framework tables, then truncation.
+
+        The order matters and the first version got it wrong. `truncated` is the weakest tier --
+        it infers a key from a value that is a PREFIX of a composition -- and running it before the
+        framework tables let it claim eight live values that were not truncated at all. They were
+        short, complete `.strings` labels: `모든 채널 스트립 보기` (12 characters) and
+        `트랙에서 사용하는 모든 채널 스트립 보기` (22) are two distinct menu items, and both were
+        assigned `CSS_016_ChannelStriipViewMenu` -- which is the popup MENU that contains them.
+        A wrong canonical key that resolves and digest-matches is the failure this whole axis is
+        the parable for. Measured by review 2026-09-15.
+
+        So truncation is tried only when nothing else can explain the value at all.
+        """
+        match = self.quickhelp.parse_axhelp(value, allow_truncated=False)
         if match is not None:
-            return Resolution(source="quickhelp", unit=match.source_unit, locale=self.locale,
-                              key=match.keys[0], field="composed", tier=match.tier,
-                              canonical=match.composed, prefix=match.prefix, keys=match.keys)
-        return self.strings.lookup(value)
+            return self._from_match(match)
+        found = self.strings.lookup(value)
+        if found is not None:
+            return found
+        match = self.quickhelp.parse_axhelp(value)
+        return self._from_match(match) if match is not None else None
+
+    def _from_match(self, match) -> Resolution:
+        return Resolution(source="quickhelp", unit=match.source_unit, locale=self.locale,
+                          key=match.keys[0], field="composed", tier=match.tier,
+                          canonical=match.composed, prefix=match.prefix, keys=match.keys)

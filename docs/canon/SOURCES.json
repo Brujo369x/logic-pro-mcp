@@ -1,11 +1,16 @@
 {
   "schema": 1,
-  "note": "The Logic assets this repository treats as source of truth, and what each can answer. A source is listed here only after something measured what it contains; the counts are from Scripts/logic_canon.py build against the Logic in MANIFEST.json.",
+  "note": "The Logic assets this repository treats as source of truth, and what each can answer. A source is listed here only after something measured what it contains; the counts are from Scripts/logic_canon.py build against the Logic in MANIFEST.json. Every count here is printed by `Scripts/logic_canon.py census`; do not retype one.",
   "sources": {
     "quickhelp": {
       "path": "Contents/Resources/<locale>.lproj/QuickHelp.plist",
       "answers": "the identity of a CONTROL, as a key that is the same in every locale",
-      "fields": ["Title", "Text", "Anchor", "composed"],
+      "fields": [
+        "Title",
+        "Text",
+        "Anchor",
+        "composed"
+      ],
       "keys": 9835,
       "locale_names": 10,
       "distinct_files": 7,
@@ -15,39 +20,50 @@
         "3766 of 9835 ko keys share their composition with another key, so a string identifies a SET of keys and not always one",
         "the ja and zh_CN join rule is unverified and their punctuation argues against it -- see LOCALE_JOIN_CONFIDENCE in Scripts/logic_canon.py",
         "93 of 9835 keys have ever been confirmed live across every census this repository holds"
-      ]
+      ],
+      "corpus_files": 20,
+      "corpus_files_note": "QuickHelp.plist and QuickHelpDefault.plist in each of ten .lproj. The key and distinct-file counts below describe QuickHelp.plist only; QuickHelpDefault.plist is distinct in all ten locales and is counted in `entries`.",
+      "entries": 390820
     },
     "strings": {
       "path": "**/<locale>.lproj/*.strings",
       "answers": "the text of a LABEL, which is weaker than a control identity because labels are reused",
-      "fields": ["value"],
-      "files": 2537,
-      "entries": 605160,
+      "fields": [
+        "value"
+      ],
+      "files": 2538,
+      "entries": 605190,
       "locale_names": 10,
       "reaches_live_axhelp": "measured: 27 of the 28 live ko-KR AXHelp values QuickHelp cannot explain resolve here, all of them in Logic.framework and none in any other framework",
       "limits": [
         "English is structurally absent from 97 of 135 tables that back a live match: en text lives inside Base.lproj nibs and only translated locales get a .strings overlay. A resolver keyed on <locale>.lproj/<name>.strings silently loses en.",
         "across the nine non-English locales, 135 measured tables showed zero key-set drift",
-        "a value may be present in the table and NOT used by the interface: the live UI shows untranslated 'German' and 'MIDI Region' although ko translations for both keys exist"
+        "a value may be present in the table and NOT used by the interface: the live UI shows untranslated 'German' and 'MIDI Region' although ko translations for both keys exist",
+        "The AXHelp resolver reads three Logic.framework tables, not all 2,538 files, so 'none in any other framework' is true of what it looked at. Checked separately against every ko .lproj table in the bundle and it still held, but the code could not have found otherwise."
       ]
     },
     "madsp": {
       "path": "Contents/Frameworks/MADSP.framework/Versions/A/Resources/<plug-in>.plist",
       "answers": "a stock plug-in's parameter table: parameterID, name, control type",
-      "fields": ["name", "preferredControlType"],
+      "fields": [
+        "name",
+        "preferredControlType"
+      ],
       "files": 128,
       "entries": 14940,
       "locale_names": 1,
       "limits": [
         "not localised: the parameter names are fixed in the plist and the ten Localizable.strings beside them hold 23 error and side-chain strings with no parameter names in them",
-        "parameterID is an ordinal private to each plug-in, not a global identifier, and 55 of 127 tables have gaps in it",
+        "parameterID is an ordinal private to each plug-in, not a global identifier, and 57 of the 124 tables that emit one have gaps in it. An earlier revision said 55 of 127, a figure nothing in the tree derives; `Scripts/logic_canon.py census` prints what does.",
         "nothing measured connects a parameterID to an element in the live accessibility tree"
       ]
     },
     "nib": {
       "path": "**/*.nib (NSIBUserDefinedRuntimeAttributesConnector)",
       "answers": "which SCREEN FILE holds a control, by the qhid runtime attribute",
-      "fields": ["nibs"],
+      "fields": [
+        "nibs"
+      ],
       "files": 1169,
       "entries": 3313,
       "locale_names": 1,

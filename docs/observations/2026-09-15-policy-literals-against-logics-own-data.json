@@ -71,19 +71,87 @@
         },
         {
           "source": "quickhelp",
+          "locale": "de"
+        },
+        {
+          "source": "quickhelp",
           "locale": "en"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "es"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "fr"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "it"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "ja"
         },
         {
           "source": "quickhelp",
           "locale": "ko"
         },
         {
+          "source": "quickhelp",
+          "locale": "pt"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "zh_CN"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "zh_TW"
+        },
+        {
+          "source": "strings",
+          "locale": "-"
+        },
+        {
+          "source": "strings",
+          "locale": "de"
+        },
+        {
           "source": "strings",
           "locale": "en"
         },
         {
           "source": "strings",
+          "locale": "es"
+        },
+        {
+          "source": "strings",
+          "locale": "fr"
+        },
+        {
+          "source": "strings",
+          "locale": "it"
+        },
+        {
+          "source": "strings",
+          "locale": "ja"
+        },
+        {
+          "source": "strings",
           "locale": "ko"
+        },
+        {
+          "source": "strings",
+          "locale": "pt"
+        },
+        {
+          "source": "strings",
+          "locale": "zh_CN"
+        },
+        {
+          "source": "strings",
+          "locale": "zh_TW"
         }
       ],
       "why_runtime": "Each is either a label Logic composes at runtime, a label drawn from a framework outside this corpus, or a string that was typed rather than read. This record does not decide which; it establishes that no canonical source answers for them, which is the precondition for a measurement being the only route."
@@ -159,16 +227,6 @@
       "note": "the product carries three ASCII full stops; Logic ships U+2026"
     },
     {
-      "what": "the Autopunch spellings",
-      "product_carries": [
-        "Auto Punch",
-        "Auto-Punch"
-      ],
-      "logic_ships": "Autopunch",
-      "found_as": "zCb-cM-hG2.title",
-      "note": "one word, and neither product spelling matches it"
-    },
-    {
       "what": "the shape of the rest",
       "deliberate_substrings": [
         "audio effect",
@@ -182,16 +240,36 @@
         "choose project"
       ],
       "note": "lowercase fragments used for containment matching, which are not expected to be whole labels"
+    },
+    {
+      "what": "what the two flagged sets actually carry, re-read after review",
+      "projectOrSectionMenuItem": {
+        "canonical": "Project or Section…",
+        "variants_absent_from_the_corpus": [
+          "Project or Section...",
+          "프로젝트 또는 섹션..."
+        ],
+        "note": "the canonical IS Apple's spelling; the three-dot forms are tolerance variants and the set's own comment says both renderings were observed across builds"
+      },
+      "transportAutopunchControl": {
+        "canonical": "Autopunch",
+        "variants_absent_from_the_corpus": [
+          "Auto Punch",
+          "Auto-Punch"
+        ],
+        "note": "Autopunch is present in strings/en; the spaced and hyphenated forms are not"
+      }
     }
   ],
-  "conclusion": "Of the 379 distinct literals AXLocalePolicy matches Logic's interface with, 113 are a QuickHelp Title and 226 more are somewhere in the bundle's .strings corpus, leaving 40 that exist nowhere in Logic. Those 40 are not one kind. Roughly half are lowercase fragments used for containment matching and were never meant to be whole labels. The rest look like labels, and two of them are demonstrably wrong: the product spells the Bounce leaf `Project or Section...` with three ASCII full stops in both English and Korean while Logic ships it with U+2026, and it carries both `Auto Punch` and `Auto-Punch` while Logic ships the single word `Autopunch`. Each is an invisible one-character difference against a set that is matched whole -- the same failure as `再生ヘッド位置` against `再生ヘッドの位置`, and the reason this axis exists. Nothing here was fixed: this repository has already learned that translating a label by guess is what produced the German track-creation report, and a string that is absent from the corpus is not thereby wrong.",
+  "conclusion": "Of the 379 distinct literals AXLocalePolicy matches Logic's interface with, 113 are a QuickHelp Title and 226 more are somewhere in the bundle's .strings corpus, leaving 40 that exist nowhere in Logic. Those 40 are not one kind. Roughly half are lowercase fragments used for containment matching and were never meant to be whole labels. The rest look like labels. Neither is a defect of the unfindable-element shape. `AXLocalePolicy` already carries Apple's spelling as the CANONICAL member of each set -- `Project or Section…` with U+2026 and `Autopunch` as one word -- and matching is variant-inclusive, so the element is found. What the canon axis shows is narrower and worth keeping: three of the tolerance VARIANTS beside those canonicals (`Project or Section...`, `프로젝트 또는 섹션...`, `Auto Punch`, `Auto-Punch`) are spellings Logic does not ship anywhere in this corpus. They cost nothing and may be deliberate tolerance for other builds -- the set's own comment says both renderings were observed -- but nothing in the tree could previously tell a tolerance variant from a typo, and now something can. Nothing here was changed: a string absent from the corpus is not thereby wrong, and this repository has already learned that editing a label by guess is what produced the German track-creation report.",
   "limits": [
     "Case-folded comparison, because every LabelSet match mode in the product folds case. A guard stricter than the thing it audits refuses honest readings.",
     "The .strings corpus is what Scripts/logic_canon.py extracts: 2,537 files. Strings compiled into nibs, into the binary, or into a framework outside the app bundle are not in it, so `nowhere` means `not in this corpus`, never `not in Logic`.",
     "Presence does not mean the interface uses it. Measured separately: the live UI shows untranslated `German` and `MIDI Region` although ko translations for both keys exist.",
     "Absence does not mean wrong. A label Logic composes at runtime is absent and correct; this record does not separate those from typed ones.",
     "The two demonstrated defects were found by re-asking with a different character. Nothing systematically re-asked the other 38, so there may be more of the same shape.",
-    "A first pass that swept the `rationale` field as well reported 185 unmatched. That number is wrong and is recorded here only so it is not mistaken for a measurement if it surfaces elsewhere."
+    "A first pass that swept the `rationale` field as well reported 185 unmatched. That number is wrong and is recorded here only so it is not mistaken for a measurement if it surfaces elsewhere.",
+    "An earlier revision of this record called two of the forty 'demonstrably wrong' and said the product spells the Bounce leaf with three ASCII full stops. That was an overclaim, corrected after review: the product's CANONICAL spelling is Apple's in both cases and the three-dot forms are additional variants, so neither makes an element unfindable. The overclaim is the same class of error this axis exists to stop, which is why it is recorded here rather than quietly edited."
   ],
   "evidence": [
     "evidence/2026-09-15-policy-literals-against-logics-own-data.json"

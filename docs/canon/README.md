@@ -16,10 +16,15 @@ Measured on 2026-09-15, that is not an isolated case:
 
 ```
 AXLocalePolicy holds 379 distinct literals the product matches Logic's interface with
-  120   are a QuickHelp Title
-  222   are somewhere in the bundle's 605,160 .strings entries
-   37   are nowhere in Logic at all
+  113   are a QuickHelp Title
+  226   are somewhere in the bundle's 605,190 .strings entries
+   40   are in no file of the app bundle
 ```
+
+Those counts are printed by `Scripts/check-policy-literals-against-canon.py`, and they are the
+only place they are written down. An earlier revision of this file carried 120/222/37 -- a first
+pass taken before the extractor stopped counting `rationale` prose as labels -- in four documents
+at once, in a change whose subject is typed numbers drifting from measured ones.
 
 Some of those 37 are deliberate substrings for `.contains` matching. Some are labels nobody can
 find. The repository could not tell which, because it had no notion of a citation.
@@ -55,6 +60,21 @@ The index holds only cited keys on purpose. A full QuickHelp index is 295,050 ro
 locales, and a checked-in artefact that size stops being read. The absence sets are the opposite:
 they must be complete, because proving absence needs the whole corpus.
 
+### The corpus is bounded, and the bound is the claim's bound
+
+The absence sets cover four sources: `QuickHelp.plist`, every `.strings` file, MADSP's parameter
+tables, and nib runtime attributes. They do **not** cover strings compiled into the Logic binary,
+strings living inside nib object graphs, AppKit strings in the dyld shared cache, or the Help Book,
+which Logic serves over the network rather than shipping.
+
+So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
+
+- an absence claim over English `strings` is the weakest proof the system can produce, because
+  English lives in `Base.lproj` nibs rather than in `.strings` overlays — 97 of 135 tables that
+  back a live match have no `en.lproj` file at all;
+- the one live AXHelp value this repository cannot cite is most plausibly an AppKit string, and
+  that plausibility is recorded as unverified rather than as a finding.
+
 ### Why the absence set is 32 bits
 
 Proving presence needs one entry. Proving **absence** needs all of them, which is the expensive
@@ -65,6 +85,38 @@ string look **present**, which refuses the absence claim and sends a person back
 Logic on it. It can never make a present string look absent, which would let a hand-typed string
 masquerade as uncitable. The rate is in `MANIFEST.json` — worst case 1.2 × 10⁻⁵ — rather than left
 for the reader to assume it is zero.
+
+### Two ratchets over one population, measured
+
+`docs/canon/WITHOUT-CANON.json` and `docs/observations/RATCHETS.json` overlap, and so do
+`docs/canon/POLICY-LITERALS.json` and the ledger's `undocumented_variants`. The overlap is measured
+rather than denied:
+
+```
+RATCHETS.schema_v1_records (schema < 2)   is a strict SUBSET of WITHOUT-CANON.json (schema < 3)
+undocumented_variants ∩ POLICY-LITERALS `nowhere`   ≈ 30 of 42
+```
+
+They are kept apart because they answer different questions — *has this record caught up to the
+current schema* versus *is this string in Logic's data* — and merging them would make one number
+stand for two debts that close by different work. What this repository warns against is a second
+copy of the truth, and the honest position is that this is close to one: shrinking either list does
+not shrink the other, and nobody has yet written which shrinks first. That is a debt, and it is
+recorded here rather than in nobody's head.
+
+## Sighting and citation are not the same claim
+
+A **sighting** is a row in a record: somebody saw this string on screen. A **citation** is a
+reference into Logic's own data: Apple ships this string. Neither retires the other, and they can
+disagree in both directions:
+
+- a string can be in Logic's data and never reach the interface — measured: the live UI shows
+  untranslated `German` and `MIDI Region` although ko translations for both keys exist;
+- a string can reach the interface with no file behind it — measured: one live AXHelp value is in
+  no file of the bundle.
+
+Where they disagree, **neither wins automatically.** The rule is that the disagreement is recorded,
+because a rule that picked a winner would have to pick it before anyone looked.
 
 ## Citing
 
@@ -101,8 +153,24 @@ A pull request body is not a file, so the tree-wide sweep could not see it — a
 a change is actually reviewed through were exempt from the rule they carry. That is the
 named-site / enforcement-site gap in its usual shape, and it is why rule 11 exists.
 
-A body may say `states no fact about Logic` instead of citing. Deliberately a sentence rather than
-a checkbox: a checkbox is ticked without reading.
+### The opt-out
+
+A body that asserts nothing about Logic writes this sentence, with the reason:
+
+> states no fact about Logic
+
+Deliberately a sentence rather than a checkbox, because a checkbox is ticked without reading — and
+deliberately **not** printed in `.github/pull_request_template.md`, because the first version of
+that template shipped it pre-typed and every untouched template passed. A sentence the template
+types for you is a sentence nobody meant.
+
+It is refused in two cases, both derived rather than declared:
+
+- the change edits a **Logic-facing path** (`Sources/LogicProMCP/{Accessibility,HostParameters,Channels}/`,
+  `docs/{observations,locale,canon}/`, `Scripts/livekit/`) — what a change says about itself does
+  not decide whether it states a fact about Logic; what it touches does;
+- the sentence appears only inside a fenced code block or an HTML comment. Text a reader does not
+  see cannot carry a promise, and both hiding places were used against this check before it looked.
 
 ## The bindings — "was it actually used?"
 
@@ -117,6 +185,27 @@ the value lands, and the value must literally be there:
 
 The first version of this had no bindings at all, and a citation could be decorative: correct
 digest, correct quote, and no line of code or reading that had anything to do with it.
+
+## The threat model, stated rather than implied
+
+This is a **consistency** control, not a security control, and it cannot become one while its root
+of trust is a file in the tree.
+
+| adversary | what this stops |
+|---|---|
+| an honest author who errs | nearly everything: a misquoted value, an unpinned reference, a malformed one, a schema-2 record, an edited index, a truncated absence set, a literal Logic does not ship |
+| an author routing around the rule | some of it. The opt-out is derived from the diff, the waiver lists are compared against the merge base, and the classification is committed — but a determined author has more room than an honest one |
+| a committer acting in bad faith | **nothing.** `MANIFEST.json` digests the index and the absence sets, and `MANIFEST.json` is a tracked file. Whoever can edit one can edit all three in one commit. Review 2026-09-15 did exactly that in three edits and the gate stayed green. |
+| a fork pull request | the most, since a fork cannot rewrite the guard on the base branch |
+
+`verify_index_against_absence` raises the cost of the third case from a text edit to a deliberate
+one — a forged row must also appear in a sorted binary absence set — and `.github/CODEOWNERS`
+puts a human on `docs/canon/`. Neither makes it impossible, and nothing offline can.
+
+What the gate actually proves is that **a quoted value matches a previously committed digest**. Only
+`build`, on a machine with Logic, ever touches Apple's bytes. That is worth having: it makes the
+class of error that produced `再生ヘッド位置` against `再生ヘッドの位置` impossible to commit by
+accident. It is not a proof that Apple shipped the string.
 
 ## What this does **not** check
 

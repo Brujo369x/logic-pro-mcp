@@ -129,7 +129,7 @@ body:
 
         Write "states no fact about Logic" if that is the case, and say why in one line.
       placeholder: |
-        logic-canon://quickhelp/QuickHelp/ko/KCE_024_Record#composed
+        logic-canon://<source>/<unit>/<locale>/<key>#<field>
           value:    ...
           used for: ...
       render: text

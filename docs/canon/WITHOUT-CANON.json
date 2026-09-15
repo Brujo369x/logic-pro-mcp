@@ -1,5 +1,5 @@
 {
-  "note": "Records written before the canon axis existed (2026-09-15). This list may only SHRINK: a record joining the tree at schema 2 or lower is refused by Scripts/check-canon-citations.py. Seeded with every record present on the day the rule landed, because turning 107 records red at once is how a rule gets deleted rather than satisfied.",
+  "note": "Records written before the canon axis existed (2026-09-15). This list may only SHRINK: a record joining the tree at schema 2 or lower is refused, and adding a member is refused against the merge base. Seeded with every record present on the day the rule landed, because turning 104 records red at once is how a rule gets deleted rather than satisfied.",
   "records": [
     "docs/observations/2026-09-03-sort-settle-witness-accepts-prescroll-order.json",
     "docs/observations/2026-09-03-sort-tracks-by-track-name-is-inert.json",
@@ -105,5 +105,11 @@
     "docs/observations/2026-09-14-the-transport-shows-ticks-when-the-display-mode-does.json",
     "docs/observations/2026-09-15-the-automation-lane-is-legible-and-inert.json",
     "docs/observations/2026-09-15-the-korean-project-chooser-names-itself.json"
-  ]
+  ],
+  "how_it_shrinks": {
+    "owner": "whoever next touches the surface a record is about",
+    "rule": "A record is migrated when its surface is next worked on, not in a sweep. Adding `canon` to a record means re-reading what it claims about Logic and citing it -- the work the record was avoiding -- and doing 104 of those at once is how the citations become perfunctory.",
+    "measured_overlap": "RATCHETS.schema_v1_records (schema < 2) is a strict SUBSET of this list (schema < 3). Shrinking one does not shrink the other; see docs/canon/README.md.",
+    "no_deadline": "Deliberately none. A deadline on 104 records nobody is paid to migrate produces a date that passes, and this repository has already learned what a stale claim costs."
+  }
 }
