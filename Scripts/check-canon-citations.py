@@ -146,29 +146,61 @@ def _at_base(base, path):
         return None
 
 
+#: Each ratcheted list, and the direction it may move in. Two directions, because two kinds of list
+#: got mixed:
+#:
+#:   shrink   a WAIVER -- debt, an exemption, something not yet done. Growth admits more debt.
+#:   grow     a REQUIREMENT -- a path that must be cited, a command CI must run. Shrinkage
+#:            quietly removes a rule.
+#:
+#: They were all "shrink" first, and that put two of my own rules in direct contradiction: rule 14
+#: refuses a Swift file declaring a LabelSet outside `LOGIC-FACING.json`, so a new Logic-facing
+#: directory MUST add a prefix -- and rule 7 refused the addition. The first change that needed it
+#: would have had nowhere to go. It had not fired only because those two files do not exist at the
+#: merge base of the branch that introduces them; it fires on the next one.
+RATCHETS = (
+    ("docs/canon/WITHOUT-CANON.json", "records", "shrink",
+     "records predating the canon axis"),
+    ("docs/canon/POLICY-LITERALS.json", "literals", "shrink",
+     "literals classified as answered nowhere in Logic"),
+    ("docs/canon/NOT-A-RECORD.json", "files", "shrink",
+     "files in docs/observations that are declared not to be records"),
+    ("docs/canon/LOGIC-FACING.json", "prefixes", "grow",
+     "path prefixes whose changes may not use the opt-out"),
+    ("docs/canon/CI-GATE.json", "required_commands", "grow",
+     "commands the required CI gate must carry"),
+)
+
+
+def _ratchet_members(blob, key):
+    value = blob.get(key)
+    if isinstance(value, dict):
+        # POLICY-LITERALS.json is a map literal -> where it is answered. Only the ones answered
+        # NOWHERE are the debt; the other two buckets are the work succeeding.
+        return {name for name, where in value.items() if where == "nowhere"}
+    return set(value or [])
+
+
 def check_waivers_only_shrink(failures: list) -> None:
-    """Rule 7: neither waiver list may GAIN a member relative to the merge base."""
+    """Rule 7: a waiver list may only shrink, and a requirement list may only grow.
+
+    Compared against `git merge-base`, not against the file itself, because a file-only check is
+    what a same-commit edit defeats: add a record at schema 1 AND add it to the waiver in one
+    commit, and the tree is internally consistent.
+    """
     base = _merge_base()
     under_ci = os.environ.get("CI") == "true"
     if base is None:
-        message = ("the merge base could not be read, so a waiver list can only be compared "
+        message = ("the merge base could not be read, so a ratcheted list can only be compared "
                    "against its own file -- which a same-commit edit defeats")
         if under_ci:
-            failures.append(f"canon waivers: {message}. A shallow clone has no base; "
+            failures.append(f"canon ratchets: {message}. A shallow clone has no base; "
                             f"CI must check out with fetch-depth: 0.")
         else:
             print(f"  note: {message}", file=sys.stderr)
         return
-    for path, key, what in (
-            (os.path.relpath(WITHOUT_CANON_PATH, REPO), "records", "records predating the canon axis"),
-            (os.path.relpath(POLICY_CLASSIFICATION, REPO), "literals",
-             "literals classified as answered nowhere in Logic"),
-            (os.path.relpath(NOT_A_RECORD_PATH, REPO), "files",
-             "files in docs/observations that are declared not to be records"),
-            (os.path.relpath(LOGIC_FACING_PATH, REPO), "prefixes",
-             "path prefixes whose changes may not use the opt-out"),
-            (os.path.join("docs", "canon", "CI-GATE.json"), "required_commands",
-             "commands the required CI gate must carry")):
+
+    for path, key, direction, what in RATCHETS:
         before = _at_base(base, path)
         if before is None:
             continue
@@ -178,24 +210,20 @@ def check_waivers_only_shrink(failures: list) -> None:
                 f"{path}: the list this ratchet compares lives under {key!r}, and one side does "
                 f"not have it. A renamed key makes the comparison silently empty.")
             continue
-        now_path = os.path.join(REPO, path)
-        if not os.path.exists(now_path):
-            continue
-        with open(now_path, "r", encoding="utf-8") as handle:
-            after = json.load(handle)
-        def members(blob):
-            value = blob.get(key)
-            if isinstance(value, dict):
-                # POLICY-LITERALS.json is a map literal -> where it is answered. Only the ones
-                # answered NOWHERE are the debt; the other two buckets are the work succeeding.
-                return {name for name, where in value.items() if where == "nowhere"}
-            return set(value or [])
-
-        for member in sorted(members(after) - members(before)):
-            failures.append(
-                f"{path}: {member!r} was added to the list of {what}. That list may only SHRINK. "
-                f"A change that breaks the rule and waives itself in the same commit passes every "
-                f"check that reads only the tree.")
+        gained = sorted(_ratchet_members(now, key) - _ratchet_members(before, key))
+        lost = sorted(_ratchet_members(before, key) - _ratchet_members(now, key))
+        if direction == "shrink":
+            for member in gained:
+                failures.append(
+                    f"{path}: {member!r} was added to the list of {what}. That list may only "
+                    f"SHRINK. A change that breaks the rule and waives itself in the same commit "
+                    f"passes every check that reads only the tree.")
+        else:
+            for member in lost:
+                failures.append(
+                    f"{path}: {member!r} was removed from the list of {what}. That list may only "
+                    f"GROW -- it is a requirement, not a waiver, and dropping an entry quietly "
+                    f"removes a rule.")
 
 
 def check_build_agrees_with_the_ledger(manifest: dict, failures: list) -> None:

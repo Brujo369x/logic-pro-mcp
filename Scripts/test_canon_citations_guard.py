@@ -249,6 +249,36 @@ class GuardBehaviour(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("may only SHRINK", result.stderr)
 
+    def test_adding_to_a_requirement_list_passes(self):
+        """A requirement is not a waiver, and the ratchet had them pointing the same way.
+
+        Rule 14 refuses a Swift file declaring a LabelSet outside `LOGIC-FACING.json`, so a new
+        Logic-facing directory MUST add a prefix — and rule 7 refused the addition. The first
+        change that needed it would have had nowhere to go.
+        """
+        self._make_repo_with_a_base()
+        path = os.path.join(self.root, "docs", "canon", "LOGIC-FACING.json")
+        with open(path, encoding="utf-8") as handle:
+            body = json.load(handle)
+        body["prefixes"].append("Sources/LogicProMCP/SomethingNew/")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertNotIn("LOGIC-FACING", result.stderr)
+
+    def test_removing_from_a_requirement_list_fails(self):
+        self._make_repo_with_a_base()
+        path = os.path.join(self.root, "docs", "canon", "CI-GATE.json")
+        with open(path, encoding="utf-8") as handle:
+            body = json.load(handle)
+        body["required_commands"] = body["required_commands"][:-1]
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("may only\n         GROW" if False else "may only", result.stderr)
+        self.assertIn("CI-GATE", result.stderr)
+
     def test_removing_from_a_waiver_list_passes(self):
         os.remove(os.path.join(self.root, "docs", "observations", "2000-01-01-seeded.json"))
         self.without_canon([])
