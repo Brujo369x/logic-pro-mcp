@@ -255,7 +255,13 @@ def main() -> int:
     buckets = {}
     for value in committed.values():
         buckets[value] = buckets.get(value, 0) + 1
-    print(f"{len(committed)} literals across every LabelSet under Sources/: "
+    # The scope is NAMED from the constant, not typed. This line said "under Sources/" while
+    # SWIFT_ROOTS had held `Scripts/livekit` since the commit that added it -- and the comment on
+    # that constant records livekit being added BECAUSE it was not scanned. So the one sentence a
+    # reader sees asserted exactly the gap the fix closed.
+    where = " and ".join(os.path.relpath(root, REPO) + "/" for root in SWIFT_ROOTS)
+    print(f"{len(committed)} literals -- every LabelSet and every bare CJK literal under "
+          f"{where}: "
           + ", ".join(f"{k} {v}" for k, v in sorted(buckets.items()))
           + ("" if os.path.isdir(APP) else "  (Logic absent: set equality only)"))
     return 0

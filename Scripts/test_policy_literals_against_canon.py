@@ -166,6 +166,21 @@ class Ratchet(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("classified nowhere", result.stderr)
 
+    def test_the_summary_line_names_every_root_the_guard_reads(self):
+        """The one sentence a reader sees must not describe a narrower scan than the guard does.
+
+        It said "across every LabelSet under Sources/" while `SWIFT_ROOTS` had held
+        `Scripts/livekit` since the commit that added it -- and the comment on that constant
+        records livekit being added BECAUSE it was not scanned. So the summary asserted exactly the
+        gap the fix had closed, to anyone who read the output instead of the source.
+        """
+        out = subprocess.run([sys.executable, GUARD], capture_output=True, text=True)
+        line = (out.stdout or "").strip().splitlines()[-1] if out.stdout.strip() else ""
+        self.assertTrue(line, "the guard printed nothing, so there is no summary to check")
+        for root in guard.SWIFT_ROOTS:
+            self.assertIn(os.path.relpath(root, REPO), line,
+                          f"the summary hides a root it reads: {line}")
+
     def test_an_allowance_for_a_literal_that_is_gone_fails(self):
         result = self._run(self._current_allowed(), extra=["a literal nobody writes 77zz"])
         self.assertEqual(result.returncode, 1)
