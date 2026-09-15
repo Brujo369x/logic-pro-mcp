@@ -32,7 +32,7 @@ present the map is re-derived and must agree.
 
 ## Scope
 
-Every `LabelSet(` site under `Sources/`, not just `AXLocalePolicy.swift`. Measured: 156 of 160
+Every `LabelSet(` site under `Sources/` AND `Scripts/livekit/`, not just `AXLocalePolicy.swift`. Measured: 156 of 160
 sites are in that file and the other four were invisible to this check, one of them declaring
 `Show Library` and `라이브러리 보기` -- neither of which is in any corpus.
 
@@ -59,7 +59,10 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = "/Applications/Logic Pro.app"
 CLASSIFICATION = os.path.join(REPO, "docs", "canon", "POLICY-LITERALS.json")
-SOURCES_DIR = os.path.join(REPO, "Sources")
+#: Both directories that hold Swift matching Logic's interface. `Scripts/livekit` was not scanned,
+#: and five CJK literals live in those harnesses -- the same blind spot as reading only `LabelSet(`,
+#: one directory over.
+SWIFT_ROOTS = (os.path.join(REPO, "Sources"), os.path.join(REPO, "Scripts", "livekit"))
 
 _spec = importlib.util.spec_from_file_location(
     "logic_canon_for_policy", os.path.join(REPO, "Scripts", "logic_canon.py"))
@@ -88,11 +91,14 @@ _LINE_COMMENT = re.compile(r"^\s*//.*$", re.M)
 _BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 
 
-def swift_sources(root=None):
-    for base, _dirs, files in os.walk(root or SOURCES_DIR):
-        for name in sorted(files):
-            if name.endswith(".swift"):
-                yield os.path.join(base, name)
+def swift_sources(roots=None):
+    for root in (roots or SWIFT_ROOTS):
+        if not os.path.isdir(root):
+            continue
+        for base, _dirs, files in os.walk(root):
+            for name in sorted(files):
+                if name.endswith(".swift"):
+                    yield os.path.join(base, name)
 
 
 def policy_literals(source: str) -> set:

@@ -86,6 +86,12 @@ class Extraction(unittest.TestCase):
     def test_a_cjk_literal_in_a_comment_is_not_harvested(self):
         self.assertEqual(guard.bare_literals('    // 재생 은 주석이다\n'), set())
 
+    def test_livekit_harnesses_are_scanned(self):
+        """Five CJK literals live in `Scripts/livekit` and the scan read only `Sources/`."""
+        files = list(guard.swift_sources())
+        self.assertTrue(any(os.path.join("Scripts", "livekit") in f for f in files),
+                        "no livekit harness in the scan")
+
     def test_the_nbsp_in_a_variant_is_folded(self):
         self.assertIn("녹음", guard.policy_literals(SAMPLE))
 

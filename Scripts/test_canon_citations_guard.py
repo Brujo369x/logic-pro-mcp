@@ -7,6 +7,7 @@ narrower than their own docstring. So every refusal listed in that guard's docst
 here, and each case builds a whole temporary repository rather than mutating this one: a test that
 edits the tree it is checking can pass because of state it left behind.
 """
+import importlib.util
 import json
 import os
 import shutil
@@ -389,6 +390,58 @@ class TheGapsReviewFound(unittest.TestCase):
     def test_a_body_that_opts_out_and_quotes_nothing_citable_passes(self):
         result = self._check("This renames a private helper and states no fact about Logic.\n")
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class LogicFacingIsSelfMaintaining(unittest.TestCase):
+    """Rule 14, driven against the real tree because that is what it is pointed at.
+
+    The first attempt at this rule was WRITTEN AND COMMITTED WITHOUT LANDING -- the replacement
+    that was supposed to swap a tuple for a file silently matched nothing, the commit message said
+    it was fixed, and the tuple was still there. These cases exist so the next such failure is a
+    red test rather than a claim.
+    """
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("canon_guard_rule14", GUARD)
+        self.guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.guard)
+        self.path = self.guard.LOGIC_FACING_PATH
+        with open(self.path, encoding="utf-8") as handle:
+            self.backup = handle.read()
+        self.addCleanup(lambda: open(self.path, "w", encoding="utf-8").write(self.backup))
+
+    def _write(self, prefixes):
+        with open(self.path, "w", encoding="utf-8") as handle:
+            json.dump({"prefixes": prefixes}, handle, ensure_ascii=False)
+
+    def test_the_real_tree_passes(self):
+        failures = []
+        self.guard.check_labelsets_are_logic_facing(failures)
+        self.assertEqual(failures, [])
+
+    def test_a_labelset_outside_every_prefix_fails(self):
+        kept = [p for p in json.loads(self.backup)["prefixes"] if "SelectorAtlas" not in p]
+        self._write(kept)
+        failures = []
+        self.guard.check_labelsets_are_logic_facing(failures)
+        self.assertTrue(any("SelectorAtlas" in f for f in failures), failures)
+
+    def test_a_missing_list_fails_closed(self):
+        """Empty prefixes would make EVERY change eligible for the opt-out."""
+        os.remove(self.path)
+        failures = []
+        self.guard.check_labelsets_are_logic_facing(failures)
+        self.assertTrue(any("is missing" in f for f in failures), failures)
+
+    def test_an_empty_list_fails_closed(self):
+        self._write([])
+        failures = []
+        self.guard.check_labelsets_are_logic_facing(failures)
+        self.assertTrue(any("no prefixes" in f for f in failures), failures)
+
+    def test_livekit_swift_is_scanned(self):
+        """`Scripts/livekit` holds Swift that matches Logic and was not looked at."""
+        self.assertIn(os.path.join("Scripts", "livekit"), self.guard.SWIFT_ROOTS)
 
 
 class PullRequestBody(unittest.TestCase):

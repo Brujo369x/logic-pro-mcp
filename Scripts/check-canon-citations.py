@@ -161,7 +161,11 @@ def check_waivers_only_shrink(failures: list) -> None:
             (os.path.relpath(POLICY_CLASSIFICATION, REPO), "literals",
              "literals classified as answered nowhere in Logic"),
             (os.path.relpath(NOT_A_RECORD_PATH, REPO), "files",
-             "files in docs/observations that are declared not to be records")):
+             "files in docs/observations that are declared not to be records"),
+            (os.path.relpath(LOGIC_FACING_PATH, REPO), "prefixes",
+             "path prefixes whose changes may not use the opt-out"),
+            (os.path.join("docs", "canon", "CI-GATE.json"), "required_commands",
+             "commands the required CI gate must carry")):
         before = _at_base(base, path)
         if before is None:
             continue
@@ -482,15 +486,71 @@ NO_FACT_OPT_OUT = "states no fact about Logic"
 #: the cheapest honest-looking path led away from the rule.
 #:
 #: Whether a change states a fact about Logic is therefore derived from WHAT IT TOUCHES.
-LOGIC_FACING = (
-    "Sources/LogicProMCP/Accessibility/",
-    "Sources/LogicProMCP/HostParameters/",
-    "Sources/LogicProMCP/Channels/",
-    "docs/observations/",
-    "docs/locale/",
-    "docs/canon/",
-    "Scripts/livekit/",
-)
+#: Read from a FILE so the merge-base ratchet can see it, and so a new Logic-facing directory
+#: cannot appear without the list learning about it. Held as a tuple first, and two directories
+#: that declare LabelSets were not in it -- `SelectorAtlas/` and the package root -- so a change
+#: touching only those could say it states no fact about Logic while editing code that matches
+#: Logic's interface.
+LOGIC_FACING_PATH = os.path.join(REPO, "docs", "canon", "LOGIC-FACING.json")
+
+#: Directories holding Swift that matches Logic's interface. `Scripts/livekit` was not scanned for
+#: LabelSets: five CJK literals live in those harnesses and nothing saw them.
+SWIFT_ROOTS = ("Sources", os.path.join("Scripts", "livekit"))
+
+
+def logic_facing_prefixes() -> list:
+    """The prefixes, refusing an absent or empty file rather than returning nothing.
+
+    `_waiver` returns an empty set for a file that does not exist, which is right for a waiver --
+    nothing is waived -- and catastrophic here: no prefixes means nothing is Logic-facing means
+    every change may use the opt-out. The one place the same helper has to fail the other way.
+    """
+    if not os.path.exists(LOGIC_FACING_PATH):
+        raise CanonWaiverError(
+            f"{os.path.relpath(LOGIC_FACING_PATH, REPO)} is missing. Without it no path is "
+            f"Logic-facing and every change may use the opt-out, so this refuses rather than "
+            f"quietly allowing everything.")
+    prefixes = sorted(_waiver(LOGIC_FACING_PATH, "prefixes"))
+    if not prefixes:
+        raise CanonWaiverError(
+            f"{os.path.relpath(LOGIC_FACING_PATH, REPO)} lists no prefixes, which would make "
+            f"every change eligible for the opt-out.")
+    return prefixes
+
+
+def check_labelsets_are_logic_facing(failures: list) -> None:
+    """Rule 14: a file that declares a LabelSet is Logic-facing, and must be declared one.
+
+    The list decides whether a change may use the opt-out, so a file matching Logic's interface
+    from outside it is a file whose change can say it states no fact about Logic. Two did. This
+    makes the list self-maintaining: declare a LabelSet somewhere new and the list must learn
+    about it in the same change.
+    """
+    try:
+        prefixes = logic_facing_prefixes()
+    except CanonWaiverError as exc:
+        failures.append(str(exc))
+        return
+    for root in SWIFT_ROOTS:
+        base_dir = os.path.join(REPO, root)
+        if not os.path.isdir(base_dir):
+            continue
+        for base, dirs, files in os.walk(base_dir):
+            dirs[:] = [d for d in dirs if d != ".build"]
+            for name in sorted(files):
+                if not name.endswith(".swift"):
+                    continue
+                path = os.path.join(base, name)
+                with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                    if "LabelSet(" not in handle.read():
+                        continue
+                rel = os.path.relpath(path, REPO)
+                if not any(rel.startswith(prefix) for prefix in prefixes):
+                    failures.append(
+                        f"{rel} declares a LabelSet and is under no prefix in "
+                        f"{os.path.relpath(LOGIC_FACING_PATH, REPO)}. A file that matches Logic's "
+                        f"interface is Logic-facing, and a change touching only such files could "
+                        f"otherwise use the opt-out.")
 
 
 def _visible(body: str) -> str:
@@ -504,8 +564,9 @@ def _visible(body: str) -> str:
 
 
 def logic_facing(changed):
+    prefixes = logic_facing_prefixes()
     return sorted({path for path in (changed or [])
-                   if any(path.startswith(prefix) for prefix in LOGIC_FACING)})
+                   if any(path.startswith(prefix) for prefix in prefixes)})
 
 
 
@@ -679,6 +740,7 @@ def main() -> int:
     check_build_agrees_with_the_ledger(manifest, failures)
     check_waivers_only_shrink(failures)
     check_every_json_is_a_record_or_declared(failures)
+    check_labelsets_are_logic_facing(failures)
     changed = _changed_from_argv()
     references = check_references(failures)
     without_canon = load_without_canon()

@@ -982,7 +982,8 @@ def write_absence(source: str, locale: str, values) -> int:
     """Write the sorted 32-bit digest prefixes of every value seen. Returns how many were kept."""
     os.makedirs(ABSENCE_DIR, exist_ok=True)
     unique = sorted({_u32(value) for value in values if value})
-    with open(absence_path(source, locale), "wb") as handle:
+    path = absence_path(source, locale)
+    with open(path, "wb") as handle:
         handle.write(b"LCA1")
         handle.write(struct.pack(">I", len(unique)))
         for item in unique:
@@ -990,8 +991,27 @@ def write_absence(source: str, locale: str, values) -> int:
     return len(unique)
 
 
+#: Absence sets are read once per process. `verify_buckets_offline` asks 410 literals about 23
+#: corpora, which re-read the same twenty files 9,430 times and took the guard past two minutes.
+#: Keyed by path AND by the file's size and modification time, so a file rewritten underneath the
+#: process is re-read. Keyed on the path alone first, and the very test that exists to catch a
+#: shrunken absence set went green: it writes the file directly rather than through
+#: `write_absence`, the cache handed back the old table, and the check reported nothing wrong.
+#: A cache that can hide the change a check exists to find is worse than no cache.
+_ABSENCE_CACHE: dict = {}
+
+
 def load_absence(source: str, locale: str) -> list[int]:
     path = absence_path(source, locale)
+    try:
+        stamp = os.stat(path)
+        key = (path, stamp.st_size, stamp.st_mtime_ns)
+    except OSError:
+        key = None
+    if key is not None:
+        cached = _ABSENCE_CACHE.get(key)
+        if cached is not None:
+            return cached
     if not os.path.exists(path):
         raise CanonError(
             f"no absence set for {source}/{locale}: an absence claim over a corpus nobody built "
@@ -1003,7 +1023,10 @@ def load_absence(source: str, locale: str) -> list[int]:
     count = struct.unpack_from(">I", blob, 4)[0]
     if len(blob) != 8 + 4 * count:
         raise CanonError(f"{path}: declares {count} entries but holds {len(blob) - 8} bytes")
-    return list(struct.unpack_from(f">{count}I", blob, 8))
+    table = list(struct.unpack_from(f">{count}I", blob, 8))
+    if key is not None:
+        _ABSENCE_CACHE[key] = table
+    return table
 
 
 def is_absent(source: str, locale: str, text: str) -> bool:
