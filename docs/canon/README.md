@@ -70,6 +70,16 @@ bundle — the two counts and the shortfall are measured in #897. A string livin
 `설치` and `키 레이블로 학습` are in that gap and both are citable. The narrow table is right
 for what `resolve` does, reversing a live reading; issuing a citation is a different job.
 
+The two examples above are the references it prints, and they are the citations #891 and #882
+need:
+
+```text
+logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings/ko/164.title#value
+  value:  설치
+logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/ko/300557.title#value
+  value:  키 레이블로 학습
+```
+
 The index holds only cited keys on purpose. A full QuickHelp index is 390,820 rows across ten
 locales, and a checked-in artefact that size stops being read. The absence sets are the opposite:
 they must be complete, because proving absence needs the whole corpus.

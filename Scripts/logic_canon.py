@@ -744,6 +744,13 @@ def locate_in(rows, text: str, *, source: str = "?"):
     The narrow table is right for what it does -- reversing a live AXHelp reading, where a match
     in a content database would be noise. This is the other job: issuing a citation. It is a
     function over ROWS rather than over an app so it can be driven without Logic installed.
+
+    The two references above, in the form this prints and `build` resolves. They live here rather
+    than in `docs/canon/README.md` because that directory is this module's own output and is
+    excluded from the citation scan, so a reference that lives only there is never resolved:
+
+        logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings/ko/164.title#value
+        logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/ko/300557.title#value
     """
     want = normalize(text)
     return [(source, unit, locale, key, field)
@@ -982,7 +989,8 @@ def load_index(source: str) -> dict[tuple[str, str, str, str], str]:
     The index holds ONLY keys something in this repository cites. That is a deliberate bound: the
     full QuickHelp index is 390,820 rows and would make every citation change a multi-megabyte
     diff, which is how a checked-in artefact stops being read. Growth is driven by
-    `build --refresh-citations`, which scans the tree for references and resolves exactly those.
+    `build`, which scans the tree for references and resolves exactly those (`--no-citations`
+    skips that pass).
 
     An earlier version of this docstring said 295,050 -- 9835 x 10 x 3, arithmetic over three
     fields, taken without running the extractor and omitting the `composed` field the index
@@ -1168,7 +1176,7 @@ def resolve_offline(ref: CanonRef) -> str:
             f"{ref} is not in docs/canon/index/{ref.source}.tsv.\n"
             f"  A citation must be resolved against Logic once, on a machine that has it, before "
             f"anything offline can check it. Run:\n"
-            f"    Scripts/logic_canon.py build --refresh-citations")
+            f"    Scripts/logic_canon.py build")
     return row
 
 

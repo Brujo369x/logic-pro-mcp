@@ -1,0 +1,59 @@
+{
+  "id": "2026-09-15-a-ui-label-can-live-in-a-table-the-resolver-does-not-read",
+  "date": "2026-09-15",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR"
+  },
+  "method": "extract_strings(APP) filtered to ko, compared by (unit, key) against the pairs StringsIndex.from_app(APP, 'ko').by_value holds.",
+  "populations": {
+    "extract_strings_ko_pairs": 60048,
+    "strings_index_ko_pairs": 10395,
+    "in_corpus_invisible_to_resolver": 49653
+  },
+  "largest_excluded_units": [
+    {
+      "unit": "Contents/Resources/Library.bundle/ContentDatabaseV01.db/Item.strings",
+      "pairs": 33228
+    },
+    {
+      "unit": "Contents/Resources/Library.bundle/ContentDatabaseV01.db/LocalizableSubtrackNames.strings",
+      "pairs": 4248
+    },
+    {
+      "unit": "Contents/Frameworks/Logic.framework/Versions/A/Resources/PrefsAudio.strings",
+      "pairs": 1158
+    },
+    {
+      "unit": "Contents/Frameworks/MASearchKit.framework/Versions/A/Resources/Taxonomy.strings",
+      "pairs": 661
+    },
+    {
+      "unit": "Contents/Resources/Library.bundle/ContentDatabaseV01.db/Taxonomy.strings",
+      "pairs": 656
+    },
+    {
+      "unit": "Contents/Frameworks/MAGenerativeInstrumentsUI.framework/Versions/A/Resources/Localizable.strings",
+      "pairs": 521
+    }
+  ],
+  "worked_examples": [
+    {
+      "text": "설치",
+      "resolve": null,
+      "locate": [
+        "Contents/Frameworks/Logic.framework/Versions/A/Resources/Install.strings/164.title",
+        "Contents/Frameworks/Logic.framework/Versions/A/Resources/MAContentDownload.strings/73.title"
+      ]
+    },
+    {
+      "text": "키 레이블로 학습",
+      "resolve": null,
+      "locate": [
+        "Contents/Frameworks/Logic.framework/Versions/A/Resources/KeyCommands.strings/300557.title"
+      ]
+    }
+  ]
+}
