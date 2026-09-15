@@ -1,0 +1,6 @@
+{
+  "note": "Numbers docs/canon/README.md states that no generated artifact and no observation record carries. Each is a measurement of something deliberately BROKEN -- what a guard reported once a corpus had been truncated on purpose -- which no artifact can hold by construction. A WAIVER: it may only shrink. Rule 17 in Scripts/check-canon-citations.py reads it.",
+  "numbers": {
+    "410771": "Values discarded when twelve absence sets were truncated to 50 entries each, with the manifest's counts and digests rewritten to match, to measure what the gate then reported: exit 0, and 46 of 48 guards green. Measured in 703614f0, the commit that added the rule refusing it."
+  }
+}

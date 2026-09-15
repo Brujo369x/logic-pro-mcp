@@ -215,6 +215,16 @@ def _corpus_members(blob, key):
             for locale in (block.get("locales") or [])}
 
 
+def _key_members(blob, key):
+    """The KEYS of a map, for a waiver whose values are prose rather than a classification.
+
+    `_ratchet_members` reads any dict as POLICY-LITERALS -- literal -> where it is answered -- and
+    returns only those answered "nowhere". Over a map of number -> why, that is the empty set, and
+    an empty comparison passes everything. Caught by the shape check rather than by review, twice.
+    """
+    return set((blob.get(key) or {}))
+
+
 def _skip_members(blob, key):
     """One member per ALLOWED SKIP, not one per guard, so the number moves in the right direction.
 
@@ -263,6 +273,8 @@ RATCHETS = (
      "path prefixes whose changes may not use the opt-out"),
     ("docs/canon/CI-GATE.json", "required_commands", "grow",
      "commands the required CI gate must carry"),
+    ("docs/canon/PROSE-NUMBERS.json", "numbers", "shrink",
+     "numbers docs/canon/README.md may state with no artifact behind them", _key_members),
     ("docs/canon/CI-SKIPS.json", "allowed", "shrink",
      "cases guards are allowed to SKIP under CI", _skip_members),
     ("docs/canon/MANIFEST.json", "sources", "grow",
