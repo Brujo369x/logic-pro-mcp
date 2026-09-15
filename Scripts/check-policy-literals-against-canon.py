@@ -66,8 +66,18 @@ _spec = importlib.util.spec_from_file_location(
 canon = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(canon)
 
+#: `canonical:`, `variants: [...]`, and an OPTIONAL `locales: [...]` between them and `rationale:`.
+#:
+#: The `locales:` field does not exist on this branch yet -- #882 adds it, and its values are
+#: labels the product TYPES into Logic's Key Commands filter (`"ko": "트랙 녹음 활성화 토글"`).
+#: A pattern that stopped at `variants:` would have let a whole third field of Logic-facing strings
+#: into the tree unseen, which is the blind spot this guard exists to be. Written now rather than
+#: when that branch lands, because a gate learned about after the fact has already missed once.
 _LABELSET = re.compile(
-    r'LabelSet\(\s*canonical:\s*("(?:[^"\\]|\\.)*")\s*,\s*variants:\s*\[(.*?)\]\s*,', re.S)
+    r'LabelSet\(\s*canonical:\s*("(?:[^"\\]|\\.)*")\s*,'
+    r'\s*variants:\s*\[(.*?)\]\s*,'
+    r'(?:\s*locales:\s*\[(.*?)\]\s*,)?'
+    r'\s*rationale:', re.S)
 _STRING = re.compile(r'"((?:[^"\\]|\\.)*)"')
 _LINE_COMMENT = re.compile(r"^\s*//.*$", re.M)
 _BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
@@ -92,7 +102,13 @@ def policy_literals(source: str) -> set:
     text = _LINE_COMMENT.sub("", _BLOCK_COMMENT.sub(" ", source))
     out = set()
     for match in _LABELSET.finditer(text):
-        for value in _STRING.findall(match.group(1)) + _STRING.findall(match.group(2)):
+        found = _STRING.findall(match.group(1)) + _STRING.findall(match.group(2))
+        if match.group(3):
+            # `["ko": "…", "ja": "…"]` -- the VALUES are labels, the keys are locale codes. Taking
+            # both would put `ko` and `ja` into the literal set and they would classify as nowhere,
+            # which is true and useless.
+            found += _STRING.findall(match.group(3))[1::2]
+        for value in found:
             value = value.replace("\\u{00A0}", "\u00a0").replace('\\"', '"')
             if value.strip():
                 out.add(canon.normalize(value))

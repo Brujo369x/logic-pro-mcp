@@ -46,6 +46,31 @@ class Extraction(unittest.TestCase):
             self.assertNotIn("documentation", literal)
             self.assertLess(len(literal), 20)
 
+    def test_the_locales_field_is_harvested_and_its_keys_are_not(self):
+        """`locales:` is a third field of Logic-facing strings, added by #882.
+
+        Its VALUES are labels the product types into Logic's Key Commands filter; its keys are
+        locale codes. A pattern that stopped at `variants:` would let the whole field into the tree
+        unseen -- the blind spot this guard exists to be -- and one that took both halves would put
+        `ko` and `ja` into the literal set, which is true and useless.
+        """
+        source = '''
+    static let armToggle = LabelSet(
+        canonical: "Toggle Track Record Enable",
+        variants: [],
+        locales: ["ko": "트랙 녹음 활성화 토글", "ja": "トラック録音可能トグル"],
+        rationale: "typed into the Key Commands filter"
+    )
+'''
+        found = guard.policy_literals(source)
+        self.assertIn("트랙 녹음 활성화 토글", found)
+        self.assertIn("トラック録音可能トグル", found)
+        self.assertNotIn("ko", found)
+        self.assertNotIn("ja", found)
+
+    def test_a_labelset_without_a_locales_field_still_parses(self):
+        self.assertEqual(guard.policy_literals(SAMPLE), {"Record", "녹음", "録音", "Play"})
+
     def test_the_nbsp_in_a_variant_is_folded(self):
         self.assertIn("녹음", guard.policy_literals(SAMPLE))
 
