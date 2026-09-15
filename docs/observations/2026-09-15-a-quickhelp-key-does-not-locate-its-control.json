@@ -1,0 +1,429 @@
+{
+  "id": "2026-09-15-a-quickhelp-key-does-not-locate-its-control",
+  "date": "2026-09-15",
+  "schema": 3,
+  "subject": "Whether a canonical control identifier can be used to FIND the control, not only to name one in hand",
+  "question": "Given a QuickHelp key, can Logic's own data say where on screen that control is?",
+  "verdict": "wall",
+  "issues": [
+    892,
+    893
+  ],
+  "surface": "system.preferences",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/logic_canon.py census",
+    "expected": "nib yields 619 distinct qhid values; 587 of 9835 QuickHelp keys are reached",
+    "cost": "~40s; reads the app bundle, launches nothing"
+  },
+  "depends": [],
+  "method": "Collected every `qhid` user-defined runtime attribute from all 1,169 nibs and intersected it with the QuickHelp key set, then grouped the coverage by the key's alphabetic family. Counted how many keys carry an Anchor, and looked for the Help Book that Anchor addresses.",
+  "canon": [
+    {
+      "ref": "logic-canon://nib/qhid/-/ART_03_NameField#nibs",
+      "value": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/ArticulationSettingsWindow.nib",
+      "used_for": "the one direction that IS canonical: this key names a screen FILE, and the record's four examples are read from that mapping",
+      "binding": {
+        "kind": "record"
+      }
+    }
+  ],
+  "canon_absent": [
+    {
+      "claim": "no canonical source maps a QuickHelp Anchor to the screen it names",
+      "strings": [
+        "CFBundleHelpBookFolder logic.help resolves to no directory on this disk"
+      ],
+      "searched": [
+        {
+          "source": "madsp",
+          "locale": "-"
+        },
+        {
+          "source": "nib",
+          "locale": "-"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "de"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "en"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "es"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "fr"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "it"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "ja"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "ko"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "pt"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "zh_CN"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "zh_TW"
+        },
+        {
+          "source": "strings",
+          "locale": "-"
+        },
+        {
+          "source": "strings",
+          "locale": "de"
+        },
+        {
+          "source": "strings",
+          "locale": "en"
+        },
+        {
+          "source": "strings",
+          "locale": "es"
+        },
+        {
+          "source": "strings",
+          "locale": "fr"
+        },
+        {
+          "source": "strings",
+          "locale": "it"
+        },
+        {
+          "source": "strings",
+          "locale": "ja"
+        },
+        {
+          "source": "strings",
+          "locale": "ko"
+        },
+        {
+          "source": "strings",
+          "locale": "pt"
+        },
+        {
+          "source": "strings",
+          "locale": "zh_CN"
+        },
+        {
+          "source": "strings",
+          "locale": "zh_TW"
+        }
+      ],
+      "why_runtime": "Contents/Info.plist declares CFBundleHelpBookFolder=logic.help and that folder is on no disk here: Apple serves Logic's help over the network, at support.apple.com/guide/logicpro/<anchor>/mac. The only local trace is a Spotlight index under ~/Library/Caches/com.apple.helpd which carries page text and no anchor identifiers. So an Anchor-to-screen mapping exists and is not a local canonical fact."
+    }
+  ],
+  "observations": [
+    {
+      "what": "QuickHelp keys",
+      "count": 9835
+    },
+    {
+      "what": "distinct qhid runtime attributes across all nibs",
+      "count": 619
+    },
+    {
+      "what": "QuickHelp keys a qhid reaches",
+      "count": 587,
+      "percent_of_all_keys": 5.97
+    },
+    {
+      "what": "what the one working direction looks like, four examples",
+      "note": "a qhid names the screen FILE its control is defined in, and the file name reads as the screen",
+      "examples": [
+        {
+          "key": "ART_03_NameField",
+          "quickhelp_en": "Name field. Type a name for your articulation in this field.",
+          "nib": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/ArticulationSettingsWindow.nib"
+        },
+        {
+          "key": "ART_04_ArticulationIDField",
+          "quickhelp_en": "Articulation ID field. Type a number to be the Articulation ",
+          "nib": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/ArticulationSettingsWindow.nib"
+        },
+        {
+          "key": "ART_07_MIDIRemoteButton",
+          "quickhelp_en": "MIDI Remote button. This button has to be active for your ar",
+          "nib": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/ArticulationSettingsWindow.nib"
+        },
+        {
+          "key": "ART_30_OutputNameField",
+          "quickhelp_en": "Name field. Displays the name of the articulation.",
+          "nib": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/ArticulationSettingsWindow.nib"
+        }
+      ]
+    },
+    {
+      "what": "qhid values naming a key QuickHelp does not have",
+      "count": 32
+    },
+    {
+      "what": "keys carrying an Anchor",
+      "count": 9571
+    },
+    {
+      "what": "coverage by key family, families of 30 keys or more",
+      "families": [
+        {
+          "family": "PFS",
+          "covered": 227,
+          "of": 243,
+          "percent": 93.4
+        },
+        {
+          "family": "SET",
+          "covered": 270,
+          "of": 305,
+          "percent": 88.5
+        },
+        {
+          "family": "BTE",
+          "covered": 10,
+          "of": 32,
+          "percent": 31.2
+        },
+        {
+          "family": "TRF",
+          "covered": 5,
+          "of": 33,
+          "percent": 15.2
+        },
+        {
+          "family": "ART",
+          "covered": 4,
+          "of": 32,
+          "percent": 12.5
+        },
+        {
+          "family": "KCE",
+          "covered": 18,
+          "of": 595,
+          "percent": 3.0
+        },
+        {
+          "family": "CAS",
+          "covered": 1,
+          "of": 57,
+          "percent": 1.8
+        },
+        {
+          "family": "LMT",
+          "covered": 2,
+          "of": 228,
+          "percent": 0.9
+        },
+        {
+          "family": "INS",
+          "covered": 1,
+          "of": 139,
+          "percent": 0.7
+        },
+        {
+          "family": "GMN",
+          "covered": 0,
+          "of": 50,
+          "percent": 0.0
+        },
+        {
+          "family": "NUMERIC",
+          "covered": 0,
+          "of": 4061,
+          "percent": 0.0
+        },
+        {
+          "family": "OTHER",
+          "covered": 0,
+          "of": 1995,
+          "percent": 0.0
+        },
+        {
+          "family": "TRA",
+          "covered": 0,
+          "of": 106,
+          "percent": 0.0
+        },
+        {
+          "family": "TLB",
+          "covered": 0,
+          "of": 34,
+          "percent": 0.0
+        },
+        {
+          "family": "PRM",
+          "covered": 0,
+          "of": 43,
+          "percent": 0.0
+        },
+        {
+          "family": "ARR",
+          "covered": 0,
+          "of": 86,
+          "percent": 0.0
+        },
+        {
+          "family": "CSS",
+          "covered": 0,
+          "of": 97,
+          "percent": 0.0
+        },
+        {
+          "family": "SEQ",
+          "covered": 0,
+          "of": 100,
+          "percent": 0.0
+        },
+        {
+          "family": "AFE",
+          "covered": 0,
+          "of": 58,
+          "percent": 0.0
+        },
+        {
+          "family": "LIB",
+          "covered": 0,
+          "of": 33,
+          "percent": 0.0
+        },
+        {
+          "family": "LLI",
+          "covered": 0,
+          "of": 54,
+          "percent": 0.0
+        },
+        {
+          "family": "LLP",
+          "covered": 0,
+          "of": 101,
+          "percent": 0.0
+        },
+        {
+          "family": "LPB",
+          "covered": 0,
+          "of": 38,
+          "percent": 0.0
+        },
+        {
+          "family": "TOO",
+          "covered": 0,
+          "of": 45,
+          "percent": 0.0
+        },
+        {
+          "family": "SSM",
+          "covered": 0,
+          "of": 43,
+          "percent": 0.0
+        },
+        {
+          "family": "SPE",
+          "covered": 0,
+          "of": 173,
+          "percent": 0.0
+        },
+        {
+          "family": "MEM",
+          "covered": 0,
+          "of": 59,
+          "percent": 0.0
+        },
+        {
+          "family": "GMT",
+          "covered": 0,
+          "of": 44,
+          "percent": 0.0
+        },
+        {
+          "family": "GMM",
+          "covered": 0,
+          "of": 34,
+          "percent": 0.0
+        },
+        {
+          "family": "TRL",
+          "covered": 0,
+          "of": 75,
+          "percent": 0.0
+        },
+        {
+          "family": "SEM",
+          "covered": 0,
+          "of": 56,
+          "percent": 0.0
+        },
+        {
+          "family": "SCO",
+          "covered": 0,
+          "of": 32,
+          "percent": 0.0
+        },
+        {
+          "family": "GMF",
+          "covered": 0,
+          "of": 69,
+          "percent": 0.0
+        },
+        {
+          "family": "GMR",
+          "covered": 0,
+          "of": 31,
+          "percent": 0.0
+        },
+        {
+          "family": "MWM",
+          "covered": 0,
+          "of": 48,
+          "percent": 0.0
+        },
+        {
+          "family": "PAB",
+          "covered": 0,
+          "of": 33,
+          "percent": 0.0
+        },
+        {
+          "family": "GLO",
+          "covered": 0,
+          "of": 37,
+          "percent": 0.0
+        }
+      ]
+    }
+  ],
+  "conclusion": "A QuickHelp key names a control and does not locate one. The only canonical link from a key to a screen is the nib `qhid` runtime attribute, and it reaches 587 of 9835 keys -- 5.97%. The coverage is not spread thinly, it is concentrated: Preferences at 93.4% and Song Settings at 88.5%, and ZERO for the global menus, the mixer window menu, the project audio browser and the global tracks. Those are the surfaces this repository drives. Every key an Anchor could place is an Anchor into a Help Book Apple does not ship on disk, so that route is not a local canonical fact either. The practical consequence for the locale migration is a bound rather than a blocker: AXHelp names a control already in hand, which is enough to READ a surface and to refuse the wrong element, and it is not enough to FIND one. Finding still needs the structural walk this repository already does.",
+  "limits": [
+    "Read from the bundle only. Whether a control whose nib carries a qhid actually exposes it through the accessibility tree was not measured; the one earlier live reading found 1 of 86 matched controls carrying one.",
+    "The families are grouped by the key's alphabetic prefix, which is this repository's reading of the naming scheme and not something Apple documents.",
+    "The 32 qhid values naming no QuickHelp key were not explained -- dead wiring and version drift are both consistent with what was seen.",
+    "The Anchor route was refuted for LOCAL data. The mapping exists over the network and two anchors were resolved there by hand; that is not a canonical source this repository can pin.",
+    "Nothing here measures the numeric-triple keys, which are 4,061 of the 9,835 and have zero nib coverage by construction: plug-in editors are not built from nibs."
+  ],
+  "evidence": [
+    "evidence/2026-09-15-a-quickhelp-key-does-not-locate-its-control.json"
+  ],
+  "supersedes": null
+}

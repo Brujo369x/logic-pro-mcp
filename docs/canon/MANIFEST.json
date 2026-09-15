@@ -24,7 +24,7 @@
     "absence/strings.zh_CN.u32": "00411c6c92eb549954f8a9f025f0bbbff1318392cc6ec0a906f53c105eb607eb",
     "absence/strings.zh_TW.u32": "ef81ff10d762c8422eabdfa6a06770c5dc4db62922b7318742d778cee7e58bcb",
     "index/madsp.tsv": "664b694f0bacce322cf8b15a4539594f2106d2d5b7c38b10b0e3e508b30d2320",
-    "index/nib.tsv": "538081502dfdd84fb916e331a08b1682b64807cdbc2adbfe6faf9c70a983a511",
+    "index/nib.tsv": "553195c3d71ee2a71df337975994e7884f227b5a4a36a331b52db02d1d530d79",
     "index/quickhelp.tsv": "94046f4ccb47eaf494fb50368c690542361fce2117b40399168ab194ffb9504e",
     "index/strings.tsv": "5daae0f0e19d02a965aa2ef80c2000192eec4cd85347e5849682bf7c7c749ca3"
   },
@@ -58,7 +58,7 @@
       "absence_false_positive": {
         "-": 1.81142e-07
       },
-      "cited_rows": 0,
+      "cited_rows": 2,
       "corpus_digest": "50cc58b947e7a3bba4e11c438d8555e7e5737a823ba5b3b10cb51ff0bfbd7a07",
       "entries": 3313,
       "files": 1169,

@@ -44,10 +44,15 @@ def setUpModule():
             except json.JSONDecodeError:
                 continue
         for citation in record.get("canon", []):
-            if citation.get("ref") and citation.get("value"):
-                REAL_REF, REAL_VALUE = citation["ref"], citation["value"]
+            ref, value = citation.get("ref"), citation.get("value")
+            # A QuickHelp citation in a real locale, because the absence cases assert the corpus
+            # by name. Taking the first citation of any kind picked a locale-free `nib` value the
+            # moment a record carrying one joined the tree, and the case then asserted a corpus the
+            # value does not live in.
+            if ref and value and ref.startswith("logic-canon://quickhelp/") and "/-/" not in ref:
+                REAL_REF, REAL_VALUE = ref, value
                 return
-    raise unittest.SkipTest("no committed record carries a canonical citation to build on")
+    raise unittest.SkipTest("no committed record carries a localised QuickHelp citation")
 
 
 class GuardBehaviour(unittest.TestCase):
