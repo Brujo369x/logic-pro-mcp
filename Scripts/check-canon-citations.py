@@ -29,7 +29,10 @@ WHAT IT REFUSES
   2  a reference that parses but is not in the committed index -- nobody resolved it against Logic
   3  a quoted value whose digest differs from the digest taken from Apple's bytes
   4  an absence claim over a corpus with no absence set, or over a string that is present
-  5  an observation record at schema 3 with neither a citation nor an absence proof
+  5  an observation record at schema 3 with no citation, no absence proof and no
+      declaration that the axis does not apply
+ 13  a `canon_not_applicable` from a record whose readings quote a string the corpus
+      holds -- a citation was available, so the declaration is false
   6  a record joining the tree at schema 2 or lower -- the known set below may only shrink
   7  a waiver list that GAINED a member relative to the merge base
   8  a canon index pinning a different Logic than docs/observations/LOGIC-BUILD.json declares
@@ -261,6 +264,66 @@ BINDING_RECORD_FIELDS = ("observations", "conclusion", "method", "question", "su
                          "canon_absent", "evidence")
 
 
+#: The shortest observation string worth testing for citability. Below this a value is a role name,
+#: a number or a fragment, and a corpus hit means nothing.
+NOT_APPLICABLE_MIN = 8
+
+
+def _observation_strings(record: dict) -> list:
+    """Every string in the record's READINGS, flattened. Readings only, never prose."""
+    out = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+        elif isinstance(node, str) and len(node) >= NOT_APPLICABLE_MIN:
+            out.append(node)
+
+    walk(record.get("observations", []))
+    return out
+
+
+def check_not_applicable(rel: str, record: dict, manifest: dict, failures: list) -> None:
+    """Rule 13: a record may declare the canon axis does not apply, and the claim is checked.
+
+    Several records state facts about Logic's BEHAVIOUR rather than its strings -- "the routing
+    graph publishes nothing or 23 nodes depending on read order", "the marker list settles in
+    seconds". There is no key to cite and nothing to prove absent, and rule 5 as first written
+    forced a citation anyway. A forced citation is a perfunctory one, which is the failure this
+    axis exists to end arriving through the front door.
+
+    So a record may say so, and the saying is bounded: if any of its READINGS resolves in the
+    corpus then a citation was available and the declaration is false. Measured against the
+    thirteen records of #882 -- eight quote nothing citable and may decline; five quote strings
+    Logic ships (`Neue Spur`, `Erzeugen`, `컨트롤러 할당…`) and are named by this check.
+    """
+    declared = record.get("canon_not_applicable")
+    if not isinstance(declared, dict):
+        failures.append(f"{rel}: `canon_not_applicable` must be an object carrying a `reason`")
+        return
+    if not declared.get("reason"):
+        failures.append(
+            f"{rel}: `canon_not_applicable.reason` is required -- say what KIND of claim this "
+            f"record makes, since it is not a claim about a string Logic ships")
+        return
+    corpora = sorted(required_corpora(manifest))
+    for text in _observation_strings(record):
+        for source, locale in corpora:
+            try:
+                if not canon.is_absent(source, locale, text):
+                    failures.append(
+                        f"{rel}: declares the canon axis does not apply, and its readings contain "
+                        f"{text[:60]!r}, which resolves in {source}/{locale}. A citation was "
+                        f"available, so the declaration is false.")
+                    return
+            except canon.CanonError:
+                continue
+
+
 #: Comment syntaxes for the file types a binding can name. A value sitting only in a comment used
 #: to satisfy a `code` binding -- the docstring said so, and review confirmed it by putting one in
 #: a `//` line of an otherwise empty file and watching it pass. It was written up as a limitation
@@ -460,11 +523,13 @@ def check_record(path: str, failures: list, without_canon: set, manifest: dict,
 
     citations = record.get("canon", [])
     absences = record.get("canon_absent", [])
-    if not citations and not absences:
+    if "canon_not_applicable" in record:
+        check_not_applicable(rel, record, manifest, failures)
+    elif not citations and not absences:
         failures.append(
-            f"{rel}: schema 3 with neither `canon` nor `canon_absent`. A record that cites nothing "
-            f"and claims nothing is uncitable is a record whose relationship to Logic's own data "
-            f"was never stated.")
+            f"{rel}: schema 3 with none of `canon`, `canon_absent` or `canon_not_applicable`. A "
+            f"record that cites nothing, claims nothing is uncitable and does not say the axis is "
+            f"inapplicable is a record whose relationship to Logic's own data was never stated.")
 
     for index, citation in enumerate(citations):
         where = f"{rel}: canon[{index}]"

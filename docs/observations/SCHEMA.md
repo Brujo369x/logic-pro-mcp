@@ -292,8 +292,27 @@ this is the part a record author needs.
   ]
 ```
 
-A schema-3 record needs at least one of the two. A record that cites nothing and claims nothing is
-uncitable is a record whose relationship to Logic's own data was never stated.
+```jsonc
+  "canon_not_applicable": {          // this record is not about a string Logic ships
+    "reason": "read order, not any string in a .strings table"
+  }
+```
+
+A schema-3 record needs one of the three. A record that cites nothing, claims nothing is uncitable
+and does not say the axis is inapplicable is a record whose relationship to Logic's own data was
+never stated.
+
+`canon_not_applicable` exists because several records state facts about Logic's **behaviour** —
+"the routing graph publishes nothing or 23 nodes depending on read order", "the marker list settles
+in seconds and a poll that does not wait reads a stale answer". There is no key to cite and nothing
+to prove absent, and forcing a citation there produces a perfunctory one, which is the failure this
+axis exists to end arriving through the front door.
+
+It is **not** a free pass. The guard reads the record's own readings, and if any of them resolves in
+the corpus then a citation was available and the declaration is false. Measured against the
+thirteen new records of one open branch: **eight quote nothing citable and may decline; five quote
+strings Logic ships** — `Neue Spur`, `Erzeugen`, `컨트롤러 할당…` — and are named by the check. The
+split is derived, not chosen.
 
 `Scripts/check-canon-citations.py` refuses:
 

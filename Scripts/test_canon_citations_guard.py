@@ -197,7 +197,7 @@ class GuardBehaviour(unittest.TestCase):
         self.record("2026-09-15-empty.json", {"schema": 3, "id": "empty"})
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("neither `canon` nor `canon_absent`", result.stderr)
+        self.assertIn("none of `canon`, `canon_absent` or `canon_not_applicable`", result.stderr)
 
     # -- rule 6: the ratchet --------------------------------------------------------------------
     def test_a_new_record_at_schema_1_fails(self):
@@ -389,6 +389,72 @@ class TheGapsReviewFound(unittest.TestCase):
 
     def test_a_body_that_opts_out_and_quotes_nothing_citable_passes(self):
         result = self._check("This renames a private helper and states no fact about Logic.\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class ARecordMayDeclareTheAxisInapplicable(unittest.TestCase):
+    """Rule 13, and the bound that keeps it from becoming a free pass.
+
+    Several records state facts about Logic's BEHAVIOUR -- read order, settle time, which window
+    steals a menu. There is no key to cite and nothing to prove absent, and forcing a citation
+    there produces a perfunctory one. The declaration is allowed and checked: a record whose
+    READINGS quote a string the corpus holds had a citation available, so the claim is false.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="canon-na-")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        os.makedirs(os.path.join(self.root, "Scripts"))
+        os.makedirs(os.path.join(self.root, "docs", "observations"))
+        for name in ("logic_canon.py", "check-canon-citations.py", "nibarchive.py"):
+            shutil.copy2(os.path.join(REPO, "Scripts", name),
+                         os.path.join(self.root, "Scripts", name))
+        shutil.copytree(os.path.join(REPO, "docs", "canon"),
+                        os.path.join(self.root, "docs", "canon"))
+        os.makedirs(os.path.join(self.root, "Sources"), exist_ok=True)
+        with open(os.path.join(self.root, "docs", "canon", "WITHOUT-CANON.json"),
+                  "w", encoding="utf-8") as handle:
+            json.dump({"records": []}, handle)
+        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=self.root)
+        subprocess.run(["git", "config", "user.email", "t@e.com"], cwd=self.root)
+        subprocess.run(["git", "config", "user.name", "t"], cwd=self.root)
+        subprocess.run(["git", "add", "-A"], cwd=self.root)
+        subprocess.run(["git", "commit", "-qm", "base"], cwd=self.root)
+
+    def record(self, body):
+        with open(os.path.join(self.root, "docs", "observations", "2026-09-15-probe.json"),
+                  "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        return subprocess.run(
+            [sys.executable, os.path.join(self.root, "Scripts", "check-canon-citations.py")],
+            capture_output=True, text=True, cwd=self.root)
+
+    def test_a_behaviour_record_may_decline(self):
+        result = self.record({"schema": 3, "id": "probe",
+                              "canon_not_applicable": {"reason": "read order, not any string"},
+                              "observations": [{"what": "twenty three nodes on the second read"}]})
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_declaration_without_a_reason_fails(self):
+        result = self.record({"schema": 3, "id": "probe",
+                              "canon_not_applicable": {},
+                              "observations": [{"what": "anything at all here"}]})
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("reason` is required", result.stderr)
+
+    def test_a_record_quoting_a_citable_string_may_not_decline(self):
+        """The bound. Measured against #882: five of its thirteen records are in this case."""
+        result = self.record({"schema": 3, "id": "probe",
+                              "canon_not_applicable": {"reason": "claims to be about behaviour"},
+                              "observations": [{"read": REAL_VALUE}]})
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("A citation was available", result.stderr)
+
+    def test_a_short_fragment_does_not_trigger_the_bound(self):
+        """Below the floor a corpus hit means nothing, so it must not refuse the declaration."""
+        result = self.record({"schema": 3, "id": "probe",
+                              "canon_not_applicable": {"reason": "behaviour"},
+                              "observations": [{"role": "AXGroup", "n": 23}]})
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
