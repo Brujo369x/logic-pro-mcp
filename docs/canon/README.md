@@ -51,7 +51,7 @@ check time   (needs nothing)   resolve a citation against what was committed
 | file | what it is |
 |---|---|
 | `SOURCES.json` | which Logic assets are canonical, what each can answer, and what each cannot |
-| `MANIFEST.json` | the exact Logic build and a digest over every byte of every corpus file |
+| `MANIFEST.json` | the exact Logic build, a digest over every byte of every corpus file, and the (source, locale) list every absence proof searches. That list may only GROW |
 | `index/<source>.tsv` | key → digest, for keys something in this repository actually cites |
 | `absence/<source>.<locale>.u32` | the sorted 32-bit digest prefixes of **every** value in that corpus |
 | `WITHOUT-CANON.json` | records written before the rule. May only shrink. |
@@ -66,6 +66,14 @@ The absence sets cover four sources: `QuickHelp.plist`, every `.strings` file, M
 tables, and nib runtime attributes. They do **not** cover strings compiled into the Logic binary,
 strings living inside nib object graphs, AppKit strings in the dyld shared cache, or the Help Book,
 which Logic serves over the network rather than shipping.
+
+The bound is the denominator of every absence proof here, so it is ratcheted: `MANIFEST.json`'s
+(source, locale) set is compared against the merge base and may only grow. It was not, and the
+consequence was measured rather than argued — deleting `madsp` and `nib` from the manifest, their
+index and absence files from disk, and the entries records named, left a tree where all 48 guards
+passed and every absence proof searched half the corpus it claimed. Each check verified the
+manifest against artefacts the same build wrote, so consistency was preserved while the claim
+shrank. Growing is free, because #895 has to add one.
 
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 

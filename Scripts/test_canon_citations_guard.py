@@ -276,8 +276,99 @@ class GuardBehaviour(unittest.TestCase):
             json.dump(body, handle, ensure_ascii=False)
         result = self.run_guard()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("may only\n         GROW" if False else "may only", result.stderr)
+        self.assertIn("may only", result.stderr)
         self.assertIn("CI-GATE", result.stderr)
+
+    # -- rule 7, applied to the corpus: the denominator of every absence proof ------------------
+    # The four lists above are hand-written, and the corpus is derived, so it was not on the list
+    # at all. Measured before these cases existed: delete `madsp` and `nib` from the manifest,
+    # delete their index and absence files, drop the entries the records named -- and all 48
+    # guards passed while every absence proof in the tree silently searched half the corpus.
+
+    def _manifest(self):
+        return os.path.join(self.root, "docs", "canon", "MANIFEST.json")
+
+    def _rewrite_manifest(self, mutate):
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        mutate(body)
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+
+    def test_removing_a_source_from_the_corpus_fails(self):
+        self._make_repo_with_a_base()
+        gone = sorted(json.load(open(self._manifest(), encoding="utf-8"))["sources"])[0]
+        self._rewrite_manifest(lambda body: body["sources"].pop(gone))
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("MANIFEST.json", result.stderr)
+        self.assertIn("may only", result.stderr)
+
+    def test_removing_one_locale_from_a_corpus_fails(self):
+        """A whole source is the loud case; one locale is the quiet one, and it is the likelier.
+
+        An absence proof searches every (source, locale). Losing one locale makes every existing
+        proof weaker by exactly the strings that live only there -- which is what a locale IS.
+        """
+        self._make_repo_with_a_base()
+        body = json.load(open(self._manifest(), encoding="utf-8"))
+        source = sorted(k for k, v in body["sources"].items() if len(v.get("locales") or []) > 1)
+        self.assertTrue(source, "the fixture must carry a multi-locale source or this checks nothing")
+        name = source[0]
+        self._rewrite_manifest(lambda b: b["sources"][name]["locales"].pop())
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(name, result.stderr)
+
+    def test_adding_a_source_to_the_corpus_passes(self):
+        """The positive control. A ratchet that refused growth would block #895's `nibstrings`."""
+        self._make_repo_with_a_base()
+        self._rewrite_manifest(
+            lambda body: body["sources"].update({"nibstrings": {"locales": ["en"]}}))
+        result = self.run_guard()
+        self.assertNotIn("corpora every absence proof searches", result.stderr)
+
+    def test_an_extractor_that_stops_matching_the_shape_fails(self):
+        """The failure this ratchet is most likely to die of, and only one direction is silent.
+
+        The other four ratchets read a list. The corpus reads a map of maps, so it needs its own
+        extractor -- and an extractor that no longer matches returns an empty set. Which side goes
+        empty decides everything:
+
+            the CURRENT tree reads empty   every member looks REMOVED -- loud, and correct
+            the BASE reads empty           nothing can be lost, so the rule passes everything
+
+        The second is the one worth a case, because it looks exactly like a clean run. It is
+        driven by committing the unmatched shape as the base and restoring the real one, which is
+        what a renamed key in the manifest writer would actually leave behind.
+        """
+        def rename_the_key(body):
+            for block in body["sources"].values():
+                block["languages"] = block.pop("locales")
+
+        def restore_the_key(body):
+            for block in body["sources"].values():
+                block["locales"] = block.pop("languages")
+
+        self._rewrite_manifest(rename_the_key)
+        self._make_repo_with_a_base()          # the base now carries the shape nothing reads
+        self._rewrite_manifest(restore_the_key)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("no longer matches the file's shape", result.stderr)
+
+    def test_a_shape_change_in_the_current_tree_is_loud_too(self):
+        """The other direction, pinned so the case above is read as being about silence."""
+        self._make_repo_with_a_base()
+
+        def rename_the_key(body):
+            for block in body["sources"].values():
+                block["languages"] = block.pop("locales")
+
+        self._rewrite_manifest(rename_the_key)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("may only", result.stderr)
 
     def test_removing_from_a_waiver_list_passes(self):
         os.remove(os.path.join(self.root, "docs", "observations", "2000-01-01-seeded.json"))

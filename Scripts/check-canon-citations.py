@@ -146,6 +146,30 @@ def _at_base(base, path):
         return None
 
 
+def _corpus_members(blob, key):
+    """Every (source, locale) the manifest declares -- the set `required_corpora` searches.
+
+    Not a list in a file like the other four: the corpus is DERIVED from what the build found, so
+    the thing to ratchet is the derivation's output. It is ratcheted at all because the corpus is
+    the denominator of every absence proof in the repository, and nothing watched it: deleting two
+    of the four sources and re-running the build leaves a manifest that is internally consistent,
+    an index and absence directory that match their own digests, and a gate that reports clean.
+    Measured, not reasoned -- `madsp` and `nib` were removed and all 48 guards passed.
+    """
+    return {f"{source}/{locale}"
+            for source, block in (blob.get(key) or {}).items()
+            for locale in (block.get("locales") or [])}
+
+
+def _ratchet_members(blob, key):
+    value = blob.get(key)
+    if isinstance(value, dict):
+        # POLICY-LITERALS.json is a map literal -> where it is answered. Only the ones answered
+        # NOWHERE are the debt; the other two buckets are the work succeeding.
+        return {name for name, where in value.items() if where == "nowhere"}
+    return set(value or [])
+
+
 #: Each ratcheted list, and the direction it may move in. Two directions, because two kinds of list
 #: got mixed:
 #:
@@ -169,16 +193,9 @@ RATCHETS = (
      "path prefixes whose changes may not use the opt-out"),
     ("docs/canon/CI-GATE.json", "required_commands", "grow",
      "commands the required CI gate must carry"),
+    ("docs/canon/MANIFEST.json", "sources", "grow",
+     "the (source, locale) corpora every absence proof searches", _corpus_members),
 )
-
-
-def _ratchet_members(blob, key):
-    value = blob.get(key)
-    if isinstance(value, dict):
-        # POLICY-LITERALS.json is a map literal -> where it is answered. Only the ones answered
-        # NOWHERE are the debt; the other two buckets are the work succeeding.
-        return {name for name, where in value.items() if where == "nowhere"}
-    return set(value or [])
 
 
 def check_waivers_only_shrink(failures: list) -> None:
@@ -200,7 +217,9 @@ def check_waivers_only_shrink(failures: list) -> None:
             print(f"  note: {message}", file=sys.stderr)
         return
 
-    for path, key, direction, what in RATCHETS:
+    for entry in RATCHETS:
+        path, key, direction, what = entry[:4]
+        members = entry[4] if len(entry) > 4 else _ratchet_members
         before = _at_base(base, path)
         if before is None:
             continue
@@ -210,8 +229,17 @@ def check_waivers_only_shrink(failures: list) -> None:
                 f"{path}: the list this ratchet compares lives under {key!r}, and one side does "
                 f"not have it. A renamed key makes the comparison silently empty.")
             continue
-        gained = sorted(_ratchet_members(now, key) - _ratchet_members(before, key))
-        lost = sorted(_ratchet_members(before, key) - _ratchet_members(now, key))
+        was, is_now = members(before, key), members(now, key)
+        if not was and before.get(key):
+            # The extractor reads a SHAPE. Change the shape and it returns nothing, the comparison
+            # is empty, and the ratchet passes everything -- the failure mode this whole file is
+            # about. An empty reading of a non-empty value is a broken extractor, not a clean run.
+            failures.append(
+                f"{path}: the ratchet read no members out of a non-empty {key!r}. Its extractor "
+                f"no longer matches the file's shape, so the comparison would pass anything.")
+            continue
+        gained = sorted(is_now - was)
+        lost = sorted(was - is_now)
         if direction == "shrink":
             for member in gained:
                 failures.append(
