@@ -34,7 +34,7 @@
     }
   ],
   "live_input": {
-    "file": "/tmp/axlive2.tsv",
+    "file": "docs/observations/evidence/2026-09-15-axhelp-live-values.txt",
     "rows": 2748,
     "attribute_rows": {
       "AXTitle": 697,
@@ -42,7 +42,8 @@
       "AXHelp": 710,
       "AXValue": 241
     },
-    "axhelp_unique_values": 114
+    "axhelp_unique_values": 114,
+    "captured_from": "/tmp/axlive2.tsv on the measuring machine. Named here for provenance only: macOS rebuilds /private/tmp at boot, so a path there is not somewhere a claim can rest. The distinct AXHelp values are committed beside this file, which is what the assertion reads."
   },
   "measurements": {
     "axhelp_matched_to_quickhelp": {

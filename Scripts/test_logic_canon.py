@@ -628,20 +628,29 @@ class AgainstTheRealCorpus(unittest.TestCase):
                 wrong.append((prefix, composed))
         self.assertEqual(wrong[:3], [], f"{len(wrong)} prefixed compositions did not round trip")
 
+    def _live_axhelp_values(self):
+        """The distinct AXHelp values read off a running Logic, as committed evidence."""
+        path = os.path.join(REPO, "docs", "observations", "evidence",
+                            "2026-09-15-axhelp-live-values.txt")
+        if not os.path.exists(path):
+            self.fail(f"{os.path.relpath(path, REPO)} is missing. It is the input this assertion "
+                      f"is over; without it the case proves nothing, and skipping would report ok.")
+        with open(path, encoding="utf-8") as handle:
+            return sorted({canon.normalize(line) for line in handle if line.strip()})
+
     def test_the_live_axhelp_corpus_is_explained_by_canonical_data(self):
         """113 of 114, and the one left over is left over rather than explained away.
 
         This is the measurement the whole canon axis rests on, so it runs as a test: if a Logic
         update or an extractor change moves it, the number moves here rather than in a document.
         """
-        dump = "/tmp/axlive2.tsv"
-        if not os.path.exists(dump):
-            self.skipTest("the live AX dump this asserts over is not on this machine")
+        # The readings live in the repository, not in /tmp. They were read from `/tmp/axlive2.tsv`
+        # on the machine that ran Logic, and that is where this test looked -- so on any other
+        # machine, and on this one after any reboot, it skipped. macOS rebuilds /private/tmp at
+        # boot. So the case written because "the measurement the whole canon axis rests on" should
+        # move when Logic moves could not run for anybody, including its author tomorrow.
+        values = self._live_axhelp_values()
         resolver = canon.AXStringResolver(APP, "ko")
-        values = sorted({canon.normalize(row.split("\t")[2])
-                         for row in open(dump, encoding="utf-8")
-                         if len(row.split("\t")) >= 3 and row.split("\t")[1] == "AXHelp"
-                         and row.split("\t")[2].strip()})
         unresolved = [value for value in values if resolver.resolve(value) is None]
         self.assertEqual(len(values), 114)
         self.assertEqual(unresolved, ["이 버튼을 누르면 윈도우를 확대/축소합니다."])

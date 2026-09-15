@@ -20,7 +20,7 @@
   "reverify": {
     "kind": "script",
     "command": "python3 Scripts/test_logic_canon.py",
-    "expected": "35 tests pass, including test_the_live_axhelp_corpus_is_explained_by_canonical_data which asserts 114 distinct AXHelp values with exactly one unresolved",
+    "expected": "62 tests pass, including test_the_live_axhelp_corpus_is_explained_by_canonical_data, which asserts over the 114 distinct AXHelp values in docs/observations/evidence/2026-09-15-axhelp-live-values.txt and requires exactly one unresolved. That case needs Logic installed; it reads the bundle and launches nothing.",
     "cost": "~2s; reads the app bundle, launches nothing"
   },
   "depends": [
@@ -159,7 +159,8 @@
   "supersedes": null,
   "schema": 3,
   "evidence": [
-    "evidence/2026-09-15-axhelp-is-quickhelp-composed.json"
+    "evidence/2026-09-15-axhelp-is-quickhelp-composed.json",
+    "evidence/2026-09-15-axhelp-live-values.txt"
   ],
   "canon": [
     {

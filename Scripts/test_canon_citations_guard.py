@@ -53,7 +53,16 @@ def setUpModule():
             if ref and value and ref.startswith("logic-canon://quickhelp/") and "/-/" not in ref:
                 REAL_REF, REAL_VALUE = ref, value
                 return
-    raise unittest.SkipTest("no committed record carries a localised QuickHelp citation")
+    why = "no committed record carries a localised QuickHelp citation"
+    if os.environ.get("CI") == "true":
+        # The defect this function's docstring describes, still here in its replacement. A
+        # module-level SkipTest exits 0, `run-repo-guards.py` keys on the exit code, and the suite
+        # reports ok having executed zero assertions -- which is exactly what it said went wrong
+        # the first time. Locally a developer may be on a branch without such a record; CI has the
+        # committed tree, so there it means the fixture search is broken, not that the tree is thin.
+        raise AssertionError(f"{why}. Under CI this is a failure, not a skip: these 60 cases would "
+                             f"otherwise report ok having asserted nothing.")
+    raise unittest.SkipTest(why)
 
 
 class GuardBehaviour(unittest.TestCase):
