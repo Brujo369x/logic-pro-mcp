@@ -449,6 +449,67 @@ class CitationAndArtifactChecks(unittest.TestCase):
 
 
 
+class LocatingAStringForCitation(unittest.TestCase):
+    """`locate_in` issues citations; `AXStringResolver.resolve` reverses live readings.
+
+    They are separate because their corpora are. `resolve` reads `StringsIndex` -- 10,395
+    (unit, key) pairs for ko -- while `extract_strings` yields 60,048, so 83% of the corpus is
+    invisible to it and it answers None for strings Apple ships. Measured while preparing two
+    pull requests: `설치` and `키 레이블로 학습` both resolve to None and both are citable, at
+    `Install.strings/164.title` and `KeyCommands.strings/300557.title`. An author reading None
+    as "uncitable" would have declared a shipped string absent.
+
+    Driven over ROWS rather than over Logic, deliberately. A case needing Logic could not run in
+    CI, and `docs/canon/CI-SKIPS.json` is shrink-only -- adding a fifth skip is admitting debt,
+    which is the ratchet working rather than a wall to route around.
+    """
+
+    ROWS = [
+        ("Contents/.../Localizable.strings", "ko", "Install…", "value", "설치…"),
+        ("Contents/.../Install.strings", "ko", "164.title", "value", "설치"),
+        ("Contents/.../MAContentDownload.strings", "ko", "73.title", "value", "설치"),
+        ("Contents/.../Localizable.strings", "en", "Install…", "value", "Install…"),
+        ("Contents/.../Elsewhere.strings", "ko", "9.title", "value", "설치 완료"),
+    ]
+
+    def test_a_whole_value_is_found_everywhere_it_occurs(self):
+        hits = canon.locate_in(self.ROWS, "설치", source="strings")
+        self.assertEqual([(u, k) for _, u, _, k, _ in hits],
+                         [("Contents/.../Install.strings", "164.title"),
+                          ("Contents/.../MAContentDownload.strings", "73.title")])
+
+    def test_a_substring_is_not_a_hit(self):
+        """`설치` occurs inside `설치 완료`, and a citation to that row would be false."""
+        hits = canon.locate_in(self.ROWS, "설치", source="strings")
+        self.assertNotIn("9.title", [k for _, _, _, k, _ in hits])
+
+    def test_the_comparison_is_normalized_on_both_sides(self):
+        rows = [("u", "ko", "k", "value", "\u00a0설치\u00a0")]
+        self.assertEqual(len(canon.locate_in(rows, " 설치 ", source="strings")), 1)
+
+    def test_a_string_in_no_row_yields_nothing(self):
+        self.assertEqual(canon.locate_in(self.ROWS, "결코 없는 문자열 91xq", source="strings"), [])
+
+    def test_a_hit_becomes_a_reference_that_parses_and_carries_no_whitespace(self):
+        """A reference with a space is truncated by `find_refs`, which scans prose for
+        non-whitespace -- the defect that once made every `strings` citation resolve to nothing."""
+        source, unit, locale, key, field = canon.locate_in(
+            self.ROWS, "설치…", source="strings")[0]
+        ref = canon.citation_for(source, unit, locale, key, field)
+        self.assertNotIn(" ", ref)
+        parsed = canon.CanonRef.parse(ref)
+        self.assertEqual(parsed.index_row(), (unit, locale, key, field))
+
+    def test_it_sees_rows_the_resolver_cannot(self):
+        """The whole reason this exists, stated as a case rather than as a comment.
+
+        `StringsIndex` is built from a narrower walk, so a row in an IB-keyed table is invisible
+        to `resolve`. `locate_in` is given the rows directly and therefore cannot have that gap.
+        """
+        ib_keyed = [("Contents/.../Install.strings", "ko", "164.title", "value", "설치")]
+        self.assertEqual(len(canon.locate_in(ib_keyed, "설치", source="strings")), 1)
+
+
 class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
     """The round trip, run in CI, over a corpus SHAPED like Apple's but written by us.
 
