@@ -500,6 +500,45 @@ class LocatingAStringForCitation(unittest.TestCase):
         parsed = canon.CanonRef.parse(ref)
         self.assertEqual(parsed.index_row(), (unit, locale, key, field))
 
+    #: One row shaped like each source actually yields, taken from a real extraction rather than
+    #: invented. `madsp` units carry SPACES ("Adaptive Limiter"), `strings` units carry SLASHES and
+    #: a dot, `nib` values are whole paths and `quickhelp` keys are bare. A reference with a space
+    #: in it is truncated by `find_refs`, which scans prose for non-whitespace -- the defect that
+    #: once made every `strings` citation resolve to nothing.
+    SHAPES = [
+        ("quickhelp", "QuickHelp", "en", "CSM_004_OpenInstall", "Title", "Install"),
+        ("strings", "Contents/Frameworks/Logic.framework/Versions/A/Resources/Install.strings",
+         "ko", "164.title", "value", "설치"),
+        ("madsp", "Adaptive Limiter", "-", "2", "name", "Gain"),
+        ("nib", "qhid", "-", "ART_03_NameField", "nibs",
+         "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/"
+         "ArticulationSettingsWindow.nib"),
+    ]
+
+    def test_every_source_shape_round_trips_through_a_reference(self):
+        for source, unit, locale, key, field, value in self.SHAPES:
+            with self.subTest(source=source):
+                hit = canon.locate_in([(unit, locale, key, field, value)], value, source=source)
+                self.assertEqual(len(hit), 1, f"{source}: the row did not match its own value")
+                ref = canon.citation_for(*hit[0])
+                self.assertNotIn(" ", ref, f"{source}: a space truncates the reference")
+                self.assertEqual(canon.CanonRef.parse(ref).index_row(),
+                                 (unit, locale, key, field), f"{source}: did not round trip")
+
+    def test_a_reference_survives_find_refs_on_surrounding_prose(self):
+        """Building a valid reference is not enough; the scanner has to get it back WHOLE.
+
+        `_pct_encode` once allowed spaces, every reference parsed, and `find_refs` truncated each
+        one mid-string — so they resolved to nothing and reported a missing key rather than a
+        malformed one. `madsp` is the shape that would catch it: its units are plug-in names.
+        """
+        for source, unit, locale, key, field, value in self.SHAPES:
+            with self.subTest(source=source):
+                ref = canon.citation_for(*canon.locate_in(
+                    [(unit, locale, key, field, value)], value, source=source)[0])
+                prose = f"as recorded in {ref} and nowhere else.\n"
+                self.assertEqual(canon.find_refs(prose), [ref], f"{source}: scanned back wrong")
+
     def test_it_sees_rows_the_resolver_cannot(self):
         """The whole reason this exists, stated as a case rather than as a comment.
 
