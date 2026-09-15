@@ -515,6 +515,29 @@ class LocatingAStringForCitation(unittest.TestCase):
          "ArticulationSettingsWindow.nib"),
     ]
 
+    def test_one_key_across_ten_locales_is_one_row(self):
+        """The answer a person can act on. Ungrouped, `Smart Controls` printed forty-odd lines --
+        ten of them one QuickHelp key repeated once per locale -- and nobody chooses from that."""
+        hits = [("quickhelp", "QuickHelp", loc, "DMD_022_PadSmartControls", "Title")
+                for loc in ("de", "en", "es", "fr", "it", "ja", "ko", "pt", "zh_CN", "zh_TW")]
+        grouped = canon.group_by_key(hits)
+        self.assertEqual(len(grouped), 1)
+        source, unit, key, field, locales = grouped[0]
+        self.assertEqual(key, "DMD_022_PadSmartControls")
+        self.assertEqual(len(locales), 10)
+
+    def test_different_keys_stay_separate(self):
+        """Grouping must not merge candidates: choosing between them is the decision."""
+        hits = [("strings", "u", "de", "NewTrackSheetButton", "value"),
+                ("quickhelp", "QuickHelp", "de", "LLP_090_CopyTakeNewTrack", "Title")]
+        self.assertEqual(len(canon.group_by_key(hits)), 2)
+
+    def test_locales_are_deduplicated_and_ordered(self):
+        hits = [("strings", "u", "ko", "k", "value"),
+                ("strings", "u", "de", "k", "value"),
+                ("strings", "u", "ko", "k", "value")]
+        self.assertEqual(canon.group_by_key(hits)[0][4], ["de", "ko"])
+
     def test_every_source_shape_round_trips_through_a_reference(self):
         for source, unit, locale, key, field, value in self.SHAPES:
             with self.subTest(source=source):

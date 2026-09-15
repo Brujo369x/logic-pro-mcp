@@ -769,6 +769,21 @@ def locate(app: str, text: str, *, sources=None, locales=None):
     return found
 
 
+def group_by_key(hits) -> list:
+    """`locate` hits collapsed to one row per KEY: (source, unit, key, field, sorted locales).
+
+    A key is the same in every locale, so an ungrouped answer repeats it once per locale --
+    `Smart Controls` printed forty-odd lines, ten of them one QuickHelp key. Nobody chooses from
+    that. Grouping restates the same answer in the shape #892 measured: pick a key once and the
+    locales follow, 61 of 63 times.
+    """
+    groups: dict = {}
+    for source, unit, locale, key, field in hits:
+        groups.setdefault((source, unit, key, field), set()).add(locale)
+    return [(source, unit, key, field, sorted(locales))
+            for (source, unit, key, field), locales in sorted(groups.items())]
+
+
 def citation_for(source: str, unit: str, locale: str, key: str, field: str) -> str:
     """The reference a `locate` hit becomes. One place builds these, so the encoding is one rule."""
     return (f"logic-canon://{source}/{_pct_encode(unit)}/{locale}"
@@ -1659,9 +1674,27 @@ def _cmd_locate(args) -> int:
               f"is an absence claim: Scripts/logic_canon.py absent <source> <locale> <text>",
               file=sys.stderr)
         return 1
-    for source, unit, locale, key, field in hits:
-        print(citation_for(source, unit, locale, key, field))
+    if args.every:
+        for source, unit, locale, key, field in hits:
+            print(citation_for(source, unit, locale, key, field))
+            print(f"  value:  {args.text}")
+        return 0
+
+    # Grouped by KEY, because that is the unit of the decision. A key is the same in every locale,
+    # so `Smart Controls` printed forty-odd lines -- ten of them one QuickHelp key repeated once
+    # per locale -- and a person cannot choose from that. Grouping turns the same answer into the
+    # shape #892 measured: pick a key once and the locales follow.
+    groups = group_by_key(hits)
+    for source, unit, key, field, shown in groups:
+        pick = "en" if "en" in shown else shown[0]
+        print(citation_for(source, unit, pick, key, field))
         print(f"  value:  {args.text}")
+        print(f"  locales: {len(shown)} -- {' '.join(shown)}")
+    if len(groups) > 1:
+        print(f"\n{len(groups)} candidate keys. The value does not choose between them and neither "
+              f"does this: a key that resolves is not the same as the key that MEANS what the "
+              f"change is about. `추가` is the value of `Add` and of a Drummer slider label.",
+              file=sys.stderr)
     return 0
 
 
@@ -1802,6 +1835,8 @@ def main(argv=None) -> int:
     locate_cmd.add_argument("--app", default=DEFAULT_APP)
     locate_cmd.add_argument("--source", choices=sorted(EXTRACTORS))
     locate_cmd.add_argument("--locale")
+    locate_cmd.add_argument("--every", action="store_true",
+                            help="one line per locale instead of one per key")
     locate_cmd.set_defaults(func=_cmd_locate)
 
     check_cmd = sub.add_parser("check", help="refuse unless <ref>=<value> holds offline")
