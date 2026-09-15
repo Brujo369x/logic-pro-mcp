@@ -121,6 +121,27 @@ cases fail rather than SKIP under CI: a missing shape skipped four of the five, 
 `median_length` and `shortest` are exempt — they move with the language, not with the strength of a
 claim — and the exemption is declared, so a structural number added later is ratcheted by default.
 
+### Absent as bytes is not the same as uncitable
+
+`absent` proves a BYTE STRING is not in the corpus. That is exactly true and half an answer:
+`Input Port:` is absent from all 23 corpora and Logic ships `Input Port`, so adding a colon proves
+anything uncitable. Three literals on the control-surface branch were proved absent that way and
+all three are shipped labels.
+
+So each corpus carries a second digest set, `absence/<source>.<locale>.folded.u32`, over the same
+values with decoration removed — ellipsis, colon, bullet, dash, underscore, every kind of space.
+`absent` then says NOT PROVEN when the bytes are missing but a shipped label folds to them, and
+names the string to `locate`. Case is deliberately NOT folded: runtime matching is
+case-insensitive, so `Go To Position` against Logic's `Go to Position` still matches on screen and
+is not this defect. Folding case made the check fire 33 times, of which 3 were real.
+
+It advises rather than refuses, and that is measured too. The fold cannot separate `Input Port:`,
+a colon this repository added, from `Set Locators…`, where the ellipsis is macOS convention for a
+menu item that opens a dialog and the Korean variant carries it as well. Both are "absent as bytes
+with something folding to them"; the difference is what the label means. What IS refused is a
+literal matching the corpus after `normalize` but not before — the same label spelt with different
+bytes, which has one right answer.
+
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 
 - an absence claim over English `strings` is the weakest proof the system can produce, because

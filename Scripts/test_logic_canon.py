@@ -449,6 +449,43 @@ class CitationAndArtifactChecks(unittest.TestCase):
 
 
 
+class TellingAbsenceFromATypo(unittest.TestCase):
+    """`absent` proves a BYTE STRING is not in the corpus, which is exactly true and half an answer.
+
+    `Input Port:` is absent from all 23 corpora and Logic ships `Input Port`, so adding a colon
+    proves anything uncitable. Three literals on the control-surface branch were proved absent
+    that way. The fold answers the other half, offline, from digest sets committed beside the
+    absence sets.
+    """
+
+    def test_decoration_is_folded(self):
+        for typed, shipped in (("Input Port:", "Input Port"),
+                               ("Set Locators…", "Set Locators"),
+                               ("Project or Section...", "Project or Section…"),
+                               ("Einstellungen\u00a0…", "Einstellungen …")):
+            with self.subTest(typed=typed):
+                self.assertEqual(canon.fold_for_near_miss(typed),
+                                 canon.fold_for_near_miss(shipped))
+
+    def test_case_is_NOT_folded(self):
+        """Runtime matching is case-insensitive, so a capital is not the defect this looks for.
+
+        Folding case here fired on `Go To Position` against Logic's `Go to Position` -- which
+        matches on screen -- and on every lowercase containment fragment: 33 findings, 3 real.
+        """
+        self.assertNotEqual(canon.fold_for_near_miss("Go To Position"),
+                            canon.fold_for_near_miss("Go to Position"))
+        self.assertNotEqual(canon.fold_for_near_miss("arm"), canon.fold_for_near_miss("Arm"))
+
+    def test_a_genuinely_different_string_does_not_fold_together(self):
+        self.assertNotEqual(canon.fold_for_near_miss("Track"), canon.fold_for_near_miss("Tracks"))
+
+    def test_the_fold_is_not_a_canon_comparison(self):
+        """Pinned so nobody reuses it as one. Two different labels can fold together -- Logic's
+        `Set Locators` is a TOOLBAR item and `Set Locators…` is the Navigate menu entry."""
+        self.assertNotEqual(canon.normalize("Input Port:"), canon.normalize("Input Port"))
+
+
 class LocatingAStringForCitation(unittest.TestCase):
     """`locate_in` issues citations; `AXStringResolver.resolve` reverses live readings.
 

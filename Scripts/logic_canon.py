@@ -174,6 +174,33 @@ def digest(text: str) -> str:
     return hashlib.sha256(normalize(text).encode("utf-8")).hexdigest()
 
 
+#: Characters a UI adds or drops around a label without changing which label it is: the colon a
+#: form puts after a field name, the ellipsis a menu puts on an item that opens a dialog, spaces.
+#: Folding them answers a DIFFERENT question from `normalize`, and only one question: "is this
+#: absent, or is it a shipped label I typed slightly wrong?"
+_DECORATION = "\u2026...:：·•\t\n\r \u00a0\u3000-–—_"
+
+
+def fold_for_near_miss(text: str) -> str:
+    """`normalize`, then case-folded with decoration and whitespace removed.
+
+    NOT a canon comparison and never used as one. `absent` proves a BYTE STRING is not in the
+    corpus, and that is exactly true and quietly useless on its own: `Input Port:` is absent and
+    `Input Port` is shipped, so adding a colon proves anything uncitable. Three literals on the
+    control-surface branch were proved absent across all 23 corpora that way, and none of them had
+    ever been read off a screen -- the observation record mentions `Input Port` zero times.
+
+    So the corpus gets a second digest set over this fold, and `absent` answers "not in the corpus,
+    and nothing in the corpus differs from it only by decoration" instead of just the first half.
+    """
+    # NOT case-folded, deliberately. Runtime matching IS case-insensitive -- `caseInsensitiveCompare`
+    # in `LabelSet.matches` -- so `Go To Position` against Logic's `Go to Position` still matches on
+    # screen and is not the defect this looks for. Folding case here made it fire on that pair and
+    # on every lowercase containment fragment (`arm` beside a French `Arm`), 33 findings of which
+    # three were real. Decoration only.
+    return "".join(ch for ch in normalize(text) if ch not in _DECORATION)
+
+
 def short_digest(text: str) -> str:
     """The first 12 hex characters of `digest`. What the committed index stores.
 
@@ -998,6 +1025,11 @@ def absence_path(source: str, locale: str) -> str:
     return os.path.join(ABSENCE_DIR, f"{source}.{locale}.u32")
 
 
+def folded_path(source: str, locale: str) -> str:
+    """Beside the absence set, over `fold_for_near_miss`. Same format, different question."""
+    return os.path.join(ABSENCE_DIR, f"{source}.{locale}.folded.u32")
+
+
 def load_index(source: str) -> dict[tuple[str, str, str, str], str]:
     """The committed key->digest table for one source.
 
@@ -1040,11 +1072,16 @@ def write_index(source: str, rows: dict[tuple[str, str, str, str], str]) -> None
                          f"{rows[(unit, locale, key, field)]}\n")
 
 
-def write_absence(source: str, locale: str, values) -> int:
-    """Write the sorted 32-bit digest prefixes of every value seen. Returns how many were kept."""
+def write_absence(source: str, locale: str, values, *, folded: bool = False) -> int:
+    """Write the sorted 32-bit digest prefixes of every value seen. Returns how many were kept.
+
+    `folded` writes the same structure over `fold_for_near_miss` instead, which is how `absent`
+    can say "and nothing in the corpus differs from this only by decoration" without Logic.
+    """
     os.makedirs(ABSENCE_DIR, exist_ok=True)
-    unique = sorted({_u32(value) for value in values if value})
-    path = absence_path(source, locale)
+    key = fold_for_near_miss if folded else (lambda v: v)
+    unique = sorted({_u32(key(value)) for value in values if value})
+    path = folded_path(source, locale) if folded else absence_path(source, locale)
     with open(path, "wb") as handle:
         handle.write(b"LCA1")
         handle.write(struct.pack(">I", len(unique)))
@@ -1063,8 +1100,8 @@ def write_absence(source: str, locale: str, values) -> int:
 _ABSENCE_CACHE: dict = {}
 
 
-def load_absence(source: str, locale: str) -> list[int]:
-    path = absence_path(source, locale)
+def load_absence(source: str, locale: str, *, folded: bool = False) -> list[int]:
+    path = folded_path(source, locale) if folded else absence_path(source, locale)
     try:
         stamp = os.stat(path)
         key = (path, stamp.st_size, stamp.st_mtime_ns)
@@ -1089,6 +1126,25 @@ def load_absence(source: str, locale: str) -> list[int]:
     if key is not None:
         _ABSENCE_CACHE[key] = table
     return table
+
+
+def differs_only_by_decoration(source: str, locale: str, text: str) -> bool:
+    """The corpus holds something that folds to this, though not this.
+
+    True means `text` is absent AS BYTES and a shipped label folds to it -- a colon, an ellipsis,
+    a capital, a space. The claim "uncitable" is then almost certainly wrong, and the author
+    typed the label slightly differently from the way Logic ships it.
+
+    Measured on the control-surface branch: `Input Port:`, `Output Port:` and `Model:` were each
+    proved absent from all 23 corpora, and Logic ships `Input Port`, `Output Port` and `Model`.
+    None had been read off a screen; the observation record names `Input Port` zero times.
+    """
+    if not is_absent(source, locale, text):
+        return False
+    table = load_absence(source, locale, folded=True)
+    needle = _u32(fold_for_near_miss(text))
+    position = bisect.bisect_left(table, needle)
+    return position < len(table) and table[position] == needle
 
 
 def is_absent(source: str, locale: str, text: str) -> bool:
@@ -1412,15 +1468,17 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                     f"every absence claim over it false, so this stops the build rather than "
                     f"shrinking. Nothing has been written.")
         paths = corpus_files(app, source)
-        absence_counts = {}
+        absence_counts, folded_counts = {}, {}
         for locale, values in sorted(values_by_locale.items()):
             absence_counts[locale] = write_absence(source, locale, values)
+            folded_counts[locale] = write_absence(source, locale, values, folded=True)
         manifest["sources"][source] = {
             "files": len(paths),
             "entries": entries,
             "corpus_digest": corpus_digest(app, paths),
             "locales": sorted(values_by_locale),
             "absence_entries": absence_counts,
+            "folded_entries": folded_counts,
             "absence_false_positive": {
                 locale: round(absence_false_positive(count), 12)
                 for locale, count in absence_counts.items()},
@@ -1720,6 +1778,18 @@ def _cmd_absent(args) -> int:
     entries = len(load_absence(args.source, args.locale))
     rate = absence_false_positive(entries)
     if absent:
+        if differs_only_by_decoration(args.source, args.locale, args.text):
+            print(f"NOT PROVEN for {args.source}/{args.locale}: {args.text!r} is absent as bytes, "
+                  f"and the corpus holds a label that differs from it only by decoration -- a "
+                  f"colon, an ellipsis, a capital, a space.", file=sys.stderr)
+            print(f"  Run: Scripts/logic_canon.py locate {args.text.rstrip(':… .')!r}",
+                  file=sys.stderr)
+            print(f"  Absent is still TRUE here -- these bytes are not in the corpus. Whether it "
+                  f"is USEFUL depends on why the string exists: a LabelSet's `variants` are "
+                  f"deliberate tolerance and absent is the right answer for them, while a "
+                  f"`canonical` that is absent is usually a label typed slightly wrong. "
+                  f"`check-policy-literals-against-canon.py` draws that line; this cannot.",
+                  file=sys.stderr)
         print(f"ABSENT from {args.source}/{args.locale} "
               f"({entries} values pinned; not among them)")
         # The old wording here was "a false ABSENT is impossible", which is true of the DIGESTS --

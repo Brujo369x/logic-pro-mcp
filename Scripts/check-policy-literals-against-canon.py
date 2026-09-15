@@ -155,6 +155,35 @@ def all_policy_literals() -> set:
     return out
 
 
+def canonical_literals(source: str) -> set:
+    """Only the `canonical:` member of each LabelSet, raw.
+
+    The distinction the near-miss rule turns on. `variants` are DELIBERATE tolerance -- Logic ships
+    `Autopunch` and the set carries `Auto Punch` and `Auto-Punch` so a differently-spelled reading
+    still matches, and those being absent from Apple's data is the point of them. A `canonical`
+    that is absent is a different thing: it is the spelling this repository claims Logic uses.
+    Measured on the control-surface branch: `Input Port:`, `Output Port:` and `Model:` are
+    canonical, are absent from all 23 corpora, and Logic ships all three without the colon -- and
+    the observation record names `Input Port` zero times, so none was ever read off a screen.
+    """
+    text = _LINE_COMMENT.sub("", _BLOCK_COMMENT.sub(" ", source))
+    out = set()
+    for match in _LABELSET.finditer(text):
+        for value in _STRING.findall(match.group(1)):
+            value = value.replace("\\u{00A0}", "\u00a0").replace('\\"', '"')
+            if value.strip():
+                out.add(value)
+    return out
+
+
+def all_canonicals() -> set:
+    out = set()
+    for path in swift_sources():
+        with open(path, "r", encoding="utf-8") as handle:
+            out |= canonical_literals(handle.read())
+    return out
+
+
 def classify(app: str, literals: set) -> dict:
     """Where each literal is answered. Needs Logic; the committed map is what CI reads.
 
@@ -219,6 +248,53 @@ def verify_buckets_offline(committed: dict) -> list:
     return problems
 
 
+def near_miss_canonicals(manifest: dict) -> list:
+    """A `canonical` absent from every corpus while a shipped label folds to it. ADVISORY.
+
+    Printed, never failed on, and the reason is measured rather than cautious. The fold cannot
+    tell two cases apart:
+
+        `Input Port:`     a colon this repository added    -- looks like a typo
+        `Set Locators…`   a menu's ellipsis, macOS convention for "opens a dialog", and the
+                          Korean variant carries it too    -- correct as written
+
+    Both are "absent as bytes, and something in the corpus folds to it". The difference is what
+    the label MEANS, and the corpus value it collides with is a different UI element: Logic's
+    `Set Locators` is `StrToolbItemName|||Set Locators`, a toolbar item, not the Navigate menu
+    entry. Observation records do not separate them either -- both strings appear three times.
+
+    So this advises and the author decides, like `used_for`. What IS refused is `byte_exact`:
+    a literal that matches the corpus after normalisation but not before is the SAME label spelt
+    with different bytes, and that has one right answer.
+
+    Offline: the folded digest sets are committed beside the absence sets, so this needs no Logic.
+    Only `canonical` -- `variants` are deliberate tolerance and being absent is the point of them.
+    """
+    corpora = [(source, locale)
+               for source, block in (manifest.get("sources") or {}).items()
+               for locale in (block.get("locales") or [])]
+    found = []
+    for literal in sorted(all_canonicals()):
+        near = []
+        for source, locale in corpora:
+            try:
+                if not canon.is_absent(source, locale, literal):
+                    near = []                      # cited outright; nothing to say
+                    break
+                if canon.differs_only_by_decoration(source, locale, literal):
+                    near.append(f"{source}/{locale}")
+            except canon.CanonError:
+                continue
+        if near:
+            found.append(
+                f"{literal!r} is the CANONICAL spelling this repository claims Logic uses, it is "
+                f"absent from every corpus, and {near[0]} holds a label that differs from it only "
+                f"by decoration -- a colon, an ellipsis, a capital, a space. Run "
+                f"`Scripts/logic_canon.py locate` on it and use the bytes Logic ships. "
+                f"(`variants` are exempt: tolerance is what they are for.)")
+    return found
+
+
 def check() -> list:
     literals = all_policy_literals()
     with open(CLASSIFICATION, "r", encoding="utf-8") as handle:
@@ -245,6 +321,8 @@ def check() -> list:
 
 def main() -> int:
     problems = check()
+    for note in near_miss_canonicals(canon.load_manifest()):
+        print(f"  note: {note}", file=sys.stderr)
     if problems:
         print(f"{len(problems)} problem(s) with the policy literals:", file=sys.stderr)
         for problem in problems:
