@@ -1,5 +1,16 @@
 {
  "allowed": {
+  "label_readings_from_a_superseded_build": [
+   "audioPluginSlotLabel→オーディオプラグイン",
+   "audioPluginSlotLabel→오디오 플러그인",
+   "hideAllPluginWindowsMenuItem→すべてのプラグインウインドウ",
+   "hideAllPluginWindowsMenuItem→모든 플러그인 윈도우",
+   "playheadPositionGroupLabel→再生ヘッドの位置",
+   "showStepInputKeyboardMenuItem→ステップインプットキーボード",
+   "showStepInputKeyboardMenuItem→스텝 입력 키보드",
+   "trackContentExplicit→tracks contents",
+   "trackContentExplicit→トラックコンテンツ"
+  ],
   "manual_reverify": [
    "2026-09-03-sort-settle-witness-accepts-prescroll-order",
    "2026-09-03-sort-tracks-by-track-name-is-inert",
@@ -41,6 +52,7 @@
    "2026-09-14-the-seam-is-not-the-blocker-a-region-start-tick-is-not-readable",
    "2026-09-14-the-transport-shows-ticks-when-the-display-mode-does"
   ],
+  "records_from_a_superseded_build": [],
   "records_without_evidence": [
    "2026-09-03-sort-settle-witness-accepts-prescroll-order",
    "2026-09-03-sort-tracks-by-track-name-is-inert",
@@ -919,6 +931,21 @@
  },
  "note": "What the ledger does not know, as SETS of identities. A member may leave; a new member fails CI. Sets rather than counts because a count is defeated by a swap — add one undocumented variant, document a different one, and the total is unchanged while the ledger knows strictly less about a new string. The guard also compares against the MERGE BASE, so raising the file in the same commit as the regression does not help. Raising requires a dated reason under `raised`. ADR-019 D8. Live: observations-status.py --unproven",
  "raised": {
+  "label_readings_from_a_superseded_build": {
+   "date": "2026-09-15",
+   "members": [
+    "audioPluginSlotLabel→オーディオプラグイン",
+    "audioPluginSlotLabel→오디오 플러그인",
+    "hideAllPluginWindowsMenuItem→すべてのプラグインウインドウ",
+    "hideAllPluginWindowsMenuItem→모든 플러그인 윈도우",
+    "playheadPositionGroupLabel→再生ヘッドの位置",
+    "showStepInputKeyboardMenuItem→ステップインプットキーボード",
+    "showStepInputKeyboardMenuItem→스텝 입력 키보드",
+    "trackContentExplicit→tracks contents",
+    "trackContentExplicit→トラックコンテンツ"
+   ],
+   "reason": "These nine label readings carry no host, or one this check cannot parse, so they cannot be shown to describe the declared Logic build. They are not known to be WRONG - they predate the provenance format settling - and re-reading each one needs a live Logic in its locale, which is why they are carried rather than closed. The dimension itself is new in this commit, so this is its starting ceiling; from here it may only shrink."
+  },
   "manual_reverify": {
    "date": "2026-09-15",
    "members": [
