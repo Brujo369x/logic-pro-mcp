@@ -1,0 +1,14 @@
+{
+  "note": "Path prefixes whose contents are claims about Logic. A change touching one of these may not use the opt-out in a pull request body, whatever its description says. Read from a file rather than held as a tuple so the merge-base ratchet can see it, and because a NEW directory that declares a LabelSet must be added here in the same change -- check-canon-citations.py refuses one that is not.",
+  "prefixes": [
+    "Sources/LogicProMCP/Accessibility/",
+    "Sources/LogicProMCP/HostParameters/",
+    "Sources/LogicProMCP/Channels/",
+    "Sources/LogicProMCP/SelectorAtlas/",
+    "Sources/LogicProMCP/MainEntrypoint.swift",
+    "docs/observations/",
+    "docs/locale/",
+    "docs/canon/",
+    "Scripts/livekit/"
+  ]
+}

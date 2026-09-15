@@ -456,17 +456,32 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
             manifest = json.load(handle)
         return manifest["sources"]["quickhelp"]
 
-    def _surrogate(self, *, shared=3, suffix_pairs=40, shortest=8):
-        """A composition table with every structural case, in text nobody else wrote."""
+    def _surrogate(self, locale="ko"):
+        """A composition table with every structural case, in text nobody else wrote.
+
+        The parameters are READ from `MANIFEST.json`'s `shape` block, not typed here. An earlier
+        version typed them and said it read them, which is the same defect as a number typed into
+        prose -- and the one this whole change is about. The real corpus is scaled down by a
+        constant so the fixture stays fast; the RATIOS and the extremes are preserved.
+        """
+        shape = self._shape().get("shape", {}).get(locale)
+        if not shape:
+            self.skipTest(f"the manifest carries no shape for {locale}")
+        scale = max(1, shape["compositions"] // 200)
+        shortest = shape["shortest"]
+        shared = shape["most_keys_on_one_composition"]
+        shared_count = max(1, shape["shared_by_more_than_one_key"] // scale)
+        suffix_pairs = max(1, shape["suffix_pairs"])
+        plain = max(1, shape["compositions"] // scale) - shared_count - suffix_pairs * 2 - 5
         by_composed = {}
         # Plain entries, one key each, at and above the anchor floor.
-        for n in range(200):
+        for n in range(max(1, plain)):
             by_composed[f"Widget {n} control. It does the thing numbered {n}."] = [f"PLAIN_{n}"]
         # Compositions at exactly the corpus minimum length.
         for n in range(5):
             by_composed[("s" * shortest) + str(n)] = [f"SHORT_{n}"]
         # Shared compositions: several keys behind one string, which the real corpus has 3,766 of.
-        for n in range(30):
+        for n in range(shared_count):
             by_composed[f"Shared surface {n}. Two controls read identically here."] = [
                 f"SHARED_{n}_{k}" for k in range(shared)]
         # Suffix-containment pairs: a shorter composition that is the tail of a longer one, which
@@ -505,6 +520,14 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
         """Read the shape rather than assume it, or the surrogate drifts from what it stands for."""
         shape = self._shape()
         self.assertIn("round_trip", shape)
+        self.assertIn("shape", shape)
+        for locale, row in shape["shape"].items():
+            index = self._surrogate(locale) if locale == "ko" else None
+            if index is None:
+                continue
+            self.assertGreaterEqual(min(len(c) for c in index.by_composed), row["shortest"] - 1)
+            self.assertEqual(max(len(k) for k in index.by_composed.values()),
+                             row["most_keys_on_one_composition"])
         for locale, row in shape["round_trip"].items():
             self.assertEqual(row["whole"], row["compositions"], locale)
             self.assertEqual(row["with_a_runtime_prefix"], row["compositions"], locale)

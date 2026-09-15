@@ -6,6 +6,7 @@ a guard nobody has pointed at the thing it is for -- which is how `check-livekit
 came to scan `Sources/` while the defect lived in `Scripts/livekit`.
 """
 import importlib.util
+import json
 import os
 import tempfile
 import unittest
@@ -73,6 +74,22 @@ jobs:
 
 
 class Refusals(unittest.TestCase):
+    def setUp(self):
+        """Point the guard at a policy of its own, so a fixture is judged by fixture rules.
+
+        The real `CI-GATE.json` names commands the real workflow carries; a three-job fixture does
+        not carry them, and judging the fixture by the repository's policy made every case fail on
+        a missing command rather than on the defect it injected.
+        """
+        self.policy = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                                  encoding="utf-8")
+        json.dump({"not_required": {"build": "it IS the gate"}, "required_commands": []},
+                  self.policy)
+        self.policy.close()
+        self.addCleanup(os.remove, self.policy.name)
+        self.saved, guard.POLICY_PATH = guard.POLICY_PATH, self.policy.name
+        self.addCleanup(lambda: setattr(guard, "POLICY_PATH", self.saved))
+
     def _check(self, text):
         handle = tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False, encoding="utf-8")
         handle.write(text)
@@ -104,11 +121,19 @@ class Refusals(unittest.TestCase):
         self.assertTrue(any("no `build` job" in p for p in problems), problems)
 
     def test_a_waiver_for_a_job_that_is_gone_fails(self):
-        saved = dict(guard.NOT_REQUIRED)
-        guard.NOT_REQUIRED["ghost"] = "reason"
-        self.addCleanup(lambda: (guard.NOT_REQUIRED.clear(), guard.NOT_REQUIRED.update(saved)))
+        with open(self.policy.name, "w", encoding="utf-8") as handle:
+            json.dump({"not_required": {"build": "x", "ghost": "reason"},
+                       "required_commands": []}, handle)
         problems = self._check(FLOW)
         self.assertTrue(any("outlived its reason" in p for p in problems), problems)
+
+    def test_a_required_command_that_no_step_runs_fails(self):
+        """A required JOB says nothing about its STEPS; deleting a step leaves the job green."""
+        with open(self.policy.name, "w", encoding="utf-8") as handle:
+            json.dump({"not_required": {"build": "x"},
+                       "required_commands": ["python3 Scripts/nothing-runs-this.py"]}, handle)
+        problems = self._check(FLOW)
+        self.assertTrue(any("no step runs" in p for p in problems), problems)
 
 
 class AgainstTheRealWorkflow(unittest.TestCase):

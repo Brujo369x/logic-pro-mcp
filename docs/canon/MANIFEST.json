@@ -184,6 +184,88 @@
           "whole": 7056,
           "with_a_runtime_prefix": 7056
         }
+      },
+      "shape": {
+        "de": {
+          "compositions": 7026,
+          "median_length": 120,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 989,
+          "shortest": 17,
+          "suffix_pairs": 2
+        },
+        "en": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        },
+        "es": {
+          "compositions": 7036,
+          "median_length": 120,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 997,
+          "shortest": 18,
+          "suffix_pairs": 3
+        },
+        "fr": {
+          "compositions": 7034,
+          "median_length": 124,
+          "most_keys_on_one_composition": 60,
+          "shared_by_more_than_one_key": 993,
+          "shortest": 16,
+          "suffix_pairs": 8
+        },
+        "it": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        },
+        "ja": {
+          "compositions": 7030,
+          "median_length": 57,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 996,
+          "shortest": 9,
+          "suffix_pairs": 7
+        },
+        "ko": {
+          "compositions": 7058,
+          "median_length": 54,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 989,
+          "shortest": 11,
+          "suffix_pairs": 14
+        },
+        "pt": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        },
+        "zh_CN": {
+          "compositions": 7031,
+          "median_length": 34,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 997,
+          "shortest": 8,
+          "suffix_pairs": 7
+        },
+        "zh_TW": {
+          "compositions": 7056,
+          "median_length": 98,
+          "most_keys_on_one_composition": 32,
+          "shared_by_more_than_one_key": 987,
+          "shortest": 14,
+          "suffix_pairs": 6
+        }
       }
     },
     "strings": {

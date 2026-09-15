@@ -1194,6 +1194,45 @@ def scan_repo_citations(repo: str = REPO) -> dict[str, list[str]]:
 # build
 # ---------------------------------------------------------------------------
 
+def corpus_shape(app: str) -> dict:
+    """The structural facts a surrogate corpus needs in order to stand for the real one.
+
+    Published because the surrogate test claimed to read the shape and did not -- its parameters
+    were typed into the fixture, which is the same defect as a number typed into prose. These are
+    all near-linear: the suffix-pair count buckets by the last twelve characters first, so it does
+    not pay the quadratic price of comparing every composition with every other.
+    """
+    out = {}
+    for locale in EXPECTED_LOCALES:
+        path = os.path.join(app, "Contents", "Resources", f"{locale}.lproj", "QuickHelp.plist")
+        if not os.path.exists(path):
+            continue
+        index = QuickHelpIndex.from_app(app, locale, min_anchor=1)
+        lengths = sorted(len(c) for c in index.by_composed)
+        sizes = [len(keys) for keys in index.by_composed.values()]
+        buckets: dict = {}
+        for composed in index.by_composed:
+            if len(composed) >= 12:
+                buckets.setdefault(composed[-12:], []).append(composed)
+        pairs = 0
+        for group in buckets.values():
+            if len(group) < 2:
+                continue
+            for short in group:
+                for long in group:
+                    if long is not short and len(long) > len(short) and long.endswith(short):
+                        pairs += 1
+        out[locale] = {
+            "compositions": len(index.by_composed),
+            "shortest": lengths[0],
+            "median_length": lengths[len(lengths) // 2],
+            "shared_by_more_than_one_key": sum(1 for n in sizes if n > 1),
+            "most_keys_on_one_composition": max(sizes),
+            "suffix_pairs": pairs,
+        }
+    return out
+
+
 def round_trip_report(app: str) -> dict:
     """Compose every QuickHelp entry the way Logic does, parse it back, and require the same keys.
 
@@ -1346,6 +1385,7 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
     if "quickhelp" in manifest["sources"]:
         report = round_trip_report(app)
         manifest["sources"]["quickhelp"]["round_trip"] = report
+        manifest["sources"]["quickhelp"]["shape"] = corpus_shape(app)
         broken = {locale: row for locale, row in report.items()
                   if row["whole"] != row["compositions"]
                   or row["with_a_runtime_prefix"] != row["compositions"]}

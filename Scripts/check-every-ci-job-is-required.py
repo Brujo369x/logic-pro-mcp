@@ -24,6 +24,7 @@ required gate. `canon-issue.yml` runs on `issues`, has no merge to block and no 
 contract. A future workflow that DOES gate a merge needs its own entry here or this guard will not
 see it.
 """
+import json
 import os
 import sys
 
@@ -31,11 +32,24 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW = os.path.join(REPO, ".github", "workflows", "ci.yml")
 GATE = "build"
 
-#: Jobs that legitimately sit outside the required gate. Each needs a reason a person can check.
-#: This list may only SHRINK -- a job added here is a gate somebody decided not to require.
-NOT_REQUIRED = {
-    "build": "it IS the gate; a job cannot require itself",
-}
+#: Jobs outside the required gate, and the COMMANDS the workflow must still carry, both read from
+#: a file. Held as module constants first, which meant a job could be excused -- or a step deleted
+#: -- in the same commit that did it: the hole `check-canon-citations.py`'s rule 7 exists to close,
+#: open here while that rule guarded three other lists.
+#:
+#: `required_commands` exists because a JOB being required says nothing about its STEPS. The
+#: tree-wide citation check runs with `--changed` in one step of one job, and deleting that step
+#: leaves the job green and the check unaimed.
+POLICY_PATH = os.path.join(REPO, "docs", "canon", "CI-GATE.json")
+
+
+def policy() -> dict:
+    with open(POLICY_PATH, "r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+    for key in ("not_required", "required_commands"):
+        if key not in loaded:
+            raise SystemExit(f"{POLICY_PATH}: no `{key}`")
+    return loaded
 
 
 def jobs_and_needs(text: str):
@@ -92,19 +106,26 @@ def check(path: str = WORKFLOW):
         return [f"{path}: there is no `{GATE}` job, so nothing here knows what the required gate is"]
     if not needs:
         problems.append(f"{path}: `{GATE}` has no `needs`, so it requires nothing")
+    rules = policy()
+    not_required = rules["not_required"]
     for job in names:
-        if job in needs or job in NOT_REQUIRED:
+        if job in needs or job in not_required:
             continue
         problems.append(
             f"{path}: job `{job}` is in no required gate. It can run, it can fail, and the merge is "
             f"permitted anyway. Add it to `{GATE}.needs`, or name it in NOT_REQUIRED with why.")
-    for job in sorted(NOT_REQUIRED):
+    for job in sorted(not_required):
         if job not in names:
             problems.append(f"{path}: NOT_REQUIRED names `{job}`, which is not a job in this "
                             f"workflow. A waiver for something that does not exist is bookkeeping "
                             f"that outlived its reason.")
     for job in sorted(set(needs) - set(names)):
         problems.append(f"{path}: `{GATE}.needs` names `{job}`, which is not a job in this workflow")
+    for command in rules["required_commands"]:
+        if command not in text:
+            problems.append(
+                f"{path}: no step runs `{command}`. A required JOB says nothing about its STEPS, "
+                f"and deleting a step leaves the job green with the check unaimed.")
     return problems
 
 
@@ -116,8 +137,10 @@ def main() -> int:
             print(f"  {problem}", file=sys.stderr)
         return 1
     names, needs = jobs_and_needs(open(WORKFLOW, encoding="utf-8").read())
+    rules = policy()
     print(f"every one of {len(names)} CI job(s) is required by `{GATE}` or waived with a reason "
-          f"({len(needs)} required, {len(NOT_REQUIRED)} waived)")
+          f"({len(needs)} required, {len(rules['not_required'])} waived); "
+          f"{len(rules['required_commands'])} required command(s) present")
     return 0
 
 
