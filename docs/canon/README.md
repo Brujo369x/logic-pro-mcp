@@ -75,6 +75,17 @@ passed and every absence proof searched half the corpus it claimed. Each check v
 manifest against artefacts the same build wrote, so consistency was preserved while the claim
 shrank. Growing is free, because #895 has to add one.
 
+Its SIZE is ratcheted separately, because that comparison is a number rather than a membership.
+`verify_absence_counts` already reads the counts and its own docstring says what that is worth —
+the forgery needs "three consistent edits … instead of two", and a rebuild makes all three. Measured
+the same way: twelve sets truncated to 50 entries each, counts and digests rewritten to match,
+410,771 values discarded, `check-canon-citations` at exit 0 and 46 of 48 guards green, and
+`logic_canon.py absent strings es 'Pista'` answering ABSENT for a string Logic ships. Only six of
+the twenty-three corpora carry a committed index row, so `verify_index_against_absence` — the one
+check that could have seen it — is blind to the other seventeen by construction. A set may not lose
+entries while `MANIFEST.json` names the same Logic; a different Logic is allowed to hold different
+strings, and the rule says so on stderr instead of passing quietly.
+
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 
 - an absence claim over English `strings` is the weakest proof the system can produce, because

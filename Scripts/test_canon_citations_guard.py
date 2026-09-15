@@ -370,6 +370,63 @@ class GuardBehaviour(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("may only", result.stderr)
 
+    # -- rule 16: an absence set may not lose entries under the same Logic --------------------
+    # Rule 7 ratchets WHICH corpora are searched. Nothing watched how many values each holds, and
+    # `verify_absence_counts` says why its own reading is not enough: the forgery needs "three
+    # consistent edits" and a rebuild makes all three. Measured before these cases existed: twelve
+    # sets truncated to 50 entries, counts and digests rewritten, 410,771 values gone, exit 0.
+
+    def _shrink_a_set(self, body, by=lambda n: 50):
+        for source, block in body["sources"].items():
+            entries = block.get("absence_entries") or {}
+            for locale in entries:
+                entries[locale] = by(entries[locale])
+                return f"{source}/{locale}"
+        return None
+
+    def test_an_absence_set_that_lost_entries_fails(self):
+        self._make_repo_with_a_base()
+        name = None
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        name = self._shrink_a_set(body)
+        self.assertIsNotNone(name, "the fixture must declare absence_entries or this checks nothing")
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("at the merge base", result.stderr)
+        self.assertIn(name.split("/")[0], result.stderr)
+
+    def test_an_absence_set_that_gained_entries_passes(self):
+        """The positive control. A rebuild on the same Logic that finds MORE is not a regression."""
+        self._make_repo_with_a_base()
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        self._shrink_a_set(body, by=lambda n: n + 1000)
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertNotIn("over the same Logic", result.stderr)
+
+    def test_a_shrunken_set_under_a_different_logic_is_allowed_and_said_aloud(self):
+        """A different Logic holds different strings, so the rule steps aside -- visibly.
+
+        Silence here would make the escape the cheapest path: bump a version string and every
+        count is free. It is not free -- `check_build_agrees_with_the_ledger` then disagrees with
+        every record's host block -- but the note is what a reviewer reads.
+        """
+        self._make_repo_with_a_base()
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        self._shrink_a_set(body)
+        body["logic"] = dict(body.get("logic") or {}, build="9999")
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertIn("names a different Logic, so this is allowed", result.stderr)
+        self.assertNotIn("over the same Logic", result.stderr)
+
     def test_removing_from_a_waiver_list_passes(self):
         os.remove(os.path.join(self.root, "docs", "observations", "2000-01-01-seeded.json"))
         self.without_canon([])

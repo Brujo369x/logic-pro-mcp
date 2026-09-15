@@ -1621,7 +1621,14 @@ def _cmd_absent(args) -> int:
     rate = absence_false_positive(entries)
     if absent:
         print(f"ABSENT from {args.source}/{args.locale} "
-              f"({entries} values pinned; a false ABSENT is impossible here)")
+              f"({entries} values pinned; not among them)")
+        # The old wording here was "a false ABSENT is impossible", which is true of the DIGESTS --
+        # a set cannot hide a value it holds, so no collision produces this answer -- and read as a
+        # statement about Logic. It was measured misleading a reader: a corpus truncated to 50
+        # entries printed exactly that sentence for `strings es Pista`, a string Logic ships.
+        print(f"  No collision can cause this: a digest set cannot hide a value it holds. It is a "
+              f"claim about these {entries} entries, not about Logic. A set built over less than "
+              f"the corpus answers ABSENT for strings Logic ships.", file=sys.stderr)
         return 0
     print(f"PRESENT (or colliding) in {args.source}/{args.locale} "
           f"({entries} values pinned; collision chance {rate:.3e})", file=sys.stderr)

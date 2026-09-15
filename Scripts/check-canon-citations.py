@@ -254,6 +254,63 @@ def check_waivers_only_shrink(failures: list) -> None:
                     f"removes a rule.")
 
 
+def check_no_absence_set_shrinks(failures: list) -> None:
+    """Rule 16: an absence set may not lose entries while the Logic it was read from is the same.
+
+    Rule 7 ratchets WHICH corpora are searched. This ratchets HOW MANY values each one holds, and
+    it is a separate rule because the comparison is numeric rather than set membership.
+
+    `verify_absence_counts` already reads the counts, and its own docstring says what that is worth:
+    it "makes the forgery need three consistent edits -- the binary set, its digest, and a number a
+    reviewer reads -- instead of two." A rebuild makes all three consistently, so within one tree
+    nothing distinguishes a corpus from a corpus with most of it thrown away.
+
+    Measured: twelve absence sets truncated to 50 entries each, with the manifest's counts and
+    digests rewritten to match, discarded 410,771 values and left `check-canon-citations` at exit 0
+    and 46 of 48 repo guards green. `Scripts/logic_canon.py absent strings es 'Pista'` then answered
+    ABSENT for a string Logic ships. What caught the other two guards was three policy literals that
+    happen to be answered only in a shrunken locale -- incidental, and gone as soon as those three
+    are answered elsewhere.
+
+    Only six of the twenty-three corpora carry a committed index row, so `verify_index_against_absence`
+    -- the one check that could have seen this -- is blind to the other seventeen by construction.
+
+    A DIFFERENT Logic legitimately holds different strings, so the rule steps aside when the
+    manifest's `logic` block changes, and says so rather than passing quietly. That escape is not
+    free: `check_build_agrees_with_the_ledger` makes the same change disagree with every record's
+    host block until those are updated too.
+    """
+    base = _merge_base()
+    if base is None:
+        return                      # rule 7 reports an unreadable base; one voice is enough
+    before = _at_base(base, "docs/canon/MANIFEST.json")
+    if before is None:
+        return
+    now = _json(os.path.join(REPO, "docs", "canon", "MANIFEST.json"), {})
+    shrunk = []
+    for source, block in (before.get("sources") or {}).items():
+        for locale, was in (block.get("absence_entries") or {}).items():
+            here = ((now.get("sources") or {}).get(source) or {}).get("absence_entries") or {}
+            is_now = here.get(locale)
+            if is_now is None:
+                continue            # the corpus itself is gone; the corpus ratchet says so
+            if isinstance(was, int) and isinstance(is_now, int) and is_now < was:
+                shrunk.append((f"{source}/{locale}", was, is_now))
+    if not shrunk:
+        return
+    if (before.get("logic") or {}) != (now.get("logic") or {}):
+        # Stated, not swallowed. A reviewer should see which corpora moved and by how much.
+        for name, was, is_now in shrunk:
+            print(f"  note: absence/{name} holds {is_now} entries and held {was} at the merge base. "
+                  f"The manifest names a different Logic, so this is allowed here.", file=sys.stderr)
+        return
+    for name, was, is_now in shrunk:
+        failures.append(
+            f"absence/{name}.u32 holds {is_now} entries and held {was} at the merge base, over the "
+            f"same Logic. Every value dropped is a string that now proves ABSENT while Logic ships "
+            f"it. If the corpus really changed, the Logic in MANIFEST.json changed with it.")
+
+
 def check_build_agrees_with_the_ledger(manifest: dict, failures: list) -> None:
     """Rule 8: the canon index and the observation ledger must describe the same Logic.
 
@@ -910,6 +967,7 @@ def main() -> int:
     failures.extend(canon.verify_index_against_absence())
     check_build_agrees_with_the_ledger(manifest, failures)
     check_waivers_only_shrink(failures)
+    check_no_absence_set_shrinks(failures)
     check_every_json_is_a_record_or_declared(failures)
     check_labelsets_are_logic_facing(failures)
     changed = _changed_from_argv()
