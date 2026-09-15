@@ -1,0 +1,186 @@
+{
+  "id": "2026-09-15-policy-literals-against-logics-own-data",
+  "date": "2026-09-15",
+  "schema": 3,
+  "subject": "Whether the strings this product matches Logic's interface with are strings Logic ships",
+  "question": "Of the literals AXLocalePolicy matches against, how many exist in Logic's own data, and what are the ones that do not?",
+  "verdict": "partial",
+  "issues": [
+    892,
+    893
+  ],
+  "surface": "system.accessibility",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-policy-literals-against-canon.py",
+    "expected": "379 distinct literals; 113 a QuickHelp Title, 226 elsewhere in the bundle, 40 nowhere",
+    "cost": "~40s; reads the app bundle, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+  ],
+  "method": "Extracted only the `canonical` and `variants` fields of every LabelSet -- a first pass that also swept `rationale` counted 185 unmatched, and most of those were documentation prose, not labels. Folded each literal the way this module folds canonical text (NFC, NBSP to space, strip) and compared case-insensitively, because every LabelSet match mode in the product folds case. Searched QuickHelp Titles across all ten locale names first, then every value in the bundle's .strings corpus.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Project%20or%20Section%E2%80%A6#value",
+      "value": "Project or Section…",
+      "used_for": "the canonical spelling of the Bounce menu leaf, which this product carries with three ASCII full stops instead of the ellipsis Logic ships"
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/ko/Project%20or%20Section%E2%80%A6#value",
+      "value": "프로젝트 또는 섹션…",
+      "used_for": "the same leaf in Korean, where this product carries the same three-full-stop spelling"
+    }
+  ],
+  "canon_absent": [
+    {
+      "claim": "the literals this product matches with that exist nowhere in Logic's shipped data",
+      "strings": [
+        "Auto Punch",
+        "Auto-Punch",
+        "Rec",
+        "Package",
+        "One File per Track",
+        "Delete Tracks and Content",
+        "Set Locators…",
+        "드러머",
+        "세션 플레이어",
+        "트림"
+      ],
+      "searched": [
+        {
+          "source": "quickhelp",
+          "locale": "ko"
+        },
+        {
+          "source": "quickhelp",
+          "locale": "en"
+        },
+        {
+          "source": "strings",
+          "locale": "ko"
+        },
+        {
+          "source": "strings",
+          "locale": "en"
+        }
+      ],
+      "why_runtime": "Each is either a label Logic composes at runtime, a label drawn from a framework outside this corpus, or a string that was typed rather than read. This record does not decide which; it establishes that no canonical source answers for them, which is the precondition for a measurement being the only route."
+    }
+  ],
+  "observations": [
+    {
+      "what": "LabelSet definitions in AXLocalePolicy.swift",
+      "count": 156
+    },
+    {
+      "what": "distinct literals across their canonical and variants fields",
+      "count": 379
+    },
+    {
+      "what": "literals that are a QuickHelp Title in some shipped locale",
+      "count": 113
+    },
+    {
+      "what": "literals found elsewhere in the bundle's .strings corpus",
+      "count": 226
+    },
+    {
+      "what": "literals found nowhere in Logic",
+      "count": 40,
+      "values": [
+        "Auto Punch",
+        "Auto-Punch",
+        "Delete Tracks and Content",
+        "One File per Track",
+        "Package",
+        "Project or Section...",
+        "Rec",
+        "Set Locators…",
+        "Spuren Titel",
+        "Spuren enthält",
+        "Tempo-Informationen",
+        "audio effect",
+        "choose project",
+        "contents",
+        "external",
+        "software",
+        "stereo out",
+        "track content",
+        "track contents",
+        "track headers",
+        "tracks content",
+        "tracks contents",
+        "tracks header",
+        "tracks headers",
+        "クリック",
+        "トラックコンテンツ",
+        "가로 확대",
+        "가로 확대/축소",
+        "게인 축소",
+        "드러머",
+        "레코드 활성화",
+        "로케이터 설정…",
+        "세션 플레이어",
+        "읽기, 오토메이션이 활성화됨",
+        "채널 스트립에 플러그인 삽입",
+        "클릭",
+        "트랙 콘텐츠",
+        "트림",
+        "팬",
+        "프로젝트 또는 섹션..."
+      ]
+    },
+    {
+      "what": "two of the unmatched, re-asked with the ellipsis Logic actually uses",
+      "probe": "Project or Section... -> Project or Section…",
+      "result": "found, en and ko",
+      "note": "the product carries three ASCII full stops; Logic ships U+2026"
+    },
+    {
+      "what": "the Autopunch spellings",
+      "product_carries": [
+        "Auto Punch",
+        "Auto-Punch"
+      ],
+      "logic_ships": "Autopunch",
+      "found_as": "zCb-cM-hG2.title",
+      "note": "one word, and neither product spelling matches it"
+    },
+    {
+      "what": "the shape of the rest",
+      "deliberate_substrings": [
+        "audio effect",
+        "contents",
+        "external",
+        "software",
+        "stereo out",
+        "track content",
+        "track contents",
+        "track headers",
+        "choose project"
+      ],
+      "note": "lowercase fragments used for containment matching, which are not expected to be whole labels"
+    }
+  ],
+  "conclusion": "Of the 379 distinct literals AXLocalePolicy matches Logic's interface with, 113 are a QuickHelp Title and 226 more are somewhere in the bundle's .strings corpus, leaving 40 that exist nowhere in Logic. Those 40 are not one kind. Roughly half are lowercase fragments used for containment matching and were never meant to be whole labels. The rest look like labels, and two of them are demonstrably wrong: the product spells the Bounce leaf `Project or Section...` with three ASCII full stops in both English and Korean while Logic ships it with U+2026, and it carries both `Auto Punch` and `Auto-Punch` while Logic ships the single word `Autopunch`. Each is an invisible one-character difference against a set that is matched whole -- the same failure as `再生ヘッド位置` against `再生ヘッドの位置`, and the reason this axis exists. Nothing here was fixed: this repository has already learned that translating a label by guess is what produced the German track-creation report, and a string that is absent from the corpus is not thereby wrong.",
+  "limits": [
+    "Case-folded comparison, because every LabelSet match mode in the product folds case. A guard stricter than the thing it audits refuses honest readings.",
+    "The .strings corpus is what Scripts/logic_canon.py extracts: 2,537 files. Strings compiled into nibs, into the binary, or into a framework outside the app bundle are not in it, so `nowhere` means `not in this corpus`, never `not in Logic`.",
+    "Presence does not mean the interface uses it. Measured separately: the live UI shows untranslated `German` and `MIDI Region` although ko translations for both keys exist.",
+    "Absence does not mean wrong. A label Logic composes at runtime is absent and correct; this record does not separate those from typed ones.",
+    "The two demonstrated defects were found by re-asking with a different character. Nothing systematically re-asked the other 38, so there may be more of the same shape.",
+    "A first pass that swept the `rationale` field as well reported 185 unmatched. That number is wrong and is recorded here only so it is not mistaken for a measurement if it surfaces elsewhere."
+  ],
+  "evidence": [
+    "evidence/2026-09-15-policy-literals-against-logics-own-data.json"
+  ],
+  "supersedes": null
+}

@@ -7,78 +7,6 @@
   },
   "schema": 1,
   "sources": {
-    "madsp": {
-      "absence_entries": {
-        "-": 3914
-      },
-      "absence_false_positive": {
-        "-": 9.11299e-07
-      },
-      "cited_rows": 1,
-      "corpus_digest": "3e015ce94a8c7ff1889b360fc443fb96667cce1302649a9d4d467b9a298bb64e",
-      "entries": 14940,
-      "files": 128,
-      "locales": [
-        "-"
-      ]
-    },
-    "nib": {
-      "absence_entries": {
-        "-": 778
-      },
-      "absence_false_positive": {
-        "-": 1.81142e-07
-      },
-      "cited_rows": 0,
-      "corpus_digest": "50cc58b947e7a3bba4e11c438d8555e7e5737a823ba5b3b10cb51ff0bfbd7a07",
-      "entries": 3313,
-      "files": 1169,
-      "locales": [
-        "-"
-      ]
-    },
-    "quickhelp": {
-      "absence_entries": {
-        "de": 20557,
-        "en": 20670,
-        "es": 20656,
-        "fr": 20614,
-        "it": 20671,
-        "ja": 20609,
-        "ko": 20714,
-        "pt": 20671,
-        "zh_CN": 20581,
-        "zh_TW": 20671
-      },
-      "absence_false_positive": {
-        "de": 4.7863e-06,
-        "en": 4.812609e-06,
-        "es": 4.80935e-06,
-        "fr": 4.799571e-06,
-        "it": 4.812842e-06,
-        "ja": 4.798407e-06,
-        "ko": 4.822854e-06,
-        "pt": 4.812842e-06,
-        "zh_CN": 4.791887e-06,
-        "zh_TW": 4.812842e-06
-      },
-      "cited_rows": 5,
-      "corpus_digest": "21cc7dce8e354afa1ab3de915762a9b01054735823bd32c99114cd8fa5b2cadb",
-      "entries": 390820,
-      "files": 20,
-      "locales": [
-        "de",
-        "en",
-        "es",
-        "fr",
-        "it",
-        "ja",
-        "ko",
-        "pt",
-        "zh_CN",
-        "zh_TW"
-      ]
-    },
     "strings": {
       "absence_entries": {
         "de": 47515,
@@ -104,7 +32,7 @@
         "zh_CN": 1.1548866e-05,
         "zh_TW": 1.087226e-05
       },
-      "cited_rows": 2,
+      "cited_rows": 4,
       "corpus_digest": "56c5052ef711287eaaebdb624a6af07f28d6ae4be262d00dae759a42e6a7daa5",
       "entries": 605160,
       "files": 2537,
