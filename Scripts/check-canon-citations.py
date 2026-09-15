@@ -161,6 +161,22 @@ def _corpus_members(blob, key):
             for locale in (block.get("locales") or [])}
 
 
+def _skip_members(blob, key):
+    """One member per ALLOWED SKIP, not one per guard, so the number moves in the right direction.
+
+    A dict of guard -> {"skips": n} cannot be compared by membership alone: raising 4 to 5 and
+    lowering 5 to 4 both look like one member lost and one gained, and a single direction refuses
+    whichever of the two it was not written for -- the contradiction rule 7 already walked into
+    once. Emitting `path:0 … path:n-1` makes an allowance that GROWS gain a member, which shrink
+    refuses, and an allowance that falls only lose members, which shrink permits.
+    """
+    members = set()
+    for path, row in (blob.get(key) or {}).items():
+        for index in range(int((row or {}).get("skips") or 0)):
+            members.add(f"{path}:{index}")
+    return members
+
+
 def _ratchet_members(blob, key):
     value = blob.get(key)
     if isinstance(value, dict):
@@ -193,6 +209,8 @@ RATCHETS = (
      "path prefixes whose changes may not use the opt-out"),
     ("docs/canon/CI-GATE.json", "required_commands", "grow",
      "commands the required CI gate must carry"),
+    ("docs/canon/CI-SKIPS.json", "allowed", "shrink",
+     "cases guards are allowed to SKIP under CI", _skip_members),
     ("docs/canon/MANIFEST.json", "sources", "grow",
      "the (source, locale) corpora every absence proof searches", _corpus_members),
 )

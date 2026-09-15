@@ -493,6 +493,50 @@ class GuardBehaviour(unittest.TestCase):
         self.assertIn("names a different Logic, so this is allowed", result.stderr)
         self.assertNotIn("over the same Logic", result.stderr)
 
+    # -- rule 7 over the CI skip allowance ------------------------------------------------------
+    # A skip exits 0, so `run-repo-guards.py` reports ok for a check that ran nothing. The
+    # allowance lives in a file so this ratchet can see it, and its members are one per ALLOWED
+    # SKIP rather than one per guard, so the number moves in the right direction.
+
+    def _skips(self):
+        return os.path.join(self.root, "docs", "canon", "CI-SKIPS.json")
+
+    def _rewrite_skips(self, mutate):
+        with open(self._skips(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        mutate(body)
+        with open(self._skips(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+
+    def test_raising_a_skip_allowance_fails(self):
+        self._make_repo_with_a_base()
+        with open(self._skips(), encoding="utf-8") as handle:
+            name = sorted(json.load(handle)["allowed"])[0]
+        self._rewrite_skips(lambda body: body["allowed"][name].update(
+            skips=body["allowed"][name]["skips"] + 1))
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("CI-SKIPS", result.stderr)
+        self.assertIn("may only", result.stderr)
+
+    def test_lowering_a_skip_allowance_passes(self):
+        """The direction that must stay open, or the allowance can never be paid down."""
+        self._make_repo_with_a_base()
+        with open(self._skips(), encoding="utf-8") as handle:
+            name = sorted(json.load(handle)["allowed"])[0]
+        self._rewrite_skips(lambda body: body["allowed"][name].update(
+            skips=body["allowed"][name]["skips"] - 1))
+        result = self.run_guard()
+        self.assertNotIn("CI-SKIPS", result.stderr)
+
+    def test_a_new_guard_claiming_a_skip_fails(self):
+        self._make_repo_with_a_base()
+        self._rewrite_skips(lambda body: body["allowed"].update(
+            {"Scripts/check-something-new.py": {"skips": 1, "why": "because"}}))
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("check-something-new.py", result.stderr)
+
     def test_removing_from_a_waiver_list_passes(self):
         os.remove(os.path.join(self.root, "docs", "observations", "2000-01-01-seeded.json"))
         self.without_canon([])

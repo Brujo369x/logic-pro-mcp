@@ -21,9 +21,27 @@ belongs in Scripts/livekit/ as a live harness and is not picked up here.
 
 Every discovered file runs even after one fails, because "which guards are broken" is more useful
 than "the first one". The exit code is non-zero if any failed.
+
+EXIT 0 IS NOT EVIDENCE THAT ANYTHING RAN
+----------------------------------------
+This file keyed on the exit code alone, and two guards were found reporting `ok` having asserted
+nothing:
+
+  * `test_canon_citations_guard.py` raised `SkipTest` at module level when it could not find a
+    fixture. Sixty cases, zero assertions, exit 0. Its own docstring described that exact defect
+    being found and fixed -- in a replacement that kept the skip.
+  * `test_logic_canon.py` read its input from `/tmp`, which macOS rebuilds at boot, and skipped
+    when it was gone. The case carrying the measurement this repository's canon axis rests on.
+
+So a child must now show that it ran something. `Ran 0 tests` is a failure, no output at all is a
+failure, and skips are counted and printed rather than swallowed. Under CI a skip must be declared
+in `docs/canon/CI-SKIPS.json` with a reason and a number -- CI has no Logic, and the four cases that
+need it are the only honest skip in the tree.
 """
 import glob
+import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -59,6 +77,37 @@ def _isolated_env():
     return env
 
 
+RAN = re.compile(r"^Ran (\d+) tests? in ", re.M)
+SKIPPED = re.compile(r"\bskipped=(\d+)")
+
+
+def evidence_of_work(text: str):
+    """(skips, reason it does not count as a run). `None` reason means it ran something.
+
+    Two shapes reach here. `unittest` prints `Ran N tests`, which is exact. A plain-assert script
+    prints whatever it prints, so the only evidence available is that it printed at all -- weaker,
+    and true of all 48 files discovered today, so it is a floor rather than a guess.
+    """
+    ran = RAN.search(text)
+    skipped = SKIPPED.search(text)
+    skips = int(skipped.group(1)) if skipped else 0
+    if ran:
+        return skips, None if int(ran.group(1)) else "ran 0 tests"
+    return skips, None if text.strip() else "produced no output"
+
+
+def allowed_skips(rel: str) -> tuple:
+    """(how many skips this guard may report under CI, why). Read from a file so it is ratcheted."""
+    path = os.path.join(REPO, "docs", "canon", "CI-SKIPS.json")
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            allowed = (json.load(handle) or {}).get("allowed") or {}
+    except (OSError, json.JSONDecodeError):
+        return 0, "docs/canon/CI-SKIPS.json could not be read, so nothing is allowed to skip"
+    row = allowed.get(rel) or {}
+    return int(row.get("skips") or 0), row.get("why") or ""
+
+
 def main():
     files = discovered()
     if not files:
@@ -70,12 +119,26 @@ def main():
         rel = os.path.relpath(path, REPO)
         proc = subprocess.run([sys.executable, path], cwd=REPO,
                               capture_output=True, text=True, env=_isolated_env())
-        status = "ok  " if proc.returncode == 0 else "FAIL"
-        print(f"{status} {rel}")
-        if proc.returncode != 0:
+        text = proc.stdout + proc.stderr
+        skips, vacuous = evidence_of_work(text)
+        budget, why = allowed_skips(rel)
+        over_budget = (os.environ.get("CI") == "true" and skips > budget)
+        broken = proc.returncode != 0 or vacuous is not None or over_budget
+        note = f" ({skips} skipped)" if skips else ""
+        print(f"{'FAIL' if broken else 'ok  '} {rel}{note}")
+        if broken:
             failures.append(rel)
-            for line in (proc.stdout + proc.stderr).splitlines():
-                print(f"       {line}")
+            if vacuous is not None:
+                print(f"       it exited 0 and {vacuous}. An exit code is not evidence that a "
+                      f"check ran; a guard that asserts nothing reports the same as one that "
+                      f"passed.")
+            if over_budget:
+                print(f"       it skipped {skips} under CI and docs/canon/CI-SKIPS.json allows "
+                      f"{budget}{' (' + why + ')' if why else ''}. Declare the skip with a reason "
+                      f"or remove it -- a skip exits 0.")
+            if proc.returncode != 0:
+                for line in text.splitlines():
+                    print(f"       {line}")
     print()
     if failures:
         print(f"{len(failures)} of {len(files)} failed: {', '.join(failures)}")

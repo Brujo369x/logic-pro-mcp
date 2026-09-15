@@ -55,6 +55,7 @@ check time   (needs nothing)   resolve a citation against what was committed
 | `index/<source>.tsv` | key → digest, for keys something in this repository actually cites |
 | `absence/<source>.<locale>.u32` | the sorted 32-bit digest prefixes of **every** value in that corpus |
 | `WITHOUT-CANON.json` | records written before the rule. May only shrink. |
+| `CI-SKIPS.json` | how many cases each guard may SKIP under CI, and why. A skip exits 0, so a guard that ran nothing reports the same as one that passed. May only shrink |
 
 The index holds only cited keys on purpose. A full QuickHelp index is 295,050 rows across ten
 locales, and a checked-in artefact that size stops being read. The absence sets are the opposite:
