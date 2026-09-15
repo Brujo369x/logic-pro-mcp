@@ -1,0 +1,105 @@
+{
+  "id": "2026-09-16-absent-as-bytes-is-not-the-same-as-uncitable",
+  "date": "2026-09-16",
+  "subject": "Whether proving a string absent from the corpus proves the label it names is uncitable",
+  "question": "Can an absence proof stand while Logic ships the same label spelled slightly differently?",
+  "verdict": "wall",
+  "issues": [
+    893,
+    891
+  ],
+  "surface": "system.bundle",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/logic_canon.py absent strings en 'Input Port:'",
+    "expected": "NOT PROVEN, naming `Input Port` to locate",
+    "cost": "~5s; reads committed digest sets, not Logic"
+  },
+  "depends": [
+    "Scripts/logic_canon.py:fold_for_near_miss",
+    "Scripts/logic_canon.py:differs_only_by_decoration"
+  ],
+  "method": "Took three literals a branch had proved absent across every corpus and asked whether the corpus holds the same label without the punctuation. Then swept all 434 LabelSet literals for a canonical that is absent while a shipped label folds to it.",
+  "observations": [
+    {
+      "what": "corpora 'Input Port:' is absent from",
+      "count": 23
+    },
+    {
+      "what": "corpora holding a label that folds to it",
+      "count": 2,
+      "first": "strings/de"
+    },
+    {
+      "what": "LabelSet literals swept",
+      "count": 434
+    },
+    {
+      "what": "of those, present in Apple's data",
+      "count": 327
+    },
+    {
+      "what": "absent from Apple's data but named in an observation record",
+      "count": 94
+    },
+    {
+      "what": "in neither",
+      "count": 5
+    },
+    {
+      "what": "findings when the fold also folded case",
+      "count": 33
+    },
+    {
+      "what": "of those that were real",
+      "count": 3
+    },
+    {
+      "what": "records on main wrongly refused when the fold was a refusal",
+      "count": 7
+    },
+    {
+      "what": "digests in the committed folded sets",
+      "count": 684978
+    }
+  ],
+  "conclusion": "No. 'Input Port:' is absent from all 23 corpora and Logic ships 'Input Port', so a colon proves any label uncitable. Three literals were proved absent that way and none had been read off a screen. A second digest set over the same values with decoration removed answers the other half offline. It advises rather than refuses: the fold cannot separate a colon this repository added from a menu's ellipsis, which is macOS convention and which the Korean variant carries too, and folding case as well gave 33 findings of which 3 were real. Made a refusal first, it rejected 7 correct records on main whose strings are a LabelSet's deliberate tolerance variants beside a canonical of 'Autopunch', which is correct and citable.",
+  "limits": [
+    "The fold answers 'something differs from this only by decoration', never 'that is the same label'. Logic's `Set Locators` is a toolbar item and `Set Locators…` is the Navigate menu entry; they fold together and are different elements.",
+    "Case is not folded, so a label differing only in capitalisation is not reported. That is deliberate -- runtime matching is case-insensitive -- and it means this cannot see a canonical whose only error is a capital.",
+    "The 434 literals are those a LabelSet carries plus bare CJK literals under Sources/ and Scripts/livekit/. A Logic string matched anywhere else in the tree was not swept.",
+    "en-US host. The sweep reads committed digest sets over all ten locales, but the worked examples are English."
+  ],
+  "supersedes": null,
+  "schema": 3,
+  "evidence": [
+    "evidence/2026-09-16-absent-as-bytes-is-not-the-same-as-uncitable.json"
+  ],
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Input%20Port#value",
+      "value": "Input Port",
+      "used_for": "the label a branch proved uncitable by typing it with a colon; the worked example this whole change exists for",
+      "binding": {
+        "kind": "record",
+        "field": "observations"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Autopunch#value",
+      "value": "Autopunch",
+      "used_for": "the canonical beside `Auto Punch` and `Auto-Punch`, which are deliberate tolerance variants -- being absent from Apple's data is the point of them, and refusing them was the first version's mistake",
+      "binding": {
+        "kind": "record",
+        "field": "conclusion"
+      }
+    }
+  ]
+}
