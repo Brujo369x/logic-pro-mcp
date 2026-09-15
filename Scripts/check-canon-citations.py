@@ -135,15 +135,69 @@ def _merge_base():
     return None
 
 
-def _at_base(base, path):
-    shown = subprocess.run(["git", "show", f"{base}:{path}"],
-                           cwd=REPO, capture_output=True, text=True)
-    if shown.returncode != 0:
+def _git(*args):
+    out = subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True)
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def _show_json(sha, path):
+    out = subprocess.run(["git", "-C", REPO, "show", f"{sha}:{path}"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
         return None
     try:
-        return json.loads(shown.stdout)
+        return json.loads(out.stdout)
     except json.JSONDecodeError:
         return None
+
+
+def _at_base(base, path):
+    """The ratcheted file as the branch departed from it, or (None, why) dressed as None + a note.
+
+    The merge base not carrying the file is NOT the same as the file being new, and this returned
+    None for both and the caller skipped. `check-observation-ratchets.py`, one directory over,
+    already worked out why that is wrong, and this is the same walk:
+
+      * A delete-then-restore pair reaches a branch too. Treating it as a bootstrap adopts whatever
+        the restored file says as the permanent base.
+      * `--full-history`, or `rev-list` simplifies through a TREESAME merge and follows one parent,
+        so a delete on a side branch hides what the other parent did.
+      * In a shallow clone `rev-list` exits 0 with no output, so "no ancestor carries it" is not a
+        reading anyone can trust.
+
+    The window this closes is not hypothetical: every ratchet introduced on this branch was
+    invisible for exactly this reason, which is how rule 14 and rule 7 came to contradict each
+    other without anything firing.
+    """
+    found = _show_json(base, path)
+    if found is not None:
+        return found
+    history = _git("rev-list", "--full-history", "--max-count=200", base, "--", path)
+    for sha in (history or "").split():
+        prior = _show_json(sha, path)
+        if prior is not None:
+            _note(f"{path} is absent at the merge base {base[:8]}; ratcheted against "
+                  f"{sha[:8]}, the last ancestor carrying it.")
+            return prior
+    if _git("rev-parse", "--is-shallow-repository") == "true":
+        _note(f"{path}: history is truncated (shallow clone), so 'no ancestor carries it' is not "
+              f"a reading anyone can trust. Check out with fetch-depth: 0.")
+        return None
+    _note(f"{path} is carried by neither the merge base {base[:8]} nor any ancestor, so this is "
+          f"the commit that introduces it and its ratchet does not run here. It runs on the next "
+          f"branch -- a contradiction introduced with a new list is invisible until then.")
+    return None
+
+
+_SAID = set()
+
+
+def _note(message):
+    """Said once. Two rules ratchet MANIFEST.json, and a note repeated per caller reads as two
+    findings rather than one fact about the branch."""
+    if message not in _SAID:
+        _SAID.add(message)
+        print(f"  note: {message}", file=sys.stderr)
 
 
 def _corpus_members(blob, key):

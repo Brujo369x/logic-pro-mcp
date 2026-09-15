@@ -543,6 +543,51 @@ class GuardBehaviour(unittest.TestCase):
         result = self.run_guard()
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    # -- the base the ratchets are measured against ---------------------------------------------
+    def test_a_waiver_absent_at_the_base_is_ratcheted_against_the_last_ancestor_carrying_it(self):
+        """Delete-then-restore must not become the new base.
+
+        `_at_base` returned None both when the file is NEW and when the merge base does not carry
+        it, and the caller skipped for both. So a pair of commits -- delete the waiver, restore it
+        with anything written in -- handed the ratchet whatever the restored file said. The walk is
+        the one `check-observation-ratchets.py` already does one directory over.
+        """
+        self._make_repo_with_a_base()                       # commit 1 carries the waiver
+        waiver = os.path.join(self.root, "docs", "canon", "WITHOUT-CANON.json")
+        os.remove(waiver)
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "delete the waiver")
+        self.without_canon(["docs/observations/2000-01-01-seeded.json",
+                            "docs/observations/2026-09-15-new.json"])
+        self.record("2026-09-15-new.json", {"schema": 1, "id": "new"})
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("may only SHRINK", result.stderr)
+        self.assertIn("last ancestor carrying it", result.stderr)
+
+    def test_a_list_no_ancestor_ever_carried_says_its_ratchet_did_not_run(self):
+        """The honest bootstrap, and it must be audible.
+
+        Every ratchet introduced on this branch was silent for this reason, which is how rule 14
+        and rule 7 came to contradict each other with nothing firing.
+        """
+        self._make_repo_with_a_base()
+        path = os.path.join(self.root, "docs", "canon", "BRAND-NEW-LIST.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump({"prefixes": ["Sources/"]}, handle)
+        guard = os.path.join(self.root, "Scripts", "check-canon-citations.py")
+        with open(guard, encoding="utf-8") as handle:
+            body = handle.read()
+        body = body.replace('    ("docs/canon/CI-GATE.json", "required_commands", "grow",',
+                            '    ("docs/canon/BRAND-NEW-LIST.json", "prefixes", "grow", "a new list"),\n'
+                            '    ("docs/canon/CI-GATE.json", "required_commands", "grow",', 1)
+        self.assertIn("BRAND-NEW-LIST", body, "the ratchet table anchor moved; this case is inert")
+        with open(guard, "w", encoding="utf-8") as handle:
+            handle.write(body)
+        result = self.run_guard()
+        self.assertIn("BRAND-NEW-LIST.json is carried by neither", result.stderr)
+        self.assertIn("does not run here", result.stderr)
+
     def test_a_shallow_checkout_under_ci_fails_rather_than_degrading(self):
         # Remove the repository setUp made: this case is about the state a shallow clone leaves,
         # where no merge base resolves.
