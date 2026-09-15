@@ -32,6 +32,7 @@ harder question, **"what have we never measured?"**
 | `system.accessibility` | the AX bridge itself: whether Logic's tree is readable at all, and what the session state does to it |
 | `system.midi` | CoreMIDI endpoints, MCU, control surfaces |
 | `system.preferences` | Settings and Key Commands |
+| `system.bundle` | the shipped application's own files — `.strings` tables, QuickHelp, nibs — read off disk rather than off a running Logic. A reading here is about what Apple ships, not about what the interface does with it |
 
 Add a row before using a new value. A taxonomy that grows silently per record is a list of strings,
 not a map — `Scripts/check-observation-records.py` refuses a `surface` that is not in this table.

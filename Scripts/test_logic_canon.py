@@ -449,6 +449,129 @@ class CitationAndArtifactChecks(unittest.TestCase):
 
 
 
+class LocatingAStringForCitation(unittest.TestCase):
+    """`locate_in` issues citations; `AXStringResolver.resolve` reverses live readings.
+
+    They are separate because their corpora are. `resolve` reads `StringsIndex` -- 10,395
+    (unit, key) pairs for ko -- while `extract_strings` yields 60,048, so 83% of the corpus is
+    invisible to it and it answers None for strings Apple ships. Measured while preparing two
+    pull requests: `설치` and `키 레이블로 학습` both resolve to None and both are citable, at
+    `Install.strings/164.title` and `KeyCommands.strings/300557.title`. An author reading None
+    as "uncitable" would have declared a shipped string absent.
+
+    Driven over ROWS rather than over Logic, deliberately. A case needing Logic could not run in
+    CI, and `docs/canon/CI-SKIPS.json` is shrink-only -- adding a fifth skip is admitting debt,
+    which is the ratchet working rather than a wall to route around.
+    """
+
+    ROWS = [
+        ("Contents/.../Localizable.strings", "ko", "Install…", "value", "설치…"),
+        ("Contents/.../Install.strings", "ko", "164.title", "value", "설치"),
+        ("Contents/.../MAContentDownload.strings", "ko", "73.title", "value", "설치"),
+        ("Contents/.../Localizable.strings", "en", "Install…", "value", "Install…"),
+        ("Contents/.../Elsewhere.strings", "ko", "9.title", "value", "설치 완료"),
+    ]
+
+    def test_a_whole_value_is_found_everywhere_it_occurs(self):
+        hits = canon.locate_in(self.ROWS, "설치", source="strings")
+        self.assertEqual([(u, k) for _, u, _, k, _ in hits],
+                         [("Contents/.../Install.strings", "164.title"),
+                          ("Contents/.../MAContentDownload.strings", "73.title")])
+
+    def test_a_substring_is_not_a_hit(self):
+        """`설치` occurs inside `설치 완료`, and a citation to that row would be false."""
+        hits = canon.locate_in(self.ROWS, "설치", source="strings")
+        self.assertNotIn("9.title", [k for _, _, _, k, _ in hits])
+
+    def test_the_comparison_is_normalized_on_both_sides(self):
+        rows = [("u", "ko", "k", "value", "\u00a0설치\u00a0")]
+        self.assertEqual(len(canon.locate_in(rows, " 설치 ", source="strings")), 1)
+
+    def test_a_string_in_no_row_yields_nothing(self):
+        self.assertEqual(canon.locate_in(self.ROWS, "결코 없는 문자열 91xq", source="strings"), [])
+
+    def test_a_hit_becomes_a_reference_that_parses_and_carries_no_whitespace(self):
+        """A reference with a space is truncated by `find_refs`, which scans prose for
+        non-whitespace -- the defect that once made every `strings` citation resolve to nothing."""
+        source, unit, locale, key, field = canon.locate_in(
+            self.ROWS, "설치…", source="strings")[0]
+        ref = canon.citation_for(source, unit, locale, key, field)
+        self.assertNotIn(" ", ref)
+        parsed = canon.CanonRef.parse(ref)
+        self.assertEqual(parsed.index_row(), (unit, locale, key, field))
+
+    #: One row shaped like each source actually yields, taken from a real extraction rather than
+    #: invented. `madsp` units carry SPACES ("Adaptive Limiter"), `strings` units carry SLASHES and
+    #: a dot, `nib` values are whole paths and `quickhelp` keys are bare. A reference with a space
+    #: in it is truncated by `find_refs`, which scans prose for non-whitespace -- the defect that
+    #: once made every `strings` citation resolve to nothing.
+    SHAPES = [
+        ("quickhelp", "QuickHelp", "en", "CSM_004_OpenInstall", "Title", "Install"),
+        ("strings", "Contents/Frameworks/Logic.framework/Versions/A/Resources/Install.strings",
+         "ko", "164.title", "value", "설치"),
+        ("madsp", "Adaptive Limiter", "-", "2", "name", "Gain"),
+        ("nib", "qhid", "-", "ART_03_NameField", "nibs",
+         "Contents/Frameworks/Logic.framework/Versions/A/Resources/Base.lproj/"
+         "ArticulationSettingsWindow.nib"),
+    ]
+
+    def test_one_key_across_ten_locales_is_one_row(self):
+        """The answer a person can act on. Ungrouped, `Smart Controls` printed forty-odd lines --
+        ten of them one QuickHelp key repeated once per locale -- and nobody chooses from that."""
+        hits = [("quickhelp", "QuickHelp", loc, "DMD_022_PadSmartControls", "Title")
+                for loc in ("de", "en", "es", "fr", "it", "ja", "ko", "pt", "zh_CN", "zh_TW")]
+        grouped = canon.group_by_key(hits)
+        self.assertEqual(len(grouped), 1)
+        source, unit, key, field, locales = grouped[0]
+        self.assertEqual(key, "DMD_022_PadSmartControls")
+        self.assertEqual(len(locales), 10)
+
+    def test_different_keys_stay_separate(self):
+        """Grouping must not merge candidates: choosing between them is the decision."""
+        hits = [("strings", "u", "de", "NewTrackSheetButton", "value"),
+                ("quickhelp", "QuickHelp", "de", "LLP_090_CopyTakeNewTrack", "Title")]
+        self.assertEqual(len(canon.group_by_key(hits)), 2)
+
+    def test_locales_are_deduplicated_and_ordered(self):
+        hits = [("strings", "u", "ko", "k", "value"),
+                ("strings", "u", "de", "k", "value"),
+                ("strings", "u", "ko", "k", "value")]
+        self.assertEqual(canon.group_by_key(hits)[0][4], ["de", "ko"])
+
+    def test_every_source_shape_round_trips_through_a_reference(self):
+        for source, unit, locale, key, field, value in self.SHAPES:
+            with self.subTest(source=source):
+                hit = canon.locate_in([(unit, locale, key, field, value)], value, source=source)
+                self.assertEqual(len(hit), 1, f"{source}: the row did not match its own value")
+                ref = canon.citation_for(*hit[0])
+                self.assertNotIn(" ", ref, f"{source}: a space truncates the reference")
+                self.assertEqual(canon.CanonRef.parse(ref).index_row(),
+                                 (unit, locale, key, field), f"{source}: did not round trip")
+
+    def test_a_reference_survives_find_refs_on_surrounding_prose(self):
+        """Building a valid reference is not enough; the scanner has to get it back WHOLE.
+
+        `_pct_encode` once allowed spaces, every reference parsed, and `find_refs` truncated each
+        one mid-string — so they resolved to nothing and reported a missing key rather than a
+        malformed one. `madsp` is the shape that would catch it: its units are plug-in names.
+        """
+        for source, unit, locale, key, field, value in self.SHAPES:
+            with self.subTest(source=source):
+                ref = canon.citation_for(*canon.locate_in(
+                    [(unit, locale, key, field, value)], value, source=source)[0])
+                prose = f"as recorded in {ref} and nowhere else.\n"
+                self.assertEqual(canon.find_refs(prose), [ref], f"{source}: scanned back wrong")
+
+    def test_it_sees_rows_the_resolver_cannot(self):
+        """The whole reason this exists, stated as a case rather than as a comment.
+
+        `StringsIndex` is built from a narrower walk, so a row in an IB-keyed table is invisible
+        to `resolve`. `locate_in` is given the rows directly and therefore cannot have that gap.
+        """
+        ib_keyed = [("Contents/.../Install.strings", "ko", "164.title", "value", "설치")]
+        self.assertEqual(len(canon.locate_in(ib_keyed, "설치", source="strings")), 1)
+
+
 class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
     """The round trip, run in CI, over a corpus SHAPED like Apple's but written by us.
 

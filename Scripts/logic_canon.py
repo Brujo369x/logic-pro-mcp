@@ -729,6 +729,67 @@ EXTRACTORS = {
 }
 
 
+def locate_in(rows, text: str, *, source: str = "?"):
+    """Every place `text` is a WHOLE value in `rows`, as citable (source, unit, locale, key, field).
+
+    Separate from `AXStringResolver.resolve`, and the separation is the point. `resolve` reads
+    `StringsIndex`, which holds 10,395 (unit, key) pairs for ko; `extract_strings` yields 60,048.
+    So 83% of the corpus is invisible to it, and it answers None for a string Apple ships -- which
+    an author reads as "uncitable" when a citation was available all along. Measured while
+    preparing two pull requests: `설치` resolves to None and lives at
+    `Install.strings/164.title` and `MAContentDownload.strings/73.title`; `키 레이블로 학습`
+    resolves to None and lives at `KeyCommands.strings/300557.title`. Both had to be dug out of
+    the extractor by hand.
+
+    The narrow table is right for what it does -- reversing a live AXHelp reading, where a match
+    in a content database would be noise. This is the other job: issuing a citation. It is a
+    function over ROWS rather than over an app so it can be driven without Logic installed.
+
+    The two references above, in the form this prints and `build` resolves. They live here rather
+    than in `docs/canon/README.md` because that directory is this module's own output and is
+    excluded from the citation scan, so a reference that lives only there is never resolved:
+
+        logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings/ko/164.title#value
+        logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/ko/300557.title#value
+    """
+    want = normalize(text)
+    return [(source, unit, locale, key, field)
+            for unit, locale, key, field, value in rows
+            if normalize(value) == want]
+
+
+def locate(app: str, text: str, *, sources=None, locales=None):
+    """`locate_in` over the installed Logic, across every source. Needs Logic."""
+    found = []
+    for name in (sources or sorted(EXTRACTORS)):
+        rows = EXTRACTORS[name](app)
+        if locales:
+            rows = (row for row in rows if row[1] in locales)
+        found.extend(locate_in(rows, text, source=name))
+    return found
+
+
+def group_by_key(hits) -> list:
+    """`locate` hits collapsed to one row per KEY: (source, unit, key, field, sorted locales).
+
+    A key is the same in every locale, so an ungrouped answer repeats it once per locale --
+    `Smart Controls` printed forty-odd lines, ten of them one QuickHelp key. Nobody chooses from
+    that. Grouping restates the same answer in the shape #892 measured: pick a key once and the
+    locales follow, 61 of 63 times.
+    """
+    groups: dict = {}
+    for source, unit, locale, key, field in hits:
+        groups.setdefault((source, unit, key, field), set()).add(locale)
+    return [(source, unit, key, field, sorted(locales))
+            for (source, unit, key, field), locales in sorted(groups.items())]
+
+
+def citation_for(source: str, unit: str, locale: str, key: str, field: str) -> str:
+    """The reference a `locate` hit becomes. One place builds these, so the encoding is one rule."""
+    return (f"logic-canon://{source}/{_pct_encode(unit)}/{locale}"
+            f"/{_pct_encode(key)}#{field}")
+
+
 # ---------------------------------------------------------------------------
 # the AXHelp parser
 # ---------------------------------------------------------------------------
@@ -943,7 +1004,8 @@ def load_index(source: str) -> dict[tuple[str, str, str, str], str]:
     The index holds ONLY keys something in this repository cites. That is a deliberate bound: the
     full QuickHelp index is 390,820 rows and would make every citation change a multi-megabyte
     diff, which is how a checked-in artefact stops being read. Growth is driven by
-    `build --refresh-citations`, which scans the tree for references and resolves exactly those.
+    `build`, which scans the tree for references and resolves exactly those (`--no-citations`
+    skips that pass).
 
     An earlier version of this docstring said 295,050 -- 9835 x 10 x 3, arithmetic over three
     fields, taken without running the extractor and omitting the `composed` field the index
@@ -1129,7 +1191,7 @@ def resolve_offline(ref: CanonRef) -> str:
             f"{ref} is not in docs/canon/index/{ref.source}.tsv.\n"
             f"  A citation must be resolved against Logic once, on a machine that has it, before "
             f"anything offline can check it. Run:\n"
-            f"    Scripts/logic_canon.py build --refresh-citations")
+            f"    Scripts/logic_canon.py build")
     return row
 
 
@@ -1598,6 +1660,44 @@ def _cmd_resolve(args) -> int:
     return 0
 
 
+def _cmd_locate(args) -> int:
+    """Where a string lives in Logic, as references ready to paste into a record or a body."""
+    if not os.path.isdir(args.app):
+        print(f"{args.app} is not installed. `locate` reads Apple's bytes and cannot run without "
+              f"them -- this is a build-time tool, like `build`.", file=sys.stderr)
+        return 2
+    hits = locate(args.app, args.text,
+                  sources=[args.source] if args.source else None,
+                  locales=[args.locale] if args.locale else None)
+    if not hits:
+        print(f"{args.text!r} is a whole value nowhere in the corpus. If a record needs it, that "
+              f"is an absence claim: Scripts/logic_canon.py absent <source> <locale> <text>",
+              file=sys.stderr)
+        return 1
+    if args.every:
+        for source, unit, locale, key, field in hits:
+            print(citation_for(source, unit, locale, key, field))
+            print(f"  value:  {args.text}")
+        return 0
+
+    # Grouped by KEY, because that is the unit of the decision. A key is the same in every locale,
+    # so `Smart Controls` printed forty-odd lines -- ten of them one QuickHelp key repeated once
+    # per locale -- and a person cannot choose from that. Grouping turns the same answer into the
+    # shape #892 measured: pick a key once and the locales follow.
+    groups = group_by_key(hits)
+    for source, unit, key, field, shown in groups:
+        pick = "en" if "en" in shown else shown[0]
+        print(citation_for(source, unit, pick, key, field))
+        print(f"  value:  {args.text}")
+        print(f"  locales: {len(shown)} -- {' '.join(shown)}")
+    if len(groups) > 1:
+        print(f"\n{len(groups)} candidate keys. The value does not choose between them and neither "
+              f"does this: a key that resolves is not the same as the key that MEANS what the "
+              f"change is about. `추가` is the value of `Add` and of a Drummer slider label.",
+              file=sys.stderr)
+    return 0
+
+
 def _cmd_check(args) -> int:
     failures = 0
     for pair in args.pair:
@@ -1728,6 +1828,16 @@ def main(argv=None) -> int:
     resolve_cmd = sub.add_parser("resolve", help="print the value a reference names")
     resolve_cmd.add_argument("ref")
     resolve_cmd.set_defaults(func=_cmd_resolve)
+
+    locate_cmd = sub.add_parser(
+        "locate", help="every place a string is a whole value in Logic, as references (needs Logic)")
+    locate_cmd.add_argument("text")
+    locate_cmd.add_argument("--app", default=DEFAULT_APP)
+    locate_cmd.add_argument("--source", choices=sorted(EXTRACTORS))
+    locate_cmd.add_argument("--locale")
+    locate_cmd.add_argument("--every", action="store_true",
+                            help="one line per locale instead of one per key")
+    locate_cmd.set_defaults(func=_cmd_locate)
 
     check_cmd = sub.add_parser("check", help="refuse unless <ref>=<value> holds offline")
     check_cmd.add_argument("pair", nargs="+")

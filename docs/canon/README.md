@@ -58,6 +58,28 @@ check time   (needs nothing)   resolve a citation against what was committed
 | `CI-SKIPS.json` | how many cases each guard may SKIP under CI, and why. A skip exits 0, so a guard that ran nothing reports the same as one that passed. May only shrink |
 | `PROSE-NUMBERS.json` | numbers this README may state that no artifact and no record carries, and why each has none. May only shrink |
 
+### Finding the citation in the first place
+
+`Scripts/logic_canon.py locate '<string>'` prints every place a string is a whole value in
+Logic, as references ready to paste. It exists because the AXHelp resolver is not the right
+instrument for this and quietly looked like it was: `AXStringResolver.resolve` reads
+`StringsIndex`, and the absence sets are built from `extract_strings`, which walks far more of the
+bundle — the two counts and the shortfall are measured in #897. A string living only in the part
+`resolve` cannot see answers `None` — which an author reads as *uncitable* — while
+`is_absent` correctly refuses the absence claim, leaving no automated path either way. Both
+`설치` and `키 레이블로 학습` are in that gap and both are citable. The narrow table is right
+for what `resolve` does, reversing a live reading; issuing a citation is a different job.
+
+The two examples above are the references it prints, and they are the citations #891 and #882
+need:
+
+```text
+logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings/ko/164.title#value
+  value:  설치
+logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/ko/300557.title#value
+  value:  키 레이블로 학습
+```
+
 The index holds only cited keys on purpose. A full QuickHelp index is 390,820 rows across ten
 locales, and a checked-in artefact that size stops being read. The absence sets are the opposite:
 they must be complete, because proving absence needs the whole corpus.

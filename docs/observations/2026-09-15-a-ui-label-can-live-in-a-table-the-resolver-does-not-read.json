@@ -1,0 +1,99 @@
+{
+  "id": "2026-09-15-a-ui-label-can-live-in-a-table-the-resolver-does-not-read",
+  "date": "2026-09-15",
+  "subject": "Where Logic keeps the strings for Install and Learn by Key Label, and whether the repository's own resolver can see them",
+  "question": "Is a string that AXStringResolver.resolve cannot resolve therefore uncitable?",
+  "verdict": "works",
+  "issues": [
+    897,
+    891,
+    882
+  ],
+  "surface": "system.bundle",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/logic_canon.py locate '설치' --source strings",
+    "expected": "two references, Install.strings/164.title and MAContentDownload.strings/73.title",
+    "cost": "~20s; reads the app bundle, launches nothing"
+  },
+  "depends": [
+    "Scripts/logic_canon.py:locate_in"
+  ],
+  "method": "Asked the extractor rather than the resolver. `resolve` reads StringsIndex; the absence sets are built from extract_strings. Compared the two populations by (unit, key), then looked up two strings that resolve to None.",
+  "observations": [
+    {
+      "what": "(unit, key) pairs extract_strings yields for ko",
+      "count": 60048
+    },
+    {
+      "what": "(unit, key) pairs StringsIndex holds for ko",
+      "count": 10395
+    },
+    {
+      "what": "pairs in the corpus that the resolver cannot see",
+      "count": 49653
+    },
+    {
+      "what": "places 설치 is a whole value in ko",
+      "count": 2,
+      "at": [
+        "Install.strings/164.title",
+        "MAContentDownload.strings/73.title"
+      ]
+    },
+    {
+      "what": "places 키 레이블로 학습 is a whole value in ko",
+      "count": 1,
+      "at": [
+        "KeyCommands.strings/300557.title"
+      ]
+    },
+    {
+      "what": "policy literals classified `nowhere` re-tested against the full corpus",
+      "count": 101
+    },
+    {
+      "what": "of those found to be present after all",
+      "count": 0
+    }
+  ],
+  "conclusion": "No. A string the resolver cannot resolve may still be a whole value in the corpus, and both strings checked here are. The resolver reads 10395 of the 60048 pairs the extractor yields for ko, so 49653 are outside it -- among them the IB-keyed tables where Logic keeps 설치 and 키 레이블로 학습. `is_absent` reads the full corpus and correctly refuses an absence claim for either, so an author who takes `resolve -> None` as uncitable has no path in either direction. The gap is confined to that one function: re-testing all 101 literals classified `nowhere` found 0 present, so the classification, the absence proofs and the AXHelp result are unaffected.",
+  "limits": [
+    "One locale. The 60048/10395 split was measured for ko only; the other locales were not counted.",
+    "One direction of the pair. Whether StringsIndex holds anything the extractor does NOT yield was not measured.",
+    "This says nothing about whether the resolver SHOULD read more. A content-database hit is noise when reversing a live AXHelp reading, which is what that table is for.",
+    "The two strings were chosen because two open pull requests need them, not by sampling. How many other labels sit in the same gap is unmeasured."
+  ],
+  "supersedes": null,
+  "schema": 3,
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings/ko/164.title#value",
+      "value": "설치",
+      "used_for": "the citation #891 needs for the Install button, and the first worked example of a string `resolve` answers None for",
+      "binding": {
+        "kind": "record",
+        "field": "observations"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/ko/300557.title#value",
+      "value": "키 레이블로 학습",
+      "used_for": "the citation #882 needs, and the second example -- it is the string that made #895 visible, because the English is in a nib and only the translated locales get a .strings overlay",
+      "binding": {
+        "kind": "record",
+        "field": "observations"
+      }
+    }
+  ],
+  "evidence": [
+    "evidence/2026-09-15-a-ui-label-can-live-in-a-table-the-resolver-does-not-read.json"
+  ]
+}
