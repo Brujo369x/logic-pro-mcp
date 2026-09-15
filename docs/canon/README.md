@@ -198,9 +198,9 @@ of trust is a file in the tree.
 | a committer acting in bad faith | **out of scope, by decision.** `MANIFEST.json` digests the index and the absence sets and is itself a tracked file, so write access is enough to forge all three consistently — review 2026-09-15 did it in three edits. Signing the artefacts would close that for a leaked credential, and it was built and then removed as over-engineering for a repository with one maintainer. The assumption is written here rather than defended. |
 | a fork pull request | the most, since a fork cannot rewrite the guard on the base branch |
 
-Two controls raise the cost of an accident rather than of an attack, which is what they are for:
-`verify_index_against_absence` and the absence entry counts make a forged row need three
-consistent edits — the TSV, the binary absence set, and a number a reviewer reads — instead of one.
+`verify_index_against_absence` and the absence entry counts raise the cost of an accident rather
+than of an attack, which is what they are for: a wrong row needs three consistent edits — the TSV,
+the binary absence set, and a number a reviewer reads — instead of one.
 
 `.github/CODEOWNERS` names an owner for `docs/canon/` and — measured 2026-09-15 — **does nothing**:
 the branch ruleset has `require_code_owner_review: false` and `required_approving_review_count: 0`.
@@ -208,13 +208,13 @@ That is the right setting for a solo maintainer, who cannot approve their own pu
 means CODEOWNERS is a statement of ownership rather than a control. Said here rather than left to
 look like one.
 
-What none of them does is verify the artefacts came from **Logic**. Only `build`, on a machine with
-Logic, ever touches Apple's bytes; signing says who vouched for the result.
+What the gate actually proves is that **a quoted value matches a previously committed digest**.
+Nothing here verifies the artefacts came from Logic: only `build`, on a machine with Logic, ever
+touches Apple's bytes, and what CI sees is the result of a build it cannot re-run.
 
-What the gate actually proves is that **a quoted value matches a previously committed digest**. Only
-`build`, on a machine with Logic, ever touches Apple's bytes. That is worth having: it makes the
-class of error that produced `再生ヘッド位置` against `再生ヘッドの位置` impossible to commit by
-accident. It is not a proof that Apple shipped the string.
+That is worth having. It makes the class of error that produced `再生ヘッド位置` against
+`再生ヘッドの位置` impossible to commit by accident, which is the error this repository actually
+makes. It is not a proof that Apple shipped the string.
 
 ## What this does **not** check
 
