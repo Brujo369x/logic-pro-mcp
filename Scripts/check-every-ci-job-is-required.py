@@ -26,6 +26,7 @@ see it.
 """
 import json
 import os
+import re
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -121,6 +122,21 @@ def check(path: str = WORKFLOW):
                             f"that outlived its reason.")
     for job in sorted(set(needs) - set(names)):
         problems.append(f"{path}: `{GATE}.needs` names `{job}`, which is not a job in this workflow")
+    # A job that reads the PULL REQUEST BODY is only as good as the events that start it.
+    # `pull_request:` with no `types:` defaults to opened, synchronize and reopened -- `edited` is
+    # NOT among them -- so the body gate saw the body as of the last PUSH and never again. Open a
+    # compliant pull request, let it go green, edit the citations out: nothing re-runs. The rule
+    # named the body; the enforcement site was the push.
+    if "--text" in text and "pull_request:" in text:
+        trigger = re.search(r"^\s*types:\s*\[([^\]]*)\]", text, re.M)
+        listed = {t.strip() for t in (trigger.group(1) if trigger else "").split(",") if t.strip()}
+        if "edited" not in listed:
+            problems.append(
+                f"{path}: a step runs `--text` over the pull request body, and the `pull_request` "
+                f"trigger does not list `edited`. The default types are opened, synchronize and "
+                f"reopened, so the body could be rewritten after the gate went green and nothing "
+                f"would re-read it.")
+
     for command in rules["required_commands"]:
         if command not in text:
             problems.append(

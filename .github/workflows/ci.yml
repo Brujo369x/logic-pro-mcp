@@ -5,6 +5,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # `edited` is NOT in the default set (opened, synchronize, reopened), and one job here reads
+    # the pull request BODY. Without it that gate only ever saw the body as of the last push:
+    # open a compliant pull request, let it go green, then edit the citations out, and nothing
+    # re-ran. The rule named the body and the enforcement site was the push.
+    #
+    # Everything runs on an edit rather than the body job alone, because `build` refuses a
+    # dependency whose result is `skipped` -- so narrowing this with an `if:` on compile and test
+    # would turn the only required context red on every edit. The cost is a full run on an event
+    # that happens rarely; the alternative is a gate that reads a body nobody re-checks.
+    types: [opened, synchronize, reopened, edited]
 
 # Least privilege: the build job only reads the repo. Declaring the scope here
 # (release.yml / publish-mcp.yml already pin theirs) drops the default token

@@ -136,9 +136,65 @@ class Refusals(unittest.TestCase):
         self.assertTrue(any("no step runs" in p for p in problems), problems)
 
 
+class TheBodyGateMustRerunWhenTheBodyChanges(unittest.TestCase):
+    """`pull_request:` with no `types:` never fires on `edited`, and one job reads the BODY.
+
+    So the gate saw the body as of the last PUSH and never again: open a compliant pull request,
+    let it go green, edit the citations out, and nothing re-runs. Measured on this repository's own
+    ruleset -- `build`, `compile` and `test` are the required contexts, and none of them would have
+    looked at the body again.
+    """
+
+    def _flow(self, trigger, body_step=True):
+        step = "python3 Scripts/check-canon-citations.py --text /tmp/b.md" if body_step else "true"
+        return f"""on:
+  pull_request:
+    branches: [main]
+{trigger}
+jobs:
+  reads-the-body:
+    steps:
+      - run: {step}
+  build:
+    needs: [reads-the-body]
+    steps:
+      - run: true
+"""
+
+    def _check(self, text):
+        with tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False) as handle:
+            handle.write(text)
+            path = handle.name
+        self.addCleanup(os.unlink, path)
+        return guard.check(path)
+
+    def test_the_default_types_are_refused_when_a_step_reads_the_body(self):
+        problems = self._check(self._flow(""))
+        self.assertTrue(any("does not list `edited`" in p for p in problems), problems)
+
+    def test_listing_edited_passes(self):
+        problems = self._check(self._flow("    types: [opened, synchronize, reopened, edited]"))
+        self.assertFalse(any("edited" in p for p in problems), problems)
+
+    def test_types_without_edited_is_refused(self):
+        """An explicit list is not automatically a complete one."""
+        problems = self._check(self._flow("    types: [opened, synchronize]"))
+        self.assertTrue(any("does not list `edited`" in p for p in problems), problems)
+
+    def test_a_workflow_that_reads_no_body_is_not_asked_for_edited(self):
+        """The rule is about the body, not about triggers in general."""
+        problems = self._check(self._flow("", body_step=False))
+        self.assertFalse(any("edited" in p for p in problems), problems)
+
+
 class AgainstTheRealWorkflow(unittest.TestCase):
     def test_the_repositorys_own_workflow_passes(self):
         self.assertEqual(guard.check(), [])
+
+    def test_the_real_workflow_rebuilds_when_the_body_is_edited(self):
+        text = open(guard.WORKFLOW, encoding="utf-8").read()
+        self.assertIn("edited", text)
+        self.assertIn("--text", text, "if the body step is gone this assertion is about nothing")
 
     def test_the_canon_citation_job_is_actually_required(self):
         """Named rather than left to the general rule, because this is the job that was omitted."""
