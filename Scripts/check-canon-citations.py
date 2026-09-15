@@ -254,11 +254,43 @@ def check_waivers_only_shrink(failures: list) -> None:
                     f"removes a rule.")
 
 
-def check_no_absence_set_shrinks(failures: list) -> None:
-    """Rule 16: an absence set may not lose entries while the Logic it was read from is the same.
+#: Numbers under `sources.*.shape` and `sources.*.round_trip` that may move DOWN without the
+#: claim getting weaker. Everything else there is ratcheted, so a structural number added later is
+#: covered by default rather than by somebody remembering to add it.
+NOT_A_STRENGTH = ("median_length", "shortest")
 
-    Rule 7 ratchets WHICH corpora are searched. This ratchets HOW MANY values each one holds, and
-    it is a separate rule because the comparison is numeric rather than set membership.
+
+def _measured_counts(manifest: dict) -> dict:
+    """Every number in the manifest whose decrease makes a claim in this repository cheaper."""
+    counts = {}
+    for source, block in (manifest.get("sources") or {}).items():
+        for locale, entries in (block.get("absence_entries") or {}).items():
+            if isinstance(entries, int):
+                counts[f"absence/{source}.{locale}.u32"] = entries
+        for group in ("shape", "round_trip"):
+            for locale, row in (block.get(group) or {}).items():
+                for field, value in (row or {}).items():
+                    if isinstance(value, int) and field not in NOT_A_STRENGTH:
+                        counts[f"{source}.{group}.{locale}.{field}"] = value
+    return counts
+
+
+def check_no_measured_count_shrinks(failures: list) -> None:
+    """Rule 16: a measured number may not shrink while the Logic it was read from is the same.
+
+    Rule 7 ratchets WHICH corpora are searched. This ratchets HOW MANY -- of anything the manifest
+    counts -- and it is a separate rule because the comparison is numeric rather than set
+    membership.
+
+    Two populations, found one after the other and the same underneath. The absence sets are the
+    denominator of every absence proof. `sources.quickhelp.shape` is the denominator of the only
+    proof that the parser works which CI can run: `TheAlgorithmAgainstASurrogateCorpus` builds its
+    fixture FROM those numbers, so shrinking them shrinks the test. Measured: setting
+    `suffix_pairs` to 1, `most_keys_on_one_composition` to 1 and `compositions` to 210 left a
+    surrogate with one suffix pair and no shared composition at all -- the property 3,766 real ko
+    keys have -- and all 62 cases reported OK. The case written to catch exactly that,
+    `test_the_surrogate_is_shaped_like_the_real_corpus`, cannot: every assertion in it compares the
+    surrogate against the same numbers that built the surrogate.
 
     `verify_absence_counts` already reads the counts, and its own docstring says what that is worth:
     it "makes the forgery need three consistent edits -- the binary set, its digest, and a number a
@@ -287,28 +319,30 @@ def check_no_absence_set_shrinks(failures: list) -> None:
     if before is None:
         return
     now = _json(os.path.join(REPO, "docs", "canon", "MANIFEST.json"), {})
-    shrunk = []
-    for source, block in (before.get("sources") or {}).items():
-        for locale, was in (block.get("absence_entries") or {}).items():
-            here = ((now.get("sources") or {}).get(source) or {}).get("absence_entries") or {}
-            is_now = here.get(locale)
-            if is_now is None:
-                continue            # the corpus itself is gone; the corpus ratchet says so
-            if isinstance(was, int) and isinstance(is_now, int) and is_now < was:
-                shrunk.append((f"{source}/{locale}", was, is_now))
+    was_counts, now_counts = _measured_counts(before), _measured_counts(now)
+    if was_counts and not now_counts:
+        failures.append(
+            "docs/canon/MANIFEST.json: the merge base declared measured counts and this tree "
+            "declares none. A block that disappears takes its ratchet with it, and the surrogate "
+            "corpus tests skip rather than fail when the shape is gone.")
+        return
+    shrunk = [(name, was, now_counts[name]) for name, was in sorted(was_counts.items())
+              if name in now_counts and now_counts[name] < was]
     if not shrunk:
         return
     if (before.get("logic") or {}) != (now.get("logic") or {}):
         # Stated, not swallowed. A reviewer should see which corpora moved and by how much.
         for name, was, is_now in shrunk:
-            print(f"  note: absence/{name} holds {is_now} entries and held {was} at the merge base. "
-                  f"The manifest names a different Logic, so this is allowed here.", file=sys.stderr)
+            print(f"  note: {name} is {is_now} and was {was} at the merge base. The manifest names "
+                  f"a different Logic, so this is allowed here.", file=sys.stderr)
         return
     for name, was, is_now in shrunk:
         failures.append(
-            f"absence/{name}.u32 holds {is_now} entries and held {was} at the merge base, over the "
-            f"same Logic. Every value dropped is a string that now proves ABSENT while Logic ships "
-            f"it. If the corpus really changed, the Logic in MANIFEST.json changed with it.")
+            f"{name} is {is_now} and was {was} at the merge base, over the same Logic. A measured "
+            f"number that falls makes something here cheaper to claim -- an absence set that lost "
+            f"values proves strings absent that Logic ships, and a shape that lost structure "
+            f"shrinks the surrogate corpus the parser is tested against. If Logic really changed, "
+            f"the Logic in MANIFEST.json changed with it.")
 
 
 def check_build_agrees_with_the_ledger(manifest: dict, failures: list) -> None:
@@ -967,7 +1001,7 @@ def main() -> int:
     failures.extend(canon.verify_index_against_absence())
     check_build_agrees_with_the_ledger(manifest, failures)
     check_waivers_only_shrink(failures)
-    check_no_absence_set_shrinks(failures)
+    check_no_measured_count_shrinks(failures)
     check_every_json_is_a_record_or_declared(failures)
     check_labelsets_are_logic_facing(failures)
     changed = _changed_from_argv()

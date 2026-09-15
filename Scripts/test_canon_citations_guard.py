@@ -398,6 +398,63 @@ class GuardBehaviour(unittest.TestCase):
         self.assertIn("at the merge base", result.stderr)
         self.assertIn(name.split("/")[0], result.stderr)
 
+    def test_a_shape_number_that_fell_fails(self):
+        """The second population rule 16 covers, and the one that shrinks a TEST rather than a proof.
+
+        `TheAlgorithmAgainstASurrogateCorpus` builds its fixture from these numbers, so lowering
+        them lowers the bar the parser has to clear.
+        """
+        self._make_repo_with_a_base()
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        shape = (body["sources"].get("quickhelp") or {}).get("shape") or {}
+        self.assertTrue(shape, "the fixture must carry a shape block or this checks nothing")
+        locale = sorted(shape)[0]
+        shape[locale]["suffix_pairs"] = 1
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("suffix_pairs", result.stderr)
+
+    def test_a_length_that_fell_is_not_a_weakening(self):
+        """`median_length` and `shortest` move with the language, not with the strength of a claim.
+
+        Ratcheting them would refuse a rebuild for a reason nobody can act on. Everything else
+        under shape and round_trip IS ratcheted, so a structural number added later is covered by
+        default rather than by somebody remembering.
+        """
+        self._make_repo_with_a_base()
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        shape = (body["sources"].get("quickhelp") or {}).get("shape") or {}
+        locale = sorted(shape)[0]
+        shape[locale]["median_length"] = 1
+        shape[locale]["shortest"] = 1
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertNotIn("median_length", result.stderr)
+        self.assertNotIn("over the same Logic", result.stderr)
+
+    def test_a_shape_block_that_disappeared_fails(self):
+        """A block that is gone takes its ratchet with it, and nothing downstream says so.
+
+        The surrogate corpus cases skip when the shape is missing, and a skip exits 0.
+        """
+        self._make_repo_with_a_base()
+        with open(self._manifest(), encoding="utf-8") as handle:
+            body = json.load(handle)
+        for block in body["sources"].values():
+            block.pop("shape", None)
+            block.pop("round_trip", None)
+            block.pop("absence_entries", None)
+        with open(self._manifest(), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("takes its ratchet with it", result.stderr)
+
     def test_an_absence_set_that_gained_entries_passes(self):
         """The positive control. A rebuild on the same Logic that finds MORE is not a regression."""
         self._make_repo_with_a_base()

@@ -86,6 +86,17 @@ check that could have seen it — is blind to the other seventeen by constructio
 entries while `MANIFEST.json` names the same Logic; a different Logic is allowed to hold different
 strings, and the rule says so on stderr instead of passing quietly.
 
+The same ratchet covers `shape` and `round_trip`, because those numbers are the denominator of the
+only proof CI can run that the parser is right. `TheAlgorithmAgainstASurrogateCorpus` builds its
+fixture FROM them, so lowering them lowers the bar: setting `suffix_pairs` to 1 and
+`most_keys_on_one_composition` to 1 left a surrogate with one suffix pair and no shared composition
+at all — the property 3,766 real ko keys have — and all 62 cases reported OK. The case named for
+catching that cannot, because every assertion in it compares the surrogate against the numbers that
+built the surrogate. Two floors now live in the test file rather than the manifest, and the same
+cases fail rather than SKIP under CI: a missing shape skipped four of the five, and a skip exits 0.
+`median_length` and `shortest` are exempt — they move with the language, not with the strength of a
+claim — and the exemption is declared, so a structural number added later is ratcheted by default.
+
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 
 - an absence claim over English `strings` is the weakest proof the system can produce, because

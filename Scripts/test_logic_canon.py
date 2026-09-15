@@ -470,12 +470,28 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
     """
 
     def _shape(self):
+        """The manifest, or a SKIP -- except under CI, where a skip is a silent pass.
+
+        These five cases are the only proof CI can run that the parser is right; the corpus they
+        stand for is inside Logic and no runner has it. So when the shape is missing they run
+        nothing, and `unittest` exits 0 with "skipped=4" while `run-repo-guards.py` prints ok.
+        Measured: deleting the `shape` and `round_trip` blocks skipped four of these five.
+
+        A developer without a built manifest should still be able to run the suite, so the skip
+        stays locally. CI always has the committed manifest, so there it is a failure.
+        """
         path = os.path.join(REPO, "docs", "canon", "MANIFEST.json")
         if not os.path.exists(path):
-            self.skipTest("no manifest to read the corpus shape from")
+            self._no_shape("no manifest to read the corpus shape from")
         with open(path, encoding="utf-8") as handle:
             manifest = json.load(handle)
         return manifest["sources"]["quickhelp"]
+
+    def _no_shape(self, why):
+        if os.environ.get("CI") == "true":
+            self.fail(f"{why}. Under CI this is a failure, not a skip: the manifest is committed, "
+                      f"so its absence means the only corpus proof CI can run ran nothing.")
+        self.skipTest(why)
 
     def _surrogate(self, locale="ko"):
         """A composition table with every structural case, in text nobody else wrote.
@@ -487,7 +503,7 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
         """
         shape = self._shape().get("shape", {}).get(locale)
         if not shape:
-            self.skipTest(f"the manifest carries no shape for {locale}")
+            self._no_shape(f"the manifest carries no shape for {locale}")
         scale = max(1, shape["compositions"] // 200)
         shortest = shape["shortest"]
         shared = shape["most_keys_on_one_composition"]
@@ -511,6 +527,15 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
             tail = f"Gain knob {n}. Amplifies or attenuates the signal."
             by_composed[tail] = [f"TAIL_{n}"]
             by_composed[f"Filter {tail}"] = [f"HEAD_{n}"]
+        # Floors that are NOT read from the manifest, so flattening the manifest cannot flatten
+        # them. Measured: setting `suffix_pairs` to 1 and `most_keys_on_one_composition` to 1 left
+        # a surrogate with no shared composition at all, and all 62 cases still reported OK.
+        self.assertGreaterEqual(sum(1 for v in by_composed.values() if v[0].startswith("HEAD_")), 2,
+                                "a surrogate with fewer than two suffix pairs cannot exercise "
+                                "longest-match, which is the property the parser rests on")
+        self.assertGreaterEqual(max(len(v) for v in by_composed.values()), 2,
+                                "a surrogate where no composition carries two keys has dropped the "
+                                "property 3,766 ko keys in the real corpus have")
         return canon.QuickHelpIndex("xx", {canon.normalize(k): v for k, v in by_composed.items()})
 
     def test_every_composition_round_trips_whole(self):
@@ -538,7 +563,14 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
                 self.assertEqual(index.parse_axhelp(composed).keys, keys, composed)
 
     def test_the_surrogate_is_shaped_like_the_real_corpus(self):
-        """Read the shape rather than assume it, or the surrogate drifts from what it stands for."""
+        """Read the shape rather than assume it -- and know what this case can and cannot see.
+
+        Every assertion below compares the surrogate against the numbers that BUILT the surrogate,
+        so it cannot notice those numbers falling. It was written as if it could. What actually
+        holds them up is rule 16 in `check-canon-citations.py`, which refuses a measured count that
+        shrinks while `MANIFEST.json` names the same Logic, and the two floors in `_surrogate`,
+        which are typed here rather than read.
+        """
         shape = self._shape()
         self.assertIn("round_trip", shape)
         self.assertIn("shape", shape)
