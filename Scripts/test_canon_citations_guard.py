@@ -63,6 +63,11 @@ class GuardBehaviour(unittest.TestCase):
                         os.path.join(self.root, "docs", "canon"))
         self.without_canon(["docs/observations/2000-01-01-seeded.json"])
         self.record("2000-01-01-seeded.json", {"schema": 1, "id": "seeded"})
+        # A real repository with a base commit, because the guard compares the waiver lists against
+        # `git merge-base` and fails OUTRIGHT under CI when it cannot. A fixture without git made
+        # every passing case fail the moment CI=true was set -- which is how the fixture had come
+        # to differ from the thing it checks. Predicted by review 2026-09-15 and reproduced.
+        self._make_repo_with_a_base()
 
     def without_canon(self, records):
         path = os.path.join(self.root, "docs", "canon", "WITHOUT-CANON.json")
@@ -231,7 +236,6 @@ class GuardBehaviour(unittest.TestCase):
         self._git("commit", "-q", "-m", "base")
 
     def test_adding_to_a_waiver_list_fails(self):
-        self._make_repo_with_a_base()
         self.without_canon(["docs/observations/2000-01-01-seeded.json",
                             "docs/observations/2026-09-15-new.json"])
         self.record("2026-09-15-new.json", {"schema": 1, "id": "new"})
@@ -240,13 +244,15 @@ class GuardBehaviour(unittest.TestCase):
         self.assertIn("may only SHRINK", result.stderr)
 
     def test_removing_from_a_waiver_list_passes(self):
-        self._make_repo_with_a_base()
         os.remove(os.path.join(self.root, "docs", "observations", "2000-01-01-seeded.json"))
         self.without_canon([])
         result = self.run_guard()
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_shallow_checkout_under_ci_fails_rather_than_degrading(self):
+        # Remove the repository setUp made: this case is about the state a shallow clone leaves,
+        # where no merge base resolves.
+        shutil.rmtree(os.path.join(self.root, ".git"), ignore_errors=True)
         env = dict(os.environ, CI="true")
         result = subprocess.run(
             [sys.executable, os.path.join(self.root, "Scripts", "check-canon-citations.py")],
