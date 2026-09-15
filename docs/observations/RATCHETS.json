@@ -50,7 +50,8 @@
    "2026-09-14-set-tempo-reported-a-verified-write-logic-had-refused-with-a-dialog",
    "2026-09-14-the-other-three-adr-009-criteria-measured-against-the-eq-path",
    "2026-09-14-the-seam-is-not-the-blocker-a-region-start-tick-is-not-readable",
-   "2026-09-14-the-transport-shows-ticks-when-the-display-mode-does"
+   "2026-09-14-the-transport-shows-ticks-when-the-display-mode-does",
+   "2026-09-15-the-korean-project-chooser-names-itself"
   ],
   "records_from_a_superseded_build": [],
   "records_without_evidence": [
@@ -189,7 +190,6 @@
    "ko-KR→editor.step",
    "ko-KR→inspector.channel_strip",
    "ko-KR→project.export",
-   "ko-KR→project.lifecycle",
    "ko-KR→system.preferences"
   ],
   "undocumented_variants": [
@@ -949,22 +949,9 @@
   "manual_reverify": {
    "date": "2026-09-15",
    "members": [
-    "2026-09-13-a-mixer-strip-is-described-by-its-channel-name-not-its-track-name",
-    "2026-09-13-eighteen-of-twenty-four-channel-eq-parameters-land-verified",
-    "2026-09-13-the-event-list-resolves-its-columns-and-follows-the-selected-region",
-    "2026-09-13-the-mcu-lcd-upper-row-names-the-visible-strips",
-    "2026-09-13-the-tempo-map-is-readable-and-follows-a-product-write",
-    "2026-09-13-what-stands-between-this-fixture-and-a-flex-pitch-measurement",
-    "2026-09-14-a-tempo-event-lands-on-a-sub-bar-position-and-the-list-reads-it",
-    "2026-09-14-adr-018-did-ship-one-module-and-the-row-counts-filenames",
-    "2026-09-14-eighteen-channel-eq-parameters-move-both-ways-and-stay-put",
-    "2026-09-14-logics-plugin-window-declares-neither-ax-association-attribute",
-    "2026-09-14-set-tempo-reported-a-verified-write-logic-had-refused-with-a-dialog",
-    "2026-09-14-the-other-three-adr-009-criteria-measured-against-the-eq-path",
-    "2026-09-14-the-seam-is-not-the-blocker-a-region-start-tick-is-not-readable",
-    "2026-09-14-the-transport-shows-ticks-when-the-display-mode-does"
+    "2026-09-15-the-korean-project-chooser-names-itself"
    ],
-   "reason": "The ledger was deleted on 2026-09-13 together with the release-qualification subsystem and restored on 2026-09-15. These members are the gaps that opened in the two days nothing was counting them: label variants and records written on 2026-09-13 and 2026-09-14 for the transport display-mode work, the MIDI-import panel and the German locale readings. They are admitted as a starting ceiling rather than closed, because closing them needs live readings and a raise is the honest way to carry a gap somebody has looked at. The guard that would have refused them at the time did not exist; it does now, and it refuses this file without this entry."
+   "reason": "The ko-KR New Project chooser record reverifies MANUALLY: reaching that window needs every project closed, which discards unsaved work, and a script that does that on an operator's machine is worse than a person following four steps. Carried for that reason, not for want of trying to script it."
   },
   "records_without_evidence": {
    "date": "2026-09-15",
