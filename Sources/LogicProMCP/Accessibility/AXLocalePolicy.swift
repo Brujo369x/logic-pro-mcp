@@ -159,8 +159,8 @@ enum AXLocalePolicy {
 
     static let viewMenuBar = LabelSet(
         canonical: "View",
-        variants: ["보기", "表示", "Ansicht"],
-        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+        variants: ["보기", "表示", "Ansicht", "Visualización", "Présentation", "Vista", "Visualizar", "显示", "顯示方式"],
+        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires. Extended on 2026-09-16 from the row Apple keys this menu title under -- Apple suffixes menu titles `#mti` and all 48 such keys carry all ten locales -- so every language Logic ships is covered. The reference and its value are cited in docs/observations/2026-09-16-seven-languages-reported-unknown.json. The variants read off running Logics before this change are each one of that row's own values -- nothing measured was dropped, and nothing was typed."
     )
 
     /// The third item this Logic build spells without a Show/Hide verb: the
@@ -197,8 +197,8 @@ enum AXLocalePolicy {
 
     static let windowMenuBar = LabelSet(
         canonical: "Window",
-        variants: ["윈도우", "ウインドウ", "Fenster"],
-        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+        variants: ["윈도우", "ウインドウ", "Fenster", "Ventana", "Fenêtre", "Finestra", "Janela", "窗口", "視窗"],
+        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires. Extended on 2026-09-16 from the row Apple keys this menu title under -- Apple suffixes menu titles `#mti` and all 48 such keys carry all ten locales -- so every language Logic ships is covered. The reference and its value are cited in docs/observations/2026-09-16-seven-languages-reported-unknown.json. The variants read off running Logics before this change are each one of that row's own values -- nothing measured was dropped, and nothing was typed."
     )
 
     /// This Logic build shows `All Plug-in Windows`, with no verb. `Hide All
@@ -300,8 +300,8 @@ enum AXLocalePolicy {
 
     static let fileMenuBar = LabelSet(
         canonical: "File",
-        variants: ["파일", "ファイル", "Ablage"],
-        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+        variants: ["파일", "ファイル", "Ablage", "Archivo", "Fichier", "Arquivo", "文件", "檔案"],
+        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires. Extended on 2026-09-16 from the row Apple keys this menu title under -- Apple suffixes menu titles `#mti` and all 48 such keys carry all ten locales -- so every language Logic ships is covered. The reference and its value are cited in docs/observations/2026-09-16-seven-languages-reported-unknown.json. The variants read off running Logics before this change are each one of that row's own values -- nothing measured was dropped, and nothing was typed."
     )
 
     /// #885 -- the three strings `project.new`'s chooser branch matched as bare English literals, so
@@ -393,8 +393,8 @@ enum AXLocalePolicy {
 
     static let editMenuBar = LabelSet(
         canonical: "Edit",
-        variants: ["편집", "編集", "Bearbeiten"],
-        rationale: "Undo is menu-only in the rollback path; post-undo inventory readback verifies outcome. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+        variants: ["편집", "編集", "Bearbeiten", "Edición", "Édition", "Modifica", "Editar", "编辑", "編輯"],
+        rationale: "Undo is menu-only in the rollback path; post-undo inventory readback verifies outcome. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires. Extended on 2026-09-16 from the row Apple keys this menu title under -- Apple suffixes menu titles `#mti` and all 48 such keys carry all ten locales -- so every language Logic ships is covered. The reference and its value are cited in docs/observations/2026-09-16-seven-languages-reported-unknown.json. The variants read off running Logics before this change are each one of that row's own values -- nothing measured was dropped, and nothing was typed."
     )
 
     /// #304: Edit > Tempo > Show Tempo List. These are the only Tempo-menu labels this surface
@@ -432,8 +432,8 @@ enum AXLocalePolicy {
     /// a future editor straight at deleting the measured label.)
     static let navigateMenuBar = LabelSet(
         canonical: "Navigate",
-        variants: ["탐색", "移動", "Navigieren"],
-        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+        variants: ["탐색", "移動", "Navigieren", "Navegar", "Naviguer", "Navigazione", "浏览", "導覽"],
+        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires. Extended on 2026-09-16 from the row Apple keys this menu title under -- Apple suffixes menu titles `#mti` and all 48 such keys carry all ten locales -- so every language Logic ships is covered. The reference and its value are cited in docs/observations/2026-09-16-seven-languages-reported-unknown.json. The variants read off running Logics before this change are each one of that row's own values -- nothing measured was dropped, and nothing was typed."
     )
 
     /// #519: the Track menu bar item.
@@ -445,8 +445,8 @@ enum AXLocalePolicy {
     /// language can join them instead of becoming a fourth element in a literal array.
     static let trackMenuBar = LabelSet(
         canonical: "Track",
-        variants: ["트랙", "トラック", "Spur"],
-        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+        variants: ["트랙", "トラック", "Spur", "Pista", "Piste", "Traccia", "轨道", "音軌"],
+        rationale: "Top-level menu titles expose no stable AXIdentifier in Logic. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires. Extended on 2026-09-16 from the row Apple keys this menu title under -- Apple suffixes menu titles `#mti` and all 48 such keys carry all ten locales -- so every language Logic ships is covered. The reference and its value are cited in docs/observations/2026-09-16-seven-languages-reported-unknown.json. The variants read off running Logics before this change are each one of that row's own values -- nothing measured was dropped, and nothing was typed."
     )
 
     /// #448 — Track > Sort Tracks By. Measured on 2026-09-02 on Logic Pro

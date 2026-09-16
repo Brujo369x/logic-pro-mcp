@@ -177,6 +177,55 @@ import Testing
     ) == nil)
 }
 
+@Test func testAXLogicProElementsRecognisesEveryLanguageLogicShips() {
+    // Ten, not three. Until 2026-09-16 a Logic running in any of the seven below answered
+    // `unknown`, which is also what an unreadable menu bar answers — so a German Logic and a
+    // broken AX tree were the same reading. The titles are the values Apple keys `File#mti`,
+    // `Edit#mti` and `Track#mti` under, checked against the pinned corpus by
+    // `Scripts/check-locale-detection-is-derived.py`.
+    let bars: [(String, [String])] = [
+        ("en-US", ["File", "Edit", "Track"]),
+        ("ko-KR", ["파일", "편집", "트랙"]),
+        ("ja-JP", ["ファイル", "編集", "トラック"]),
+        ("de-DE", ["Ablage", "Bearbeiten", "Spur"]),
+        ("es-ES", ["Archivo", "Edición", "Pista"]),
+        ("fr-FR", ["Fichier", "Édition", "Piste"]),
+        ("it-IT", ["File", "Modifica", "Traccia"]),
+        ("pt-BR", ["Arquivo", "Editar", "Pista"]),
+        ("zh-CN", ["文件", "编辑", "轨道"]),
+        ("zh-TW", ["檔案", "編輯", "音軌"]),
+    ]
+    for (expected, titles) in bars {
+        #expect(AXLogicProElements.logicUILocaleIdentifier(
+            menuTitles: ["Apple", "Logic Pro"] + titles
+        ) == expected)
+    }
+}
+
+@Test func testAXLogicProElementsKeepsLanguagesApartThatShareATitle() {
+    // Italian and English both call the File menu `File`, and Spanish and Portuguese both call
+    // the Track menu `Pista`. Detection is a SUBSET test over all three titles, so sharing one
+    // is not a collision — but sharing one is exactly the case a detector written against two
+    // languages never has to face, so it is asserted rather than assumed.
+    #expect(AXLogicProElements.logicUILocaleIdentifier(
+        menuTitles: ["File", "Modifica", "Traccia"]
+    ) == "it-IT")
+    #expect(AXLogicProElements.logicUILocaleIdentifier(
+        menuTitles: ["Archivo", "Edición", "Pista"]
+    ) == "es-ES")
+    #expect(AXLogicProElements.logicUILocaleIdentifier(
+        menuTitles: ["Arquivo", "Editar", "Pista"]
+    ) == "pt-BR")
+    // A bar carrying two languages is still no reading of either, now that there are ten.
+    #expect(AXLogicProElements.logicUILocaleIdentifier(
+        menuTitles: ["Ablage", "Bearbeiten", "Spur", "文件", "编辑", "轨道"]
+    ) == nil)
+    // And one title short of a language is still nothing, not the nearest guess.
+    #expect(AXLogicProElements.logicUILocaleIdentifier(
+        menuTitles: ["Fichier", "Édition"]
+    ) == nil)
+}
+
 @Test func testAXLogicProElementsFallbacksResolveScrollAreasAndOutline() {
     let builder = FakeAXRuntimeBuilder()
     let app = builder.element(21)
