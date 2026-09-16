@@ -1839,6 +1839,18 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                     unresolved.append(ref_text)
                     continue
                 wanted[ref.index_row()] = row
+                # And the SAME row in every other locale the source carries. A citation names one
+                # locale, but the thing worth checking offline is almost never one locale: it is
+                # that this control says the same thing in every language Logic ships. Without the
+                # siblings, a derivation over ten locales can only be verified on a machine that
+                # has Logic -- which is the one place the answer is not needed. Ten digests per
+                # citation is the whole cost.
+                unit, _locale, key, field = ref.index_row()
+                for sibling_locale in sorted(values_by_locale_by_source.get(source) or {}):
+                    sibling = (unit, sibling_locale, key, field)
+                    digest = by_source[source].get(sibling)
+                    if digest is not None:
+                        wanted[sibling] = digest
             # Keep rows already committed even when nothing cites them this run, so that removing
             # one citation does not silently un-pin a digest another branch is still resting on --
             # but the FRESH digest wins where both have the row. Written the other way round first,

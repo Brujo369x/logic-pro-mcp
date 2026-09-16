@@ -1,0 +1,128 @@
+{
+  "logic": {
+    "app": "Logic Pro",
+    "build": "6674",
+    "version": "12.3"
+  },
+  "mti_keys": 48,
+  "mti_keys_with_all_ten_locales": 48,
+  "rows_used": {
+    "File#mti": {
+      "de": "Ablage",
+      "ja": "ファイル",
+      "en": "File",
+      "zh_CN": "文件",
+      "es": "Archivo",
+      "it": "File",
+      "ko": "파일",
+      "zh_TW": "檔案",
+      "fr": "Fichier",
+      "pt": "Arquivo"
+    },
+    "Edit#mti": {
+      "de": "Bearbeiten",
+      "ja": "編集",
+      "en": "Edit",
+      "zh_CN": "编辑",
+      "es": "Edición",
+      "it": "Modifica",
+      "ko": "편집",
+      "zh_TW": "編輯",
+      "fr": "Édition",
+      "pt": "Editar"
+    },
+    "Track#mti": {
+      "de": "Spur",
+      "ja": "トラック",
+      "en": "Track",
+      "zh_CN": "轨道",
+      "es": "Pista",
+      "it": "Traccia",
+      "ko": "트랙",
+      "zh_TW": "音軌",
+      "fr": "Piste",
+      "pt": "Pista"
+    }
+  },
+  "table_derived": {
+    "en-US": [
+      "File",
+      "Edit",
+      "Track"
+    ],
+    "ko-KR": [
+      "파일",
+      "편집",
+      "트랙"
+    ],
+    "ja-JP": [
+      "ファイル",
+      "編集",
+      "トラック"
+    ],
+    "de-DE": [
+      "Ablage",
+      "Bearbeiten",
+      "Spur"
+    ],
+    "es-ES": [
+      "Archivo",
+      "Edición",
+      "Pista"
+    ],
+    "fr-FR": [
+      "Fichier",
+      "Édition",
+      "Piste"
+    ],
+    "it-IT": [
+      "File",
+      "Modifica",
+      "Traccia"
+    ],
+    "pt-BR": [
+      "Arquivo",
+      "Editar",
+      "Pista"
+    ],
+    "zh-CN": [
+      "文件",
+      "编辑",
+      "轨道"
+    ],
+    "zh-TW": [
+      "檔案",
+      "編輯",
+      "音軌"
+    ]
+  },
+  "distinct_title_sets": 10,
+  "colliding_pairs": [],
+  "subset_pairs": [],
+  "rows_whose_english_is_File": {
+    "Localizable.strings StrTabBtnLabel|||File": {
+      "en": "File",
+      "ko": "파일",
+      "ja": "ファイル",
+      "de": "Datei",
+      "es": "Archivo",
+      "fr": "Fichier",
+      "it": "File",
+      "pt": "Arquivo",
+      "zh_CN": "文件",
+      "zh_TW": "檔案"
+    },
+    "Localizable.strings File#mti": {
+      "en": "File",
+      "ko": "파일",
+      "ja": "ファイル",
+      "de": "Ablage",
+      "es": "Archivo",
+      "fr": "Fichier",
+      "it": "File",
+      "pt": "Arquivo",
+      "zh_CN": "文件",
+      "zh_TW": "檔案"
+    }
+  }
+}

@@ -18,10 +18,44 @@ extension AXLogicProElements {
     /// cases, so a Japanese Logic cannot bind a qualification artifact. It could not before either
     /// — `unknown` failed the same comparison — and saying `ja-JP` where `ja-JP` is true is what
     /// lets a caller tell an unsupported language from an unreadable menu bar.
+    /// One row per locale Logic ships — ten, not three.
+    ///
+    /// Until 2026-09-16 this held en-US, ko-KR and ja-JP, so a Logic running in German, Spanish,
+    /// French, Italian, Portuguese or either Chinese reported `unknown` — the same answer this
+    /// returns when the menu bar cannot be read at all, which is the ambiguity the paragraph above
+    /// was written to complain about for Japanese.
+    ///
+    /// The seven new rows are not translations somebody typed. Each is the value Apple keys these
+    /// three menu titles under, read from the bundle: `File#mti`, `Edit#mti`, `Track#mti` in
+    /// `Logic.framework/Resources/Localizable.strings`, where `#mti` is Apple's own suffix for a
+    /// menu title and every one of its 48 keys carries all ten locales. The three languages that
+    /// were already here are unchanged and each agrees with that row exactly — including the German
+    /// `Ablage`, which is why the row is `File#mti` and not the other row whose English is also
+    /// `File` and whose German is `Datei`.
+    ///
+    /// The identifiers name LOGIC'S `.lproj`, not a region: Logic ships `de.lproj`, not `de_DE`.
+    /// `de-DE` was already this product's name for Logic's German before this change and the six
+    /// new ones follow it. The one region that IS evidenced is Portuguese — `pt.lproj` says
+    /// `Arquivo`, which is Brazilian; European Portuguese would say `Ficheiro`.
+    ///
+    /// Recognising a locale is still not the same as SUPPORTING it. `MeasuredLocale` has two cases
+    /// and every caller that refuses an unmeasured language refuses exactly as it did before; what
+    /// changes is that the refusal can now say `es-ES` instead of `unknown`, and a setup check can
+    /// tell an unsupported language from an unreadable menu bar. #892.
+    ///
+    /// Checked against the corpus by `Scripts/check-locale-detection-is-derived.py`, which resolves
+    /// the three rows offline and refuses any row here that Apple's bytes do not say.
     private static let topLevelMenuTitlesByLocale: [(locale: String, titles: Set<String>)] = [
-        ("en-US", ["File", "Edit", "Track"]),
-        ("ko-KR", ["파일", "편집", "트랙"]),
-        ("ja-JP", ["ファイル", "編集", "トラック"]),
+        ("en-US", ["File", "Edit", "Track"]),                       // en.lproj
+        ("ko-KR", ["파일", "편집", "트랙"]),                            // ko.lproj
+        ("ja-JP", ["ファイル", "編集", "トラック"]),                       // ja.lproj
+        ("de-DE", ["Ablage", "Bearbeiten", "Spur"]),                // de.lproj
+        ("es-ES", ["Archivo", "Edición", "Pista"]),                 // es.lproj
+        ("fr-FR", ["Fichier", "Édition", "Piste"]),                 // fr.lproj
+        ("it-IT", ["File", "Modifica", "Traccia"]),                 // it.lproj
+        ("pt-BR", ["Arquivo", "Editar", "Pista"]),                  // pt.lproj
+        ("zh-CN", ["文件", "编辑", "轨道"]),                            // zh_CN.lproj
+        ("zh-TW", ["檔案", "編輯", "音軌"]),                            // zh_TW.lproj
     ]
 
     /// The legacy menu helpers intentionally flatten AX failure to `nil` for

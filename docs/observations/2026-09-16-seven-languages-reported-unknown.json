@@ -1,0 +1,136 @@
+{
+  "id": "2026-09-16-seven-languages-reported-unknown",
+  "date": "2026-09-16",
+  "schema": 3,
+  "subject": "How this product recognises which language Logic is running in, and how many languages it could recognise",
+  "question": "The table that maps menu-bar titles to a UI locale held three rows. What do the other seven say, and can they be read from Apple's bytes rather than measured one machine at a time?",
+  "verdict": "works",
+  "issues": [
+    892,
+    883
+  ],
+  "surface": "system.bundle",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-locale-detection-is-derived.py",
+    "expected": "locale detection is derived: 10 locales, 30 titles, every one a digest Apple's corpus pinned",
+    "cost": "~5s; reads committed digests and the Swift, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLogicProElements+Menu.swift",
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+  ],
+  "method": "Read every key in Logic.framework's Localizable.strings and grouped them by Apple's own suffix. Took the three menu titles the locale table is built from, checked how many locales each row carries, and compared the three languages already in the table against that row. Then compared every pair of the ten title sets for equality and containment, because the product recognises a locale by set comparison and two locales it cannot tell apart are worse than one it does not know.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/File%23mti#value",
+      "value": "File",
+      "used_for": "the File menu title, and the row the whole table is built from. TWO rows have the English `File`; this one says `Ablage` in German and `StrTabBtnLabel|||File` says `Datei`. The German this product measured off a running Logic in #876 is `Ablage`, so the live reading and Apple's own key namespace pick the same row without consulting each other",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLogicProElements+Menu.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Edit%23mti#value",
+      "value": "Edit",
+      "used_for": "the Edit menu title, second of the three the locale table compares",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLogicProElements+Menu.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Track%23mti#value",
+      "value": "Track",
+      "used_for": "the Track menu title. Resolving by VALUE alone had picked a ControllerAssignments dialog label whose ten values happen to agree; the answer was right and the row meant something else, which `used_for` could not have defended",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLogicProElements+Menu.swift"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "locales Logic ships, counted as .lproj in Contents/Resources",
+      "count": 10
+    },
+    {
+      "what": "rows the locale table held before this change",
+      "count": 3
+    },
+    {
+      "what": "after",
+      "count": 10
+    },
+    {
+      "what": "keys Apple suffixes #mti, its own namespace for a menu title",
+      "count": 48
+    },
+    {
+      "what": "of those, keys carrying all ten locales",
+      "count": 48
+    },
+    {
+      "what": "rows in the bundle whose English value is `File` and which carry all ten locales",
+      "count": 2,
+      "values": [
+        "File#mti -> de Ablage",
+        "StrTabBtnLabel|||File -> de Datei"
+      ]
+    },
+    {
+      "what": "distinct title sets across the ten locales",
+      "count": 10
+    },
+    {
+      "what": "pairs of locales whose title sets are equal",
+      "count": 0
+    },
+    {
+      "what": "pairs where one locale's title set is contained in another's",
+      "count": 0
+    },
+    {
+      "what": "menu-bar LabelSets extended from three languages to ten",
+      "count": 6
+    },
+    {
+      "what": "variants measured off a running Logic that the derived rows contradict",
+      "count": 0
+    },
+    {
+      "what": "other places in Sources/ that carry a BCP-47 locale identifier",
+      "count": 3,
+      "values": [
+        "MeasuredLocale (2 cases, gates TempoMapAX)",
+        "TrackSortVerification.measuredLabel (ko only)",
+        "StockPluginCatalog verification records (provenance, not matching)"
+      ]
+    },
+    {
+      "what": "of those, surfaces that MATCH Logic's text and are therefore language-coupled",
+      "count": 2
+    }
+  ],
+  "conclusion": "Logic ships ten languages and this product recognised three of them. The other seven reported `unknown`, which is also what an unreadable menu bar reports, so a German Logic was indistinguishable from a Logic whose menu bar could not be read -- and that is the failure the German track-creation report describes. The seven were never unknowable: Apple keys menu titles under a `#mti` suffix, all 48 of those keys carry all ten locales, and the three titles the table compares are three of them. Reading them off the bundle is a lookup, not a measurement. Two independent things agree on which row to read: `File` is the English of two rows, and only the one under `#mti` says `Ablage`, which is the German this repository had already read off a running Logic in #876. All ten title sets are distinct and none contains another, so set comparison -- the way the product actually matches -- can tell every pair apart. Recognising is still not supporting: `MeasuredLocale` has two cases and every caller that refuses an unmeasured language refuses exactly as before. What changed is that the refusal can name `es-ES` instead of `unknown`.",
+  "limits": [
+    "Recognition, not support. `MeasuredLocale` still has two cases, so seven of the ten languages are recognised and then refused. Widening that is a separate change and must not happen before the labels those callers need are derived.",
+    "The identifiers name Logic's `.lproj`, not a region. Logic ships `de.lproj`, not `de_DE`; `de-DE` was already this product's name for it. The one region the bundle evidences is Portuguese -- `pt.lproj` says `Arquivo`, which is Brazilian.",
+    "The three titles are read from Logic.framework's Localizable.strings, which is where the menu bar's titles live on this build. A future Logic that moved them would fail the guard rather than drift, which is the point, but it would fail as `not pinned` rather than as `moved`.",
+    "Distinctness was checked over these three titles only. Adding a fourth could only help; removing one could make two locales collide, which is why the guard checks the property rather than trusting the count.",
+    "`supported_locales` in docs/locale/ui-labels.json is still the four this repository asks coverage questions about, so the six menu-bar LabelSets now carry ten languages and the ledger reports on four of them. Widening it turns roughly six hundred unasked questions into counted gaps at once, which is a ratchet change that belongs with the bulk derivation rather than with detection. The variants themselves are not invisible: the ratchet counts a variant derivable from Apple's data as documented, which is why 33 new ones moved `undocumented_variants` by zero.",
+    "Swept for other locale-shaped sites so this change is not a fix to the one that was looked at. Three carry an identifier; two are matching surfaces that stay narrow after this change -- `MeasuredLocale` has two cases and `TrackSortVerification` accepts Korean only -- and the third, `StockPluginCatalog`, records WHERE a verification was observed rather than what to match, which is language-specific by nature and not a gap."
+  ],
+  "evidence": [
+    "evidence/2026-09-16-seven-languages-reported-unknown.json"
+  ],
+  "supersedes": null
+}
