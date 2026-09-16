@@ -71,25 +71,6 @@ _BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 _LABELSET_BLOCK = re.compile(r"LabelSet\(.*?rationale:.*?\)", re.S)
 
 
-def translated_values(app: str) -> dict:
-    """{normalised en value: whether Apple ships a DIFFERENT value in another locale}."""
-    rows = collections.defaultdict(dict)
-    for unit, locale, key, _field, value in canon.extract_strings(app):
-        rows[(unit, key)][locale] = value
-    for _unit, locale, key, field, value in canon.extract_quickhelp(app):
-        if field == "Title":
-            rows[("q", key)][locale] = value
-    out = {}
-    for per in rows.values():
-        english = per.get("en")
-        if not english:
-            continue
-        name = canon.normalize(english)
-        others = {canon.normalize(v) for loc, v in per.items() if loc != "en" and loc in LOCALES}
-        out[name] = out.get(name, False) or bool(others - {name})
-    return out
-
-
 def swift_sources():
     for root in ("Sources", os.path.join("Scripts", "livekit")):
         base = os.path.join(REPO, root)
@@ -193,15 +174,20 @@ def handles_every_spelling(literal: str, paths) -> bool:
 
 
 def check(app: str = None) -> list:
-    app = app or canon.DEFAULT_APP
-    if not os.path.isdir(app):
-        return [f"{app} is not installed. This guard needs Apple's own data to tell a translated "
-                f"label from an untranslated one, which is the whole of condition 3."]
-    translated = translated_values(app)
+    """Offline. `docs/canon/absence/translated.en.u32` carries the answer to condition 3.
+
+    The first version read the bundle for it, so it could not run in CI -- the one place it has to.
+    Every guard here is plain Python over committed artefacts for exactly that reason, and this one
+    forgot it. `app` is kept for the self-test and ignored.
+    """
+    if not canon.load_translated():
+        return ["docs/canon/absence/translated.en.u32 is missing or empty, so nothing can tell a "
+                "translated label from an untranslated one. Run Scripts/logic_canon.py build on a "
+                "machine with Logic."]
     allowed = waived()
     problems = []
     for literal, paths in sorted(comparisons_outside_labelsets().items()):
-        if not translated.get(literal):
+        if not canon.is_translated(literal):
             continue                      # untranslated, or not Apple's at all: safe to match
         if literal in allowed:
             continue

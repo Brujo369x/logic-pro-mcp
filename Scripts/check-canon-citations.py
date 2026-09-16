@@ -1162,7 +1162,15 @@ def main() -> int:
     without_canon = load_without_canon()
     records = observation_records()
     for path in records:
-        check_record(path, failures, without_canon, manifest, changed)
+        # A record this change does not touch keeps whatever bindings it already had. Rule 9 asks
+        # whether a citation is load-bearing IN THIS CHANGE, and for an untouched record the
+        # honest answer is that this change says nothing about it. Passing `changed` regardless
+        # made every record's binding a requirement on every branch: this one edits Swift and not
+        # `Scripts/test_logic_canon.py`, so a 2026-09-15 record bound to that file was refused for
+        # a file the branch has no reason to open. It had been invisible only because that file
+        # happened to change on every previous branch.
+        touched = changed is None or os.path.relpath(path, REPO) in changed
+        check_record(path, failures, without_canon, manifest, changed if touched else None)
 
     stale = sorted(without_canon - {os.path.relpath(p, REPO) for p in records})
     for entry in stale:

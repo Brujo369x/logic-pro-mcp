@@ -46,6 +46,7 @@
     "absence/strings.zh_CN.u32": "00411c6c92eb549954f8a9f025f0bbbff1318392cc6ec0a906f53c105eb607eb",
     "absence/strings.zh_TW.folded.u32": "3ac8f9d9bf1ad618500c13f453a4d977b056f3cd5702038a6784e3d8f3664519",
     "absence/strings.zh_TW.u32": "ef81ff10d762c8422eabdfa6a06770c5dc4db62922b7318742d778cee7e58bcb",
+    "absence/translated.en.u32": "beccb61fbb65639b07cc0f1479a3d0e91c86ed375d6122fa552b50918db33399",
     "index/madsp.tsv": "664b694f0bacce322cf8b15a4539594f2106d2d5b7c38b10b0e3e508b30d2320",
     "index/madsp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
     "index/nib.tsv": "553195c3d71ee2a71df337975994e7884f227b5a4a36a331b52db02d1d530d79",
@@ -378,5 +379,6 @@
         "logic-canon://strings/en#value"
       ]
     }
-  }
+  },
+  "translated_en_values": 66589
 }

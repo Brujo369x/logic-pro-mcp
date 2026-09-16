@@ -1060,6 +1060,42 @@ def absence_path(source: str, locale: str) -> str:
     return os.path.join(ABSENCE_DIR, f"{source}.{locale}.u32")
 
 
+def translated_path() -> str:
+    """32-bit digests of every ENGLISH value Apple ships a different string for somewhere else.
+
+    Committed for the same reason the absence sets are. "Does Apple translate this label" decides
+    whether matching it by literal is a localisation bug, and CI has no Logic -- the first version
+    of `check-ax-comparisons-use-labelsets.py` asked the bundle and therefore could not run in the
+    one place the answer is needed.
+    """
+    return os.path.join(ABSENCE_DIR, "translated.en.u32")
+
+
+def load_translated() -> list[int]:
+    path = translated_path()
+    if not os.path.exists(path):
+        return []
+    with open(path, "rb") as handle:
+        blob = handle.read()
+    if blob[:4] != b"LCA1":
+        raise CanonError(f"{path}: not an LCA1 set")
+    count = struct.unpack(">I", blob[4:8])[0]
+    return list(struct.unpack(f">{count}I", blob[8:8 + count * 4]))
+
+
+def is_translated(text: str) -> bool:
+    """Whether Apple ships a different string for this English value in some other locale.
+
+    A collision makes an UNtranslated string look translated, which asks an author to move a safe
+    literal into a LabelSet -- work, not a wrong answer. The opposite would hide a real one, and
+    the set is ordered so the cheap direction is the safe one, as everywhere else here.
+    """
+    table = load_translated()
+    needle = _u32(normalize(text))
+    position = bisect.bisect_left(table, needle)
+    return position < len(table) and table[position] == needle
+
+
 def value_index_path(source: str) -> str:
     """`locale <TAB> digest` for every VALUE something in this tree cites without a key.
 
@@ -1678,6 +1714,31 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
             manifest["sources"][source]["cited_rows"] = len(wanted)
             if unresolved:
                 manifest["sources"][source]["unresolved_citations"] = sorted(set(unresolved))
+
+    # Which English values Apple TRANSLATES, as digests, so a guard can ask offline. CI has no
+    # Logic, and "does Apple translate this label" is what decides whether matching it by literal
+    # is a localisation bug -- the first version of the AX-comparison guard read the bundle for
+    # this and therefore could not run in the one place the answer is needed.
+    en_to_others: dict = {}
+    for source in sources:
+        rows: dict = {}
+        for unit, locale, key, field, value in EXTRACTORS[source](app):
+            rows.setdefault((unit, key, field), {})[locale] = value
+        for per in rows.values():
+            english = per.get("en")
+            if english is None:
+                continue
+            folded = normalize(english)
+            others = {normalize(v) for loc, v in per.items() if loc != "en"}
+            en_to_others[folded] = en_to_others.get(folded, False) or bool(others - {folded})
+    translated = sorted({_u32(text) for text, differs in en_to_others.items() if differs})
+    os.makedirs(ABSENCE_DIR, exist_ok=True)
+    with open(translated_path(), "wb") as handle:
+        handle.write(b"LCA1")
+        handle.write(struct.pack(">I", len(translated)))
+        for item in translated:
+            handle.write(struct.pack(">I", item))
+    manifest["translated_en_values"] = len(translated)
 
     if "quickhelp" in manifest["sources"]:
         manifest["sources"]["quickhelp"]["identical_files"] = verify_quickhelp_aliases(app)
