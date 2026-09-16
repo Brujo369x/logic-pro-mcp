@@ -51,6 +51,10 @@
           "locale": "-"
         },
         {
+          "source": "nibstrings",
+          "locale": "en"
+        },
+        {
           "source": "quickhelp",
           "locale": "de"
         },

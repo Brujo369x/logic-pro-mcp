@@ -43,6 +43,30 @@
       "binding": {
         "kind": "record"
       }
+    },
+    {
+      "ref": "logic-canon://nibstrings/en#value",
+      "value": "Package",
+      "used_for": "proved absent on 2026-09-15 over a corpus that could not read nibs -- the limit this record named for itself. #895 added `nibstrings`, the English Apple compiles into `Base.lproj/<table>.nib` instead of shipping an `en.lproj/<table>.strings`, and the string was there all along. Cited by VALUE because a LabelSet matches by value and never sees a key",
+      "binding": {
+        "kind": "record"
+      }
+    },
+    {
+      "ref": "logic-canon://nibstrings/en#value",
+      "value": "One File per Track",
+      "used_for": "proved absent on 2026-09-15 over a corpus that could not read nibs -- the limit this record named for itself. #895 added `nibstrings`, the English Apple compiles into `Base.lproj/<table>.nib` instead of shipping an `en.lproj/<table>.strings`, and the string was there all along. Cited by VALUE because a LabelSet matches by value and never sees a key",
+      "binding": {
+        "kind": "record"
+      }
+    },
+    {
+      "ref": "logic-canon://nibstrings/en#value",
+      "value": "Delete Tracks and Content",
+      "used_for": "proved absent on 2026-09-15 over a corpus that could not read nibs -- the limit this record named for itself. #895 added `nibstrings`, the English Apple compiles into `Base.lproj/<table>.nib` instead of shipping an `en.lproj/<table>.strings`, and the string was there all along. Cited by VALUE because a LabelSet matches by value and never sees a key",
+      "binding": {
+        "kind": "record"
+      }
     }
   ],
   "canon_absent": [
@@ -52,9 +76,6 @@
         "Auto Punch",
         "Auto-Punch",
         "Rec",
-        "Package",
-        "One File per Track",
-        "Delete Tracks and Content",
         "Set Locators…",
         "드러머",
         "세션 플레이어",
@@ -68,6 +89,10 @@
         {
           "source": "nib",
           "locale": "-"
+        },
+        {
+          "source": "nibstrings",
+          "locale": "en"
         },
         {
           "source": "quickhelp",
@@ -269,7 +294,8 @@
     "Absence does not mean wrong. A label Logic composes at runtime is absent and correct; this record does not separate those from typed ones.",
     "The two demonstrated defects were found by re-asking with a different character. Nothing systematically re-asked the other 38, so there may be more of the same shape.",
     "A first pass that swept the `rationale` field as well reported 185 unmatched. That number is wrong and is recorded here only so it is not mistaken for a measurement if it surfaces elsewhere.",
-    "An earlier revision of this record called two of the forty 'demonstrably wrong' and said the product spells the Bounce leaf with three ASCII full stops. That was an overclaim, corrected after review: the product's CANONICAL spelling is Apple's in both cases and the three-dot forms are additional variants, so neither makes an element unfindable. The overclaim is the same class of error this axis exists to stop, which is why it is recorded here rather than quietly edited."
+    "An earlier revision of this record called two of the forty 'demonstrably wrong' and said the product spells the Bounce leaf with three ASCII full stops. That was an overclaim, corrected after review: the product's CANONICAL spelling is Apple's in both cases and the three-dot forms are additional variants, so neither makes an element unfindable. The overclaim is the same class of error this axis exists to stop, which is why it is recorded here rather than quietly edited.",
+    "The nib limit this record named for itself was closed by #895 on 2026-09-16. Three of the ten strings it proved absent -- `Package`, `One File per Track`, `Delete Tracks and Content` -- are English Apple compiles into a Base.lproj nib, and they moved from the absence claim to citations. The counts in `observations` and `conclusion` are the 2026-09-15 reading over the corpus of that day and are not restated here; `reverify` prints today's."
   ],
   "evidence": [
     "evidence/2026-09-15-policy-literals-against-logics-own-data.json"

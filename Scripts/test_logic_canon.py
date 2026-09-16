@@ -32,6 +32,8 @@ def _load():
 
 
 canon = _load()
+sys.path.insert(0, os.path.join(REPO, "Scripts"))
+import nibarchive  # noqa: E402  -- after REPO is on the path
 HAVE_LOGIC = os.path.isdir(APP)
 
 
@@ -828,6 +830,147 @@ class TheAlgorithmAgainstASurrogateCorpus(unittest.TestCase):
         self.assertTrue(head.endswith(tail), "the fixture must actually contain a suffix pair")
         self.assertEqual(index.parse_axhelp(head).keys, ["HEAD_0"])
         self.assertEqual(index.parse_axhelp(tail).keys, ["TAIL_0"])
+
+
+def _archive(objects):
+    """Build the dict `nibarchive.parse` returns, from [(class_name, {key: value}), ...].
+
+    A seam, not a fixture: every case below is about a SHAPE the reader may meet, and a shape that
+    only exists inside a real nib cannot be written down as a test.
+    """
+    classes, keys, values, out = [], [], [], []
+    for name, fields in objects:
+        if name not in classes:
+            classes.append(name)
+        first = len(values)
+        for key, value in fields.items():
+            if key not in keys:
+                keys.append(key)
+            values.append({"key": keys.index(key),
+                           "type": nibarchive.T_DATA if isinstance(value, bytes) else 10,
+                           "value": value})
+        out.append({"class": classes.index(name), "first_value": first,
+                    "value_count": len(values) - first})
+    return {"objects": out, "keys": keys, "values": values, "classes": classes}
+
+
+class ANibLabelIsPairedByClassNotByGuess(unittest.TestCase):
+    """`extract_nibstrings` is the only route to English for 162 tables, so its pairing is load-bearing."""
+
+    def test_the_object_after_a_localizable_string_is_its_key(self):
+        archive = _archive([("NSLocalizableString", {"NS.bytes": "Learn by Key Label".encode()}),
+                            ("NSString", {"NS.bytes": b"300557.title"})])
+        self.assertEqual(list(canon._nib_localizable_pairs(archive, "x.nib")),
+                         [("300557.title", "Learn by Key Label")])
+
+    def test_a_shape_it_cannot_pair_stops_the_build_instead_of_becoming_an_absence(self):
+        """Skipping would drop English Apple ships, and the corpus would then PROVE it absent."""
+        archive = _archive([("NSLocalizableString", {"NS.bytes": b"Bounce"}),
+                            ("NSImage", {"NSName": b"NSMenuCheckmark"})])
+        with self.assertRaises(canon.CanonDecodeError):
+            list(canon._nib_localizable_pairs(archive, "x.nib"))
+
+    def test_a_localizable_string_with_no_object_after_it_stops_the_build(self):
+        archive = _archive([("NSLocalizableString", {"NS.bytes": b"Bounce"})])
+        with self.assertRaises(canon.CanonDecodeError):
+            list(canon._nib_localizable_pairs(archive, "x.nib"))
+
+    def test_a_multi_line_label_is_text_and_survives_the_reader(self):
+        """`str.isprintable()` says a line break is not printable. 47 of Logic's longest labels are
+        multi-line paragraphs, and reading it as the test returned them as English that is not
+        there -- an absence, in the one direction this module may not be wrong about."""
+        paragraph = "This function applies the tempo\nof the selected region."
+        archive = _archive([("NSLocalizableString", {"NS.bytes": paragraph.encode()}),
+                            ("NSString", {"NS.bytes": b"100013.title"})])
+        self.assertEqual(list(canon._nib_localizable_pairs(archive, "x.nib")),
+                         [("100013.title", paragraph)])
+
+    def test_a_real_control_byte_is_still_not_text(self):
+        archive = _archive([("NSString", {"NS.bytes": b"bell\x07here"})])
+        self.assertEqual(nibarchive.strings_by_object(archive), {})
+
+
+class ACorpusMustKnowWhichBytesItIsMadeOf(unittest.TestCase):
+    """Over an EMPTY bundle, not over the installed Logic.
+
+    The first version of `test_every_extractor_has_one` passed `/Applications/Logic Pro.app` and
+    therefore tested nothing on the one machine that matters: CI has no Logic, and `quickhelp`'s
+    branch does a bare `os.listdir` on `Contents/Resources`, so the case died with a
+    FileNotFoundError instead of answering whether every extractor has a branch. The property is
+    about this module's own dispatch, so the fixture is a directory shaped like a bundle and empty.
+    """
+
+    def setUp(self):
+        self.bundle = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.bundle, "Contents", "Resources"))
+        self.addCleanup(shutil.rmtree, self.bundle, True)
+
+    def test_a_source_with_no_file_list_is_refused_rather_than_pinned_against_nothing(self):
+        """An empty list recorded `files: 0` and a digest over nothing, and `status` would then
+        call the corpus current against any Logic at all."""
+        with self.assertRaises(canon.CanonError):
+            canon.corpus_files(self.bundle, "a-source-nobody-added-a-branch-for")
+
+    def test_every_extractor_has_one(self):
+        for source in canon.EXTRACTORS:
+            self.assertEqual(canon.corpus_files(self.bundle, source), [],
+                             f"{source} found files in an empty bundle")
+
+
+class EnglishAndItsTranslationsMustMeet(unittest.TestCase):
+    """The join `TRANSLATION_NAMESPACE` exists for, tested where it can fail rather than asserted."""
+
+    @staticmethod
+    def _sources():
+        def english(_app):
+            yield ("Resources/Bounce.strings", "en", "3.title", "value", "Bounce")
+            yield ("Resources/Bounce.strings", "en", "4.title", "value", "Stereo")
+        def translations(_app):
+            yield ("Resources/Bounce.strings", "ko", "3.title", "value", "바운스")
+            yield ("Resources/Bounce.strings", "ko", "4.title", "value", "Stereo")
+        return {"nibstrings": english, "strings": translations}
+
+    def test_english_from_one_source_joins_translations_in_another(self):
+        digests = canon.derive_translated_english(APP, self._sources())
+        self.assertIn(canon._u32(canon.normalize("Bounce")), digests)
+
+    def test_a_label_apple_ships_untranslated_is_not_called_translated(self):
+        digests = canon.derive_translated_english(APP, self._sources())
+        self.assertNotIn(canon._u32(canon.normalize("Stereo")), digests)
+
+    def test_without_the_namespace_the_two_sources_never_meet(self):
+        """The failure this guards is silent and permissive: every base-internationalised English
+        label would read as one Apple does not translate, which EXEMPTS a literal comparison from
+        needing a LabelSet. So the test is that removing the mapping changes the answer."""
+        saved = dict(canon.TRANSLATION_NAMESPACE)
+        try:
+            canon.TRANSLATION_NAMESPACE.clear()
+            digests = canon.derive_translated_english(APP, self._sources())
+        finally:
+            canon.TRANSLATION_NAMESPACE.clear()
+            canon.TRANSLATION_NAMESPACE.update(saved)
+        self.assertNotIn(canon._u32(canon.normalize("Bounce")), digests)
+
+    #: Two DIFFERENT strings whose SHA-256 truncates to the same 32 bits, found by search rather
+    #: than assumed: `_u32('s2330') == _u32('s130636') == 0xb07b8ed5`. Two of the same string would
+    #: dedupe at the string level and the case would pass over a list that was never a set.
+    COLLIDING = ("s2330", "s130636")
+
+    def test_two_english_values_colliding_to_one_digest_are_written_once(self):
+        first, second = self.COLLIDING
+        self.assertEqual(canon._u32(first), canon._u32(second),
+                         "these two no longer collide; find a new pair rather than deleting the case")
+        def english(_app):
+            yield ("u", "en", "a", "value", first)
+            yield ("u", "en", "b", "value", second)
+        def translations(_app):
+            yield ("u", "ko", "a", "value", "하나")
+            yield ("u", "ko", "b", "value", "둘")
+        digests = canon.derive_translated_english(APP, {"nibstrings": english,
+                                                        "strings": translations})
+        self.assertEqual(digests, sorted(set(digests)),
+                         "the file is a SET of digests; a duplicate entry is a count that is wrong "
+                         "and an artefact that will not reproduce from a different walk order")
 
 
 @unittest.skipUnless(HAVE_LOGIC, "needs Logic installed")

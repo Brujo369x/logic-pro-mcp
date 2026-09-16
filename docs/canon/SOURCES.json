@@ -73,6 +73,25 @@
         "zero coverage of the 6056 numeric-triple and other keys: plug-in editors are not built from nibs",
         "only 1 of the 86 live QuickHelp-matched controls carried a qhid, so this is a static asset link and not a live control identifier"
       ]
+    },
+    "nibstrings": {
+      "path": "**/Base.lproj/*.nib",
+      "answers": "the ENGLISH text of a LABEL, at the same (unit, key) its translations use",
+      "fields": [
+        "value"
+      ],
+      "files": 162,
+      "entries": 6270,
+      "locale_names": 1,
+      "why": "Apple uses base internationalization: the English is compiled into `Base.lproj/<table>.nib` and only the translated locales get a `<locale>.lproj/<table>.strings` overlay. Measured: of the 162 Base.lproj nibs that carry labels, ZERO have an `en.lproj/<table>.strings` beside them, so `strings` had no English for any of them and an absence claim over English was answered by a corpus that had never held it.",
+      "how": "Read from the archive's CLASSES, not guessed from what the strings look like: Interface Builder emits the English as an `NSLocalizableString` object and the `.strings` key for it as the NEXT object, an `NSString`. 6,270 pairs from 162 nibs with zero objects that did not follow the rule; a shape the reader cannot pair stops the build rather than becoming an absence.",
+      "joins_strings": "measured: against each of the nine translated locales, 6,188 of the overlay's 6,216 keys are also in the nib and NOT ONE key is nib-only; 146 of 159 tables are key-identical. So the unit here is the overlay's own address and English lands in the same table as its translations. `TRANSLATION_NAMESPACE` in Scripts/logic_canon.py is what makes the join happen when deriving which English Apple translates.",
+      "limits": [
+        "The 28 keys the overlay has and the nib does not are Interface Builder's numeric placeholders (`255`, `100`, `30.0`, `1`) and two literal `<PLACEHOLDER STRING: DO NOT LOCALIZE>` -- text held for a field the running code fills in, not a label Apple shows.",
+        "Three of the 162 nibs -- MAGraphPanel, NoteRepeater and PlugInManager, all in MAToolKitHighLevel.framework -- have no `.strings` overlay in any locale. Their unit names a table that does not exist on disk, which is the address the overlay WOULD use; the English is real and the screen is not translated.",
+        "Base.lproj ONLY. Logic also ships 60 nibs per locale in the old fully-localized style (including `en.lproj`) and 407 nibs in no `.lproj` at all, 312 of them MAPlugInGUI plug-in screens. `NSLocalizableString` is a base-internationalization construct and those 467 nibs have zero of them, so this extractor yields nothing from them. Their labels are plain `NSString` under cell titles, and reading THOSE would also sweep in Interface Builder's own defaults -- `Item 1`, `Header Text`, `DO NOT LOCALIZE`, `$LN` -- which would make the corpus claim Apple ships strings Apple does not show. Measured before deciding: those 467 nibs hold 3,374 distinct English values not already here and close ZERO of this repository's 102 uncitable literals, so they are named here as a gap rather than added on a filter nothing had measured. Issue #902.",
+        "Presence is not use, the same as for `strings`: a label compiled into a nib may belong to a screen the running code never shows."
+      ]
     }
   },
   "not_canonical": {

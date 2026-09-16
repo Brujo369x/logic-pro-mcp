@@ -131,12 +131,26 @@ def parse(data):
     return {"objects": objects, "keys": keys, "values": values, "classes": classes}
 
 
+# Every C0/C1 control character EXCEPT the three that are ordinary text in a label: a line
+# break, a carriage return and a tab. Nothing else belongs in a string Apple shows.
+_FORBIDDEN_CONTROLS = frozenset(
+    chr(c) for c in list(range(0x00, 0x20)) + [0x7F] + list(range(0x80, 0xA0))
+    if chr(c) not in "\n\r\t")
+
+
 def strings_by_object(archive):
     """{object_index: {key: text}} for every string-bearing value.
 
     Strings arrive as `data` payloads; the ones that are UTF-8 text are the interface's own labels
     and the rest are archived binary. Decoding is attempted and failures are skipped rather than
     guessed at.
+
+    A line break is TEXT here, not a control byte. `str.isprintable()` says otherwise, and reading
+    it as the test dropped 47 of Logic's Base.lproj labels -- every one of them a multi-line
+    explanatory paragraph, which is the shape of the longest strings the interface shows
+    ("This function applies the tempo of the selected region...", 122 bytes). They came back as
+    `NSLocalizableString` objects with no text at all, which reads as "Apple ships nothing here"
+    -- an absence in the one direction this module must never be wrong about. Measured 2026-09-16.
     """
     out = {}
     for index, obj in enumerate(archive["objects"]):
@@ -151,7 +165,7 @@ def strings_by_object(archive):
                 text = raw.decode("utf-8")
             except UnicodeDecodeError:
                 continue
-            if not text.isprintable():
+            if any(ch in _FORBIDDEN_CONTROLS for ch in text):
                 continue
             out.setdefault(index, {})[archive["keys"][value["key"]]] = text
     return out
