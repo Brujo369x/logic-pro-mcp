@@ -175,7 +175,6 @@
       "en-US→plugin.window",
       "en-US→project.export",
       "en-US→project.lifecycle",
-      "en-US→system.bundle",
       "ja-JP→editor.audio_track",
       "ja-JP→editor.event_list",
       "ja-JP→editor.piano_roll",
@@ -1007,15 +1006,6 @@
         "2026-09-14-the-transport-shows-ticks-when-the-display-mode-does"
       ],
       "reason": "The ledger was deleted on 2026-09-13 together with the release-qualification subsystem and restored on 2026-09-15. These members are the gaps that opened in the two days nothing was counting them: label variants and records written on 2026-09-13 and 2026-09-14 for the transport display-mode work, the MIDI-import panel and the German locale readings. They are admitted as a starting ceiling rather than closed, because closing them needs live readings and a raise is the honest way to carry a gap somebody has looked at. The guard that would have refused them at the time did not exist; it does now, and it refuses this file without this entry."
-    },
-    "surfaces_without_records": {
-      "date": "2026-09-15",
-      "members": [
-        "de-DE→system.bundle",
-        "en-US→system.bundle",
-        "ja-JP→system.bundle"
-      ],
-      "reason": "#897 added `system.bundle` to SURFACES.md, for readings taken off the shipped application's own files -- .strings tables, QuickHelp, nibs -- rather than off a running Logic. The first record under it measures ko only: it was written to answer whether a string `AXStringResolver.resolve` cannot resolve is therefore uncitable, and the two strings that needed answering are Korean. The other three locales owe a reading and have none, and the absence is real rather than clerical -- nobody has counted how the (unit, key) populations split for de, en or ja, so nobody knows whether the 83% shortfall measured for ko is typical. Same shape as the 2026-09-12 raise this replaces, which covered the fifteen de-DE columns a new locale made visible: adding a column exposes an existing absence rather than creating one."
     },
     "undocumented_variants": {
       "date": "2026-09-15",

@@ -174,6 +174,33 @@ def digest(text: str) -> str:
     return hashlib.sha256(normalize(text).encode("utf-8")).hexdigest()
 
 
+#: Characters a UI adds or drops around a label without changing which label it is: the colon a
+#: form puts after a field name, the ellipsis a menu puts on an item that opens a dialog, spaces.
+#: Folding them answers a DIFFERENT question from `normalize`, and only one question: "is this
+#: absent, or is it a shipped label I typed slightly wrong?"
+_DECORATION = "\u2026...:：·•\t\n\r \u00a0\u3000-–—_"
+
+
+def fold_for_near_miss(text: str) -> str:
+    """`normalize`, then case-folded with decoration and whitespace removed.
+
+    NOT a canon comparison and never used as one. `absent` proves a BYTE STRING is not in the
+    corpus, and that is exactly true and quietly useless on its own: `Input Port:` is absent and
+    `Input Port` is shipped, so adding a colon proves anything uncitable. Three literals on the
+    control-surface branch were proved absent across all 23 corpora that way, and none of them had
+    ever been read off a screen -- the observation record mentions `Input Port` zero times.
+
+    So the corpus gets a second digest set over this fold, and `absent` answers "not in the corpus,
+    and nothing in the corpus differs from it only by decoration" instead of just the first half.
+    """
+    # NOT case-folded, deliberately. Runtime matching IS case-insensitive -- `caseInsensitiveCompare`
+    # in `LabelSet.matches` -- so `Go To Position` against Logic's `Go to Position` still matches on
+    # screen and is not the defect this looks for. Folding case here made it fire on that pair and
+    # on every lowercase containment fragment (`arm` beside a French `Arm`), 33 findings of which
+    # three were real. Decoration only.
+    return "".join(ch for ch in normalize(text) if ch not in _DECORATION)
+
+
 def short_digest(text: str) -> str:
     """The first 12 hex characters of `digest`. What the committed index stores.
 
@@ -426,6 +453,22 @@ _REF_RE = re.compile(
     r"^logic-canon://(?P<source>[a-z0-9_-]+)/(?P<unit>[^/]+)/(?P<locale>[^/]+)/(?P<key>[^#]+)#(?P<field>[A-Za-z0-9_]+)$"
 )
 
+#: `logic-canon://<source>/<locale>#value` -- a VALUE citation, with no key in it.
+#:
+#: The key is where the last human judgement lived. `추가` is the value of `Add` and of
+#: `Label_For_Drummer_Editor_GhostNotes_Slider|||More`; both resolve, both pass every check, and
+#: only one MEANS what a change is about. 227 of this repository's literals are `.strings` values
+#: and only 63 have a unique key, so the other 164 asked somebody to choose, every time, with
+#: nothing mechanical to check the choice against.
+#:
+#: They should not have been asked. A `LabelSet` matches Logic at runtime BY VALUE -- it never sees
+#: a key -- so a key citation asserts more than the code relies on, and the surplus is exactly the
+#: part no check can verify. A value citation asserts what is actually used: Apple ships this
+#: string, in this corpus, in this locale.
+_VALUE_REF_RE = re.compile(
+    r"^logic-canon://(?P<source>[a-z0-9_-]+)/(?P<locale>[^/#]+)#(?P<field>value)$"
+)
+
 SCHEME = "logic-canon"
 
 
@@ -476,13 +519,23 @@ class CanonRef:
     def __init__(self, source: str, unit: str, locale: str, key: str, field: str):
         self.source, self.unit, self.locale, self.key, self.field = source, unit, locale, key, field
 
+    @property
+    def is_value_citation(self) -> bool:
+        """No key: the claim is "Apple ships this string here", which is what a LabelSet uses."""
+        return self.key == ""
+
     @classmethod
     def parse(cls, text: str) -> "CanonRef":
-        match = _REF_RE.match(text.strip())
+        text = text.strip()
+        value_match = _VALUE_REF_RE.match(text)
+        if value_match:
+            return cls(value_match["source"], "", value_match["locale"], "", "value")
+        match = _REF_RE.match(text)
         if not match:
             raise CanonRefError(
                 f"not a canonical reference: {text!r}\n"
-                f"  expected {SCHEME}://<source>/<unit>/<locale>/<key>#<field>"
+                f"  expected {SCHEME}://<source>/<unit>/<locale>/<key>#<field>\n"
+                f"  or       {SCHEME}://<source>/<locale>#value  (no key -- Apple ships this string)"
             )
         return cls(
             match["source"],
@@ -493,6 +546,8 @@ class CanonRef:
         )
 
     def __str__(self) -> str:
+        if self.is_value_citation:
+            return f"{SCHEME}://{self.source}/{self.locale}#value"
         return (f"{SCHEME}://{self.source}/{_pct_encode(self.unit)}/{self.locale}/"
                 f"{_pct_encode(self.key)}#{self.field}")
 
@@ -514,7 +569,14 @@ def find_refs(text: str) -> list[str]:
     anything starting with the scheme is returned, and `CanonRef.parse` decides whether it is well
     formed. A malformed reference must surface as an error, not vanish from a scan.
     """
-    return re.findall(r"logic-canon://\S+?#[A-Za-z0-9_]+", text)
+    found = re.findall(r"logic-canon://\S+?#[A-Za-z0-9_]+", text)
+    # `<source>` and `<locale>` are how prose SHOWS the shape of a reference, and this scan was
+    # greedy enough to take them for citations -- so a pull request body explaining the format was
+    # refused for stating a malformed reference. `_pct_encode` escapes `<` and `>` to %3C and %3E,
+    # so a real reference cannot contain either: an angle bracket is a placeholder, never a key.
+    # The greed is deliberate everywhere else -- a malformed reference must surface as an error
+    # rather than vanish -- and this is the one shape that is not one.
+    return [ref for ref in found if "<" not in ref and ">" not in ref]
 
 
 # ---------------------------------------------------------------------------
@@ -998,6 +1060,55 @@ def absence_path(source: str, locale: str) -> str:
     return os.path.join(ABSENCE_DIR, f"{source}.{locale}.u32")
 
 
+def value_index_path(source: str) -> str:
+    """`locale <TAB> digest` for every VALUE something in this tree cites without a key.
+
+    A separate file from the key index because the question is different, and it must NOT be the
+    absence set: those are 32-bit prefixes whose collisions are safe in one direction only. A
+    collision makes an ABSENT string look present, which refuses an absence claim -- fine. Asking
+    the same table whether a value is PRESENT inverts that: a collision would admit a citation to
+    a string Apple does not ship. So a value citation resolves against full digests of the values
+    actually cited, the same way a key citation does.
+    """
+    return os.path.join(INDEX_DIR, f"{source}.values.tsv")
+
+
+def load_value_index(source: str) -> set:
+    path = value_index_path(source)
+    if not os.path.exists(path):
+        return set()
+    out = set()
+    with open(path, "r", encoding="utf-8") as handle:
+        for number, line in enumerate(handle, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) != 2:
+                raise CanonError(f"{path}:{number}: expected 2 tab-separated fields, "
+                                 f"got {len(parts)}")
+            out.add((parts[0], parts[1]))
+    return out
+
+
+def write_value_index(source: str, rows) -> int:
+    os.makedirs(INDEX_DIR, exist_ok=True)
+    unique = sorted(set(rows))
+    with open(value_index_path(source), "w", encoding="utf-8") as handle:
+        handle.write("# locale\tsha256[:12] of the normalized value\n")
+        handle.write("# Generated by Scripts/logic_canon.py build. A VALUE citation carries no key:\n"
+                     "# the claim is that Apple ships this string in this corpus and this locale,\n"
+                     "# which is what a LabelSet matches on. Do not hand-edit.\n")
+        for locale, digest in unique:
+            handle.write(f"{locale}\t{digest}\n")
+    return len(unique)
+
+
+def folded_path(source: str, locale: str) -> str:
+    """Beside the absence set, over `fold_for_near_miss`. Same format, different question."""
+    return os.path.join(ABSENCE_DIR, f"{source}.{locale}.folded.u32")
+
+
 def load_index(source: str) -> dict[tuple[str, str, str, str], str]:
     """The committed key->digest table for one source.
 
@@ -1040,11 +1151,16 @@ def write_index(source: str, rows: dict[tuple[str, str, str, str], str]) -> None
                          f"{rows[(unit, locale, key, field)]}\n")
 
 
-def write_absence(source: str, locale: str, values) -> int:
-    """Write the sorted 32-bit digest prefixes of every value seen. Returns how many were kept."""
+def write_absence(source: str, locale: str, values, *, folded: bool = False) -> int:
+    """Write the sorted 32-bit digest prefixes of every value seen. Returns how many were kept.
+
+    `folded` writes the same structure over `fold_for_near_miss` instead, which is how `absent`
+    can say "and nothing in the corpus differs from this only by decoration" without Logic.
+    """
     os.makedirs(ABSENCE_DIR, exist_ok=True)
-    unique = sorted({_u32(value) for value in values if value})
-    path = absence_path(source, locale)
+    key = fold_for_near_miss if folded else (lambda v: v)
+    unique = sorted({_u32(key(value)) for value in values if value})
+    path = folded_path(source, locale) if folded else absence_path(source, locale)
     with open(path, "wb") as handle:
         handle.write(b"LCA1")
         handle.write(struct.pack(">I", len(unique)))
@@ -1063,8 +1179,8 @@ def write_absence(source: str, locale: str, values) -> int:
 _ABSENCE_CACHE: dict = {}
 
 
-def load_absence(source: str, locale: str) -> list[int]:
-    path = absence_path(source, locale)
+def load_absence(source: str, locale: str, *, folded: bool = False) -> list[int]:
+    path = folded_path(source, locale) if folded else absence_path(source, locale)
     try:
         stamp = os.stat(path)
         key = (path, stamp.st_size, stamp.st_mtime_ns)
@@ -1089,6 +1205,25 @@ def load_absence(source: str, locale: str) -> list[int]:
     if key is not None:
         _ABSENCE_CACHE[key] = table
     return table
+
+
+def differs_only_by_decoration(source: str, locale: str, text: str) -> bool:
+    """The corpus holds something that folds to this, though not this.
+
+    True means `text` is absent AS BYTES and a shipped label folds to it -- a colon, an ellipsis,
+    a capital, a space. The claim "uncitable" is then almost certainly wrong, and the author
+    typed the label slightly differently from the way Logic ships it.
+
+    Measured on the control-surface branch: `Input Port:`, `Output Port:` and `Model:` were each
+    proved absent from all 23 corpora, and Logic ships `Input Port`, `Output Port` and `Model`.
+    None had been read off a screen; the observation record names `Input Port` zero times.
+    """
+    if not is_absent(source, locale, text):
+        return False
+    table = load_absence(source, locale, folded=True)
+    needle = _u32(fold_for_near_miss(text))
+    position = bisect.bisect_left(table, needle)
+    return position < len(table) and table[position] == needle
 
 
 def is_absent(source: str, locale: str, text: str) -> bool:
@@ -1203,6 +1338,22 @@ def check_citation(ref_text: str, quoted_value: str) -> None:
     digest of the quoted value equals the digest the index recorded from Apple's own bytes.
     """
     ref = CanonRef.parse(ref_text)
+    if ref.is_value_citation:
+        # No key, so nothing to look up by row: the claim is that Apple ships this string in this
+        # corpus and locale, and `build` confirmed it against Logic and pinned its full digest.
+        pinned = load_value_index(ref.source)
+        if not pinned:
+            raise CanonResolveError(
+                f"{ref}: docs/canon/index/{ref.source}.values.tsv is missing or empty, so no value "
+                f"citation for this source can be checked. Run Scripts/logic_canon.py build on a "
+                f"machine with Logic.")
+        if (ref.locale, short_digest(quoted_value)) not in pinned:
+            raise CanonResolveError(
+                f"{ref}\n"
+                f"  {quoted_value!r} is not pinned for {ref.source}/{ref.locale}.\n"
+                f"  Either Logic does not ship it there, or the build has not seen this citation "
+                f"yet -- run Scripts/logic_canon.py build.")
+        return
     committed = resolve_offline(ref)
     quoted = short_digest(quoted_value)
     if quoted != committed:
@@ -1243,6 +1394,40 @@ _SKIP_FILES = {
 _TEXT_SUFFIXES = {".json", ".md", ".swift", ".py", ".sh", ".yml", ".yaml", ".tsv", ".txt",
                   ".rb", ".toml", ".cfg", ".ini", ".xml", ".plist", ".strings", ".jsonc",
                   ".mjs", ".js", ".ts", ".c", ".h", ".m", ".mm", ".bash", ".zsh", ".env", ""}
+
+
+def scan_value_citations(repo: str = REPO) -> set:
+    """Every (source, locale, value) a record cites WITHOUT a key.
+
+    A value citation is a (ref, value) pair, and only the record knows the value, so this reads
+    the `canon` blocks rather than scanning prose for references. That is the whole difference
+    from a key citation: the key is in the reference and the value is the thing being claimed.
+    """
+    out = set()
+    root = os.path.join(repo, "docs", "observations")
+    if not os.path.isdir(root):
+        return out
+    for name in sorted(os.listdir(root)):
+        if not name.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(root, name), "r", encoding="utf-8") as handle:
+                record = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(record, dict):
+            continue
+        for citation in record.get("canon") or []:
+            ref_text, value = citation.get("ref"), citation.get("value")
+            if not ref_text or value is None:
+                continue
+            try:
+                ref = CanonRef.parse(ref_text)
+            except CanonRefError:
+                continue
+            if ref.is_value_citation:
+                out.add((ref.source, ref.locale, value))
+    return out
 
 
 def scan_repo_citations(repo: str = REPO) -> dict[str, list[str]]:
@@ -1380,6 +1565,7 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
         manifest["sources"] = {}
     cited = scan_repo_citations(repo) if refresh_citations else {}
     by_source: dict[str, dict[tuple[str, str, str, str], str]] = {}
+    values_by_locale_by_source: dict[str, dict[str, set]] = {}
 
     for source in sources:
         extractor = EXTRACTORS[source]
@@ -1412,20 +1598,23 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                     f"every absence claim over it false, so this stops the build rather than "
                     f"shrinking. Nothing has been written.")
         paths = corpus_files(app, source)
-        absence_counts = {}
+        absence_counts, folded_counts = {}, {}
         for locale, values in sorted(values_by_locale.items()):
             absence_counts[locale] = write_absence(source, locale, values)
+            folded_counts[locale] = write_absence(source, locale, values, folded=True)
         manifest["sources"][source] = {
             "files": len(paths),
             "entries": entries,
             "corpus_digest": corpus_digest(app, paths),
             "locales": sorted(values_by_locale),
             "absence_entries": absence_counts,
+            "folded_entries": folded_counts,
             "absence_false_positive": {
                 locale: round(absence_false_positive(count), 12)
                 for locale, count in absence_counts.items()},
         }
         by_source[source] = rows
+        values_by_locale_by_source[source] = values_by_locale
 
     if refresh_citations:
         for source in sources:
@@ -1451,6 +1640,23 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
             # so a citation whose string Apple had changed went on resolving. That is the exact
             # failure `docs/canon/README.md` says a rebuild exists to surface, and the code did the
             # opposite. Found by review 2026-09-15 with a synthetic two-build corpus.
+            # VALUE citations: confirmed against the corpus just extracted, then pinned by full
+            # digest. `by_source` is keyed by row; the values themselves are what a value citation
+            # claims, so they are checked against the locale's value set.
+            value_rows = set(load_value_index(source))
+            unconfirmed = []
+            for cited_source, locale, value in scan_value_citations(repo):
+                if cited_source != source:
+                    continue
+                if normalize(value) in (values_by_locale_by_source.get(source) or {}).get(locale, ()):
+                    value_rows.add((locale, short_digest(value)))
+                else:
+                    unconfirmed.append(f"{locale}: {value!r}")
+            write_value_index(source, value_rows)
+            manifest["sources"][source]["cited_values"] = len(value_rows)
+            if unconfirmed:
+                manifest["sources"][source]["unconfirmed_values"] = sorted(unconfirmed)
+
             merged = load_index(source)
             merged.update(wanted)
             write_index(source, merged)
@@ -1720,6 +1926,18 @@ def _cmd_absent(args) -> int:
     entries = len(load_absence(args.source, args.locale))
     rate = absence_false_positive(entries)
     if absent:
+        if differs_only_by_decoration(args.source, args.locale, args.text):
+            print(f"NOT PROVEN for {args.source}/{args.locale}: {args.text!r} is absent as bytes, "
+                  f"and the corpus holds a label that differs from it only by decoration -- a "
+                  f"colon, an ellipsis, a capital, a space.", file=sys.stderr)
+            print(f"  Run: Scripts/logic_canon.py locate {args.text.rstrip(':… .')!r}",
+                  file=sys.stderr)
+            print(f"  Absent is still TRUE here -- these bytes are not in the corpus. Whether it "
+                  f"is USEFUL depends on why the string exists: a LabelSet's `variants` are "
+                  f"deliberate tolerance and absent is the right answer for them, while a "
+                  f"`canonical` that is absent is usually a label typed slightly wrong. "
+                  f"`check-policy-literals-against-canon.py` draws that line; this cannot.",
+                  file=sys.stderr)
         print(f"ABSENT from {args.source}/{args.locale} "
               f"({entries} values pinned; not among them)")
         # The old wording here was "a false ABSENT is impossible", which is true of the DIGESTS --

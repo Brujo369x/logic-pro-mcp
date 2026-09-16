@@ -58,6 +58,32 @@ check time   (needs nothing)   resolve a citation against what was committed
 | `CI-SKIPS.json` | how many cases each guard may SKIP under CI, and why. A skip exits 0, so a guard that ran nothing reports the same as one that passed. May only shrink |
 | `PROSE-NUMBERS.json` | numbers this README may state that no artifact and no record carries, and why each has none. May only shrink |
 
+### A citation without a key
+
+```text
+logic-canon://<source>/<locale>#value
+```
+
+The key was where the last human judgement lived. `추가` is the value of `Add` and of
+`Label_For_Drummer_Editor_GhostNotes_Slider|||More`; both resolve, both pass every check, and only
+one *means* what a change is about. Of the 227 `.strings` values this repository matches Logic
+with, only 63 have a unique key — so the other 164 asked somebody to choose, every time, with
+nothing mechanical to check the choice against.
+
+They should not have been asked. A `LabelSet` matches Logic at runtime **by value**; it never sees
+a key. A key citation therefore asserts more than the code relies on, and the surplus is exactly
+the part no check can verify. A value citation asserts what is used: Apple ships this string, in
+this corpus, in this locale.
+
+It resolves against `index/<source>.values.tsv`, full digests of the values actually cited —
+deliberately **not** the absence sets. Those are 32-bit prefixes whose collisions are safe in one
+direction: a collision makes an absent string look present, which *refuses* an absence claim.
+Asking the same table whether a value is present inverts that, and would admit a citation to a
+string Apple does not ship.
+
+Use a key citation when the key is itself the claim — a QuickHelp key identifies a control, and
+that is a fact about Logic worth pinning.
+
 ### Finding the citation in the first place
 
 `Scripts/logic_canon.py locate '<string>'` prints every place a string is a whole value in
@@ -120,6 +146,32 @@ built the surrogate. Two floors now live in the test file rather than the manife
 cases fail rather than SKIP under CI: a missing shape skipped four of the five, and a skip exits 0.
 `median_length` and `shortest` are exempt — they move with the language, not with the strength of a
 claim — and the exemption is declared, so a structural number added later is ratcheted by default.
+
+### Absent as bytes is not the same as uncitable
+
+`absent` proves a BYTE STRING is not in the corpus. That is exactly true and half an answer:
+`Input Port:` is absent from all 23 corpora and Logic ships `Input Port`, so adding a colon proves
+anything uncitable. Three literals on the control-surface branch were proved absent that way and
+all three are shipped labels.
+
+So each corpus carries a second digest set, `absence/<source>.<locale>.folded.u32`, over the same
+values with decoration removed — ellipsis, colon, bullet, dash, underscore, every kind of space.
+`absent` then says NOT PROVEN when the bytes are missing but a shipped label folds to them, and
+names the string to `locate`. Case is deliberately NOT folded: runtime matching is
+case-insensitive, so `Go To Position` against Logic's `Go to Position` still matches on screen and
+is not this defect. Folding case made the check fire 33 times, of which 3 were real.
+
+It REFUSES, and what makes that possible is a table rather than a judgement.
+`DECORATION-RULES.json` says which trailing punctuation each KIND of control may carry that Logic's
+tables do not: an ellipsis on a menu item that opens a dialog, a colon after a field name. Neither
+is a convention somebody remembered — each rule cites live AX evidence and a self-test asserts the
+example is really in the file it names (522 readings of the ellipsis, 2,631 of the colon).
+
+A LabelSet's own NAME says which kind it is: `setLocatorsMenuItem`, `controlSurfaceInputPortLabel`.
+A name declaring nothing gets the default, which allows none — so the cost of adding punctuation is
+naming what draws it, and nobody is asked to adjudicate the same question twice. `variants` are
+exempt throughout: they are deliberate tolerance and being absent from Apple's data is the point of
+them.
 
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 

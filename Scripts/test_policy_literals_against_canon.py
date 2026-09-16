@@ -181,6 +181,42 @@ class Ratchet(unittest.TestCase):
             self.assertIn(os.path.relpath(root, REPO), line,
                           f"the summary hides a root it reads: {line}")
 
+    # -- the decoration table: which kind of control may add what ------------------------------
+    def test_a_menu_item_may_carry_an_ellipsis(self):
+        rules = guard.decoration_rules()
+        self.assertEqual(guard.kind_of("setLocatorsMenuItem", rules), "menu_item")
+        self.assertIn("…", rules["kinds"]["menu_item"]["allows_trailing"])
+
+    def test_a_field_label_may_carry_a_colon(self):
+        rules = guard.decoration_rules()
+        self.assertEqual(guard.kind_of("controlSurfaceInputPortLabel", rules), "field_label")
+        self.assertIn(":", rules["kinds"]["field_label"]["allows_trailing"])
+
+    def test_a_name_declaring_no_kind_may_add_nothing(self):
+        """The default is the whole point: punctuation costs you naming what draws it."""
+        rules = guard.decoration_rules()
+        self.assertEqual(guard.kind_of("someControl", rules), "default")
+        self.assertEqual(rules["default"]["allows_trailing"], [])
+
+    def test_the_longest_matching_suffix_wins(self):
+        """`Menu` and `MenuItem` both match a name ending in MenuItem, and they are not the same
+        kind. Shortest-first would classify every menu item as a menu."""
+        rules = {"kinds": {"menu": {"name_suffixes": ["Menu"], "allows_trailing": []},
+                           "menu_item": {"name_suffixes": ["MenuItem"], "allows_trailing": ["…"]}},
+                 "default": {"allows_trailing": []}}
+        self.assertEqual(guard.kind_of("fileMenuItem", rules), "menu_item")
+
+    def test_every_rule_in_the_table_is_witnessed(self):
+        """A convention somebody remembered is not a rule. Each kind names live evidence."""
+        for kind, block in guard.decoration_rules()["kinds"].items():
+            with self.subTest(kind=kind):
+                seen = block.get("witnessed") or {}
+                self.assertGreater(seen.get("occurrences", 0), 0, f"{kind} cites no reading")
+                path = os.path.join(REPO, "docs", "observations", seen.get("in", ""))
+                self.assertTrue(os.path.exists(path), f"{kind} cites {seen.get('in')!r}, missing")
+                self.assertIn(seen["example"], open(path, encoding="utf-8").read(),
+                              f"{kind}'s example is not in the evidence it names")
+
     def test_an_allowance_for_a_literal_that_is_gone_fails(self):
         result = self._run(self._current_allowed(), extra=["a literal nobody writes 77zz"])
         self.assertEqual(result.returncode, 1)

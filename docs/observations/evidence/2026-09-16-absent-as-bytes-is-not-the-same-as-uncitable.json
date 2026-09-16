@@ -1,0 +1,60 @@
+{
+  "id": "2026-09-16-absent-as-bytes-is-not-the-same-as-uncitable",
+  "date": "2026-09-16",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US"
+  },
+  "method": "Committed digest sets only; no Logic is read. `is_absent` over every (source, locale) the manifest declares, then `differs_only_by_decoration` over the same.",
+  "probes": [
+    {
+      "text": "Input Port:",
+      "absent_from": 23,
+      "of_corpora": 23,
+      "folds_onto_a_shipped_label_in": [
+        "strings/de",
+        "strings/en"
+      ]
+    },
+    {
+      "text": "Output Port:",
+      "absent_from": 23,
+      "of_corpora": 23,
+      "folds_onto_a_shipped_label_in": [
+        "strings/de",
+        "strings/en"
+      ]
+    },
+    {
+      "text": "Model:",
+      "absent_from": 23,
+      "of_corpora": 23,
+      "folds_onto_a_shipped_label_in": [
+        "madsp/-",
+        "strings/en"
+      ]
+    },
+    {
+      "text": "Set Locators…",
+      "absent_from": 23,
+      "of_corpora": 23,
+      "folds_onto_a_shipped_label_in": [
+        "strings/en"
+      ]
+    },
+    {
+      "text": "Auto Punch",
+      "absent_from": 23,
+      "of_corpora": 23,
+      "folds_onto_a_shipped_label_in": []
+    },
+    {
+      "text": "결코 없는 문자열 91xq zzz",
+      "absent_from": 23,
+      "of_corpora": 23,
+      "folds_onto_a_shipped_label_in": []
+    }
+  ]
+}
