@@ -47,16 +47,26 @@ enum AppleScriptMenuResolution {
     /// On failure the loop raises `error "<notFoundError>"` (an ordinary AppleScript error) —
     /// callers that already wrap the resolution in `try ... on error errMsg ... end try` catch it
     /// exactly like any other menu-not-found failure and keep their existing cleanup/Escape path.
+    /// `notFoundError: nil` leaves the variable `missing value` for the caller to branch on.
+    ///
+    /// Raising is right where not finding the element means the operation cannot proceed. It is
+    /// WRONG where the caller has a defined fallback: the go-to-position cleanup presses this
+    /// dialog's localized Cancel and falls back to Escape only while the exact dialog is still
+    /// observed open, so turning "no button matched" into an error would collapse a branch the
+    /// operation depends on into the same `UNREADABLE` an AX failure produces.
     static func candidateResolution(
         elementKeyword: String,
         labelSet: AXLocalePolicy.LabelSet,
         existsSuffix: String,
         variableName: String,
-        notFoundError: String
+        notFoundError: String?
     ) -> String {
         let literals = labelSet.labels
             .map { "\"\(AppleScriptSafety.escapeForScript($0))\"" }
             .joined(separator: ", ")
+        let refusal = notFoundError.map {
+            "\nif \(variableName) is missing value then error \"\($0)\""
+        } ?? ""
         return """
         set \(variableName) to missing value
         repeat with candidate in {\(literals)}
@@ -64,8 +74,7 @@ enum AppleScriptMenuResolution {
                 set \(variableName) to candidate as text
                 exit repeat
             end if
-        end repeat
-        if \(variableName) is missing value then error "\(notFoundError)"
+        end repeat\(refusal)
         """
     }
 
@@ -94,6 +103,38 @@ enum AppleScriptMenuResolution {
         repeat with candidate in {\(literals)}
             try
                 set \(variableName) to first window whose name ends with candidate
+                exit repeat
+            end try
+        end repeat
+        if \(variableName) is missing value then error "\(notFoundError)"
+        """
+    }
+
+    /// Resolves a GROUP by its localized `description`, in the order the LabelSet lists.
+    ///
+    /// `first group of <container> whose description is <x>` RAISES -1719 when nothing matches, so
+    /// each attempt is wrapped in its own `try` -- exactly as `windowWithTitleSuffix` does, and for
+    /// the same reason. Without it the first locale that does not match aborts the whole script
+    /// instead of moving on to the next.
+    ///
+    /// The marker rename is why this exists. It hard-coded an English attempt with a Korean
+    /// `on error` fallback, which is two of the ten languages Logic ships; a German or Japanese
+    /// Logic raised in both arms and the operation reported a write failure about a window that
+    /// was open.
+    static func groupWithDescription(
+        _ labelSet: AXLocalePolicy.LabelSet,
+        of container: String,
+        variableName: String,
+        notFoundError: String
+    ) -> String {
+        let literals = labelSet.labels
+            .map { "\"\(AppleScriptSafety.escapeForScript($0))\"" }
+            .joined(separator: ", ")
+        return """
+        set \(variableName) to missing value
+        repeat with candidate in {\(literals)}
+            try
+                set \(variableName) to first group of \(container) whose description is candidate
                 exit repeat
             end try
         end repeat

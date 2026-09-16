@@ -53,11 +53,11 @@
     "index/madsp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
     "index/nib.tsv": "b93ad8637d21efa0dd4a376f66209b3a68e514707191d42c1fd27c4fd372d3d5",
     "index/nib.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
-    "index/nibstrings.tsv": "1d2f24d6f43220a47fa94c4ec5d6b5dc6407684fb4f7cde9b2b74744b26c126c",
+    "index/nibstrings.tsv": "9abd7e4bb3eee6a1417a84c2685609da223771dd0252e3f1284c2abcd6826ebe",
     "index/nibstrings.values.tsv": "4a65c93478104768845b361e40d5d902436f256b77a160b0cfcd455ad2075cff",
     "index/quickhelp.tsv": "fc26998eebb29d44a6998eb5673c611a43f765b0eee5e3c6fa85374203aa6523",
     "index/quickhelp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
-    "index/strings.tsv": "5ec99b49f498f12b4677f07eb3b0c84f6d91bdf49fdc5eba2611e789581bc355",
+    "index/strings.tsv": "4ad2389ea1a76b02f1cc46f8cf0c6a8e46cb6342c8dbe8f6c2a3a2b61eba1d8e",
     "index/strings.values.tsv": "38d6d4d79b22e359d2af139961cbd1bcd214044d448107e03a32c70ee5303b77"
   },
   "extractor_version": 2,
@@ -113,7 +113,7 @@
       "absence_false_positive": {
         "en": 6.60541e-07
       },
-      "cited_rows": 22,
+      "cited_rows": 26,
       "cited_values": 3,
       "corpus_digest": "63b6fe3a97a427b7e3ef93b0c0b049c2d647e8919781a03187df4e36bc10aee5",
       "entries": 6270,
@@ -367,7 +367,7 @@
         "zh_CN": 1.1548866e-05,
         "zh_TW": 1.087226e-05
       },
-      "cited_rows": 1478,
+      "cited_rows": 1774,
       "cited_values": 2,
       "corpus_digest": "830a5131378ede72bb0a20211985166f367b7a35a30a85d875c9c25ff0b89e1a",
       "entries": 605190,

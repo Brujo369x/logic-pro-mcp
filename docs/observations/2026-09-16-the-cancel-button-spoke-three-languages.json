@@ -1,0 +1,140 @@
+{
+  "id": "2026-09-16-the-cancel-button-spoke-three-languages",
+  "date": "2026-09-16",
+  "schema": 3,
+  "subject": "The matching sites outside AXLocalePolicy, and what they could reach before and after",
+  "question": "The LabelSet ledger reads one file. How many strings this product matches Logic with live outside it, how many languages does each site reach, and which of them can be driven from a derived LabelSet instead?",
+  "verdict": "works",
+  "issues": [
+    892,
+    883,
+    904,
+    907
+  ],
+  "surface": "system.accessibility",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-labelsets-are-derived.py",
+    "expected": "93 of 162 LabelSets name a row, and every one of them is that row's own values in every locale the corpus carries",
+    "cost": "~10s; reads committed digests and the Swift, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+Transport.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+MarkerNaming.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel.swift"
+  ],
+  "method": "Swept every Swift string literal outside AXLocalePolicy.swift holding a CJK character, grouped them into matching SITES, and asked per site which of the ten locales its literals are values in. Then drove the ones with a derived LabelSet from that LabelSet instead, and removed the paths that could not be derived because Apple no longer ships what they looked for.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Rename%20Track#value",
+      "value": "Rename Track",
+      "used_for": "the Track-menu rename leaf, which the call site carried as a three-element literal array. The row supplies the other seven languages, and the shorter Korean `이름 변경` the product also matched is NOT one of its values and was kept beside them",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Channels/AccessibilityChannel+Tracks.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Edit%20Marker%23und#value",
+      "value": "Edit Marker",
+      "used_for": "the marker-list text-area toggle, compared inline against two languages before this",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "Swift files outside AXLocalePolicy holding a CJK literal, before",
+      "count": 11
+    },
+    {
+      "what": "CJK literals in them, before",
+      "count": 60
+    },
+    {
+      "what": "after",
+      "count": 38
+    },
+    {
+      "what": "of the 38, ones that are the derived locale-detection table itself",
+      "count": 12
+    },
+    {
+      "what": "matching SITES those literals group into",
+      "count": 48
+    },
+    {
+      "what": "of the 48, sites whose literals are values in all ten locales",
+      "count": 2
+    },
+    {
+      "what": "AppleScript Cancel-button sites, each carrying three literals",
+      "count": 10
+    },
+    {
+      "what": "languages those sites could reach, before",
+      "count": 3
+    },
+    {
+      "what": "after, from AXLocalePolicy.cancelButton",
+      "count": 10
+    },
+    {
+      "what": "languages the marker rename could reach, before",
+      "count": 2
+    },
+    {
+      "what": "track-creation call sites taking (korean:, english:)",
+      "count": 5
+    },
+    {
+      "what": "of those five leaves, ones with a row carrying all ten locales",
+      "count": 4
+    },
+    {
+      "what": "LabelSets naming a row after this change",
+      "count": 93
+    },
+    {
+      "what": "LabelSets declared",
+      "count": 162
+    },
+    {
+      "what": "LabelSets the applicability check called unsafe only because it compared case-exactly",
+      "count": 10
+    },
+    {
+      "what": "legacy code paths removed because Apple no longer ships what they looked for",
+      "count": 3
+    },
+    {
+      "what": "lines of dead test removed with them",
+      "count": 55
+    },
+    {
+      "what": "blind AX-lookup budget, lowered by the removal",
+      "count": 52
+    }
+  ],
+  "conclusion": "The ledger reads one file and 60 CJK literals lived outside it, in 11 files. Grouped into matching sites and measured against the corpus, only two of 48 reached all ten languages. The three worst were not edge cases. The go-to-position cleanup pressed Cancel by trying `Cancel`, `취소` and `キャンセル` -- so on a German, Spanish, French, Italian, Portuguese or Chinese Logic no button matched and every cleanup fell through to Escape, which actuates whatever is focused. The marker rename tried an English `whose description is` and fell back to a Korean one; that specifier RAISES -1719 when nothing matches, so on a Japanese or German Logic both arms errored and the operation reported a write failure about a window that was open -- and because English was the first arm, an English Logic was one of the two that worked. Track creation took `(korean:, english:)` and answered `Cannot find menu item` in the other eight languages, which is the report in #883. All three are driven from derived LabelSets now, and four of the five track leaves carry all ten languages from Apple's own rows -- including a German with two non-breaking spaces and a Traditional Chinese with a U+22EF ellipsis, neither of which survives being typed. The fifth could not be derived and was removed with two other legacy paths, for one reason: Apple stopped shipping what they looked for, so they answered empty on every build this repository pins, and an empty answer from a marker scan is read as `no markers` rather than `not found`.",
+  "limits": [
+    "38 CJK literals remain outside the policy, 12 of them the locale-detection table itself, which is derived and guarded. The rest are the plug-in menu paths (a Cartesian product of per-language spellings that needs its data structure changed, not its strings), two region-parsing regexes, three containment checks, one inline LabelSet and two message strings.",
+    "The removals rest on a measurement this change did not take: that Logic 12.2 moved markers out of the arrange-window AX subtree. It is recorded in the code they were removed from and in #7's PRD, and the corpus confirms the renamed track leaf independently -- `New Drummer Track` is in no locale of 12.3.",
+    "A derived LabelSet is a claim about Apple's `.strings`, not about what AX publishes. These sites read AXDescription and AXTitle, so a row's value reaching them is an expectation, not a measurement, until somebody runs Logic in that language.",
+    "The applicability check compared case-exactly and called ten LabelSets unsafe whose only extra member was a lowercase containment fragment. Fixing it moved the safe count from 78 to 88 -- so that number in the previous record is an undercount by exactly that reason."
+  ],
+  "evidence": [
+    "evidence/2026-09-16-the-cancel-button-spoke-three-languages.json"
+  ],
+  "supersedes": null
+}

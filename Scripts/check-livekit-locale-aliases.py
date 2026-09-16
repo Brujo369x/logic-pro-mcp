@@ -285,6 +285,7 @@ def main():
             for entry in unknown_to_policy:
                 print(f"           {entry}")
 
+    derived = derived_policy_spellings(REPO)
     for py_name, swift_name in PAIRS:
         policy_labels = swift_label_set(policy_text, swift_name)
         kit_labels = python_list(kit_text, py_name)
@@ -297,11 +298,17 @@ def main():
             failed = 1
             continue
         gap = missing(policy_labels, kit_labels)
-        state = "ok" if not gap else "FAIL"
+        # Same rule as the region table below: a DERIVED spelling is a fact about Apple's
+        # `.strings`, and these lists are claims about what a live Logic publishes. Required if
+        # somebody read it; reported if the corpus supplied it.
+        unmeasured = [spelling for spelling in gap if spelling not in derived]
+        derived_gap = [spelling for spelling in gap if spelling in derived]
+        state = "ok" if not unmeasured else "FAIL"
         print(f"   {state:>4}  {py_name}: {len(kit_labels)} alias(es) cover "
-              f"{len(policy_labels) - len(gap)} of {len(policy_labels)} policy spelling(s)")
-        if gap:
-            print(f"-> FAIL: {swift_name} declares {gap} which no live-kit alias matches")
+              f"{len(policy_labels) - len(gap)} of {len(policy_labels)} policy spelling(s)"
+              + (f", {len(derived_gap)} of them derived and not required" if derived_gap else ""))
+        if unmeasured:
+            print(f"-> FAIL: {swift_name} declares {unmeasured} which no live-kit alias matches")
             print(f"   Add them to evidence.{py_name}, or a harness cannot find that element on a")
             print("   Logic running in that language and will fail a precondition instead.")
             failed = 1

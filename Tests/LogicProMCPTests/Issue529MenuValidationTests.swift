@@ -295,7 +295,14 @@ struct Issue529MenuValidationTests {
         let handler = AccessibilityChannel.goToPositionDialogTitleHandlerAppleScript()
 
         #expect(writeScript.contains("dialogTitle is \"位置の移動\""))
-        #expect(writeScript.contains("button \"キャンセル\""))
+        // Was `writeScript.contains("button \"キャンセル\"")`, one literal out of the three this path
+        // used to carry. The cancel candidates are rendered from the LabelSet now, so the check is
+        // the same shape as the title loop below: EVERY spelling has to reach the script, which is
+        // what makes a language added to the policy reach this modal.
+        for cancel in AXLocalePolicy.cancelButton.labels {
+            #expect(writeScript.contains("\"\(cancel)\""),
+                    "the rendered script drops \(cancel), so a Logic in that language finds no Cancel")
+        }
         #expect(titlePredicateOccurrences.count == 0,
                 "the title predicate must be rendered from the LabelSet, never written into the source")
         for title in AXLocalePolicy.goToPositionDialogTitle.labels {
@@ -1723,7 +1730,10 @@ func aDeadScriptReconcilesDialogBeforeMenuState() throws {
     let nonOpenRefusal = try issue529Position(
         of: "if dialogState is not \"OPEN\" then return dialogState", in: dismissHandler
     )
-    let cancelAttempt = try issue529Position(of: "if exists button \"Cancel\" of dialogWindow then", in: dismissHandler)
+    // The cancel attempt, which is no longer three `exists button "<literal>"` tests. #892 renders
+    // the candidates from `AXLocalePolicy.cancelButton` -- ten languages instead of three -- so the
+    // anchor is the branch that presses whatever the resolution found.
+    let cancelAttempt = try issue529Position(of: "if cancelName is not missing value then", in: dismissHandler)
     let focusedWindowRead = try issue529Position(
         of: "set processFocusedWindow to value of attribute \"AXFocusedWindow\"", in: helper
     )

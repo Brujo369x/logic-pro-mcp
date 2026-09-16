@@ -416,7 +416,13 @@
    "variants": [
     "컨트롤 막대",
     "コントロールバー",
-    "Steuerungsleiste"
+    "Steuerungsleiste",
+    "Barra de controles",
+    "Barre des commandes",
+    "Barra di controllo",
+    "Barra de Controle",
+    "控制条",
+    "控制列"
    ],
    "rationale": "Identifies the control-bar AXGroup by description; read-only locator. German read 2026-09-12 off the de-DE navigation-free census (#876): two AXGroups carry `Steuerungsleiste` as their AXDescription, the same count as the en-US `Control Bar` rows.",
    "match": "exact_strict",
@@ -515,6 +521,28 @@
     "en-US": "title"
    }
   },
+  "deleteTrackMenuItem": {
+   "canonical": "Delete Track",
+   "variants": [
+    "트랙 삭제",
+    "トラックを削除",
+    "Spur löschen",
+    "Eliminar pista",
+    "Supprimer la piste",
+    "Elimina traccia",
+    "Apagar Pista",
+    "删除轨道",
+    "刪除音軌"
+   ],
+   "rationale": "Track-menu leaf, derived from the row Apple keys it under so every language ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
+   }
+  },
   "deleteTracksPrimaryButton": {
    "canonical": "Delete Tracks and Content",
    "variants": [
@@ -534,15 +562,23 @@
   "displayModePopupLabel": {
    "canonical": "display mode",
    "variants": [
-    "표시 모드"
+    "표시 모드",
+    "表示モード",
+    "Anzeigemodus",
+    "Modo de visualización",
+    "Mode d’affichage",
+    "Modalità di visualizzazione",
+    "Modo de visualização",
+    "显示模式",
+    "顯示模式"
    ],
    "rationale": "Identifies the control bar's display-mode AXPopUpButton by description. Read live 2026-09-14 on a Korean Logic 12.3; it is the control that decides how many position components the Playhead Position group exposes.",
    "match": "exact",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "editMenuBar": {
@@ -1014,7 +1050,10 @@
    "canonical": "event",
    "variants": [
     "이벤트",
-    "イベント"
+    "イベント",
+    "Evento",
+    "Évènement",
+    "事件"
    ],
    "rationale": "Identifies the Event tab of the List Editors pane; the collector presses it.",
    "match": "exact_strict",
@@ -1643,29 +1682,64 @@
   "libraryPanelLabel": {
    "canonical": "library",
    "variants": [
-    "라이브러리"
+    "라이브러리",
+    "ライブラリ",
+    "Bibliothek",
+    "Biblioteca",
+    "Bibliothèque",
+    "libreria",
+    "资源库",
+    "資料庫"
    ],
    "rationale": "Identifies the Library panel/browser by whole-string description; read-only locator (structural fallback exists).",
    "match": "exact_strict",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "markerContainerKeywords": {
    "canonical": "marker",
    "variants": [
-    "마커"
+    "마커",
+    "マーカー",
+    "Marcador",
+    "Marqueur",
+    "Marcatore",
+    "标记",
+    "標記"
    ],
    "rationale": "Last-resort marker-ruler container classifier; read-only keyword scan.",
    "match": "exact",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
+   }
+  },
+  "markerEditToggle": {
+   "canonical": "Edit Marker",
+   "variants": [
+    "마커 편집",
+    "マーカーを編集",
+    "Marker bearbeiten",
+    "edición de marcador",
+    "Modifier le marqueur",
+    "Modifica marcatore",
+    "Editar Marcador",
+    "编辑标记",
+    "剪輯標記"
+   ],
+   "rationale": "The marker-list text-area toggle, read by AXDescription. Derived on 2026-09-16 ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "markerListDeleteMenuItem": {
@@ -2032,6 +2106,50 @@
     "en-US": "title"
    }
   },
+  "newAudioTrackMenuItem": {
+   "canonical": "New Audio Track",
+   "variants": [
+    "새로운 오디오 트랙",
+    "新規オーディオトラック",
+    "Neue Audiospur",
+    "Nueva pista de audio",
+    "Nouvelle piste audio",
+    "Nuova traccia audio",
+    "Nova Pista de Áudio",
+    "新音频轨道",
+    "新增音訊音軌"
+   ],
+   "rationale": "Track menu leaf for this track type, derived from the row Apple keys it under ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
+   }
+  },
+  "newExternalMIDITrackMenuItem": {
+   "canonical": "New External MIDI Track",
+   "variants": [
+    "새로운 외부 MIDI 트랙",
+    "新規外部MIDIトラック",
+    "Neue externe MIDI-Spur",
+    "Nueva pista MIDI externa",
+    "Nouvelle piste MIDI externe",
+    "Nuova traccia MIDI esterno",
+    "Nova Pista de MIDI Externa",
+    "新外部 MIDI 轨道",
+    "新增外部 MIDI 音軌"
+   ],
+   "rationale": "Track menu leaf for this track type, derived from the row Apple keys it under ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
+   }
+  },
   "newProjectMenuItem": {
    "canonical": "New",
    "variants": [
@@ -2096,6 +2214,50 @@
    },
    "coverage_attributes": {
     "en-US": "title"
+   }
+  },
+  "newSessionPlayerTrackMenuItem": {
+   "canonical": "New Session Player SI Track…",
+   "variants": [
+    "새로운 Session Player SI 트랙…",
+    "新規Session Playerソフトウェア音源トラック…",
+    "Neue Session Player SI-Spur …",
+    "Nueva pista SI de Session Player…",
+    "Nouvelle piste SI Session Player…",
+    "Nuova traccia SI Session Player…",
+    "Nova Pista de IS de Session Player…",
+    "新建伴奏乐手 SI 轨道…",
+    "新增 Session Player SI 音軌⋯"
+   ],
+   "rationale": "Track menu leaf for this track type, derived from the row Apple keys it under ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
+   }
+  },
+  "newSoftwareInstrumentTrackMenuItem": {
+   "canonical": "New Software Instrument Track",
+   "variants": [
+    "새로운 소프트웨어 악기 트랙",
+    "新規ソフトウェア音源トラック",
+    "Neue Spur für Software-Instrument",
+    "Nueva pista de instrumento de software",
+    "Nouvelle piste d’instrument logiciel",
+    "Nuova traccia di strumento software",
+    "Nova Pista de Instrumento de Software",
+    "新建软件乐器轨道",
+    "新增軟體樂器音軌"
+   ],
+   "rationale": "Track menu leaf for this track type, derived from the row Apple keys it under ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "newTrackSheetDescription": {
@@ -2412,14 +2574,20 @@
   "pluginMenuUtility": {
    "canonical": "Utility",
    "variants": [
-    "유틸리티"
+    "유틸리티",
+    "ユーティリティ",
+    "UTILIDADES",
+    "UTILITAIRE",
+    "UTILITÁRIO",
+    "实用工具",
+    "實用"
    ],
    "rationale": "Absent from every canonical corpus, so measured rather than derived. Korean read off a live plug-in menu; the remaining locales are unmeasured. Carried as a LabelSet so the gap is countable instead of living in a hard-coded `||`.",
    "match": "exact",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -2746,14 +2914,18 @@
   "regionKindAudio": {
    "canonical": "audio",
    "variants": [
-    "오디오"
+    "오디오",
+    "オーディオ",
+    "Áudio",
+    "音频",
+    "音訊"
    ],
    "rationale": "Classifies a region as audio content; read-only.",
    "match": "contains",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -2783,6 +2955,29 @@
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
     "de-DE": "unmeasured"
+   }
+  },
+  "renameTrackMenuItem": {
+   "canonical": "Rename Track",
+   "variants": [
+    "트랙 이름 변경",
+    "トラック名を変更",
+    "Spur umbenennen",
+    "Renombrar pista",
+    "Renommer la piste",
+    "Rinomina traccia",
+    "Renomear Pista",
+    "给轨道重新命名",
+    "重新命名音軌",
+    "이름 변경"
+   ],
+   "rationale": "Track-menu leaf, derived from the row Apple keys it under so every language ",
+   "match": "exact",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "saveAsMenuItem": {
@@ -3619,14 +3814,19 @@
   "tempoSliderContainsLabel": {
    "canonical": "tempo",
    "variants": [
-    "템포"
+    "템포",
+    "テンポ",
+    "Ritmo",
+    "Andamento",
+    "速度",
+    "拍速"
    ],
    "rationale": "Identifies the tempo slider in TransportState extraction; substring match without bpm; read-only.",
    "match": "contains",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -3940,14 +4140,18 @@
   "trackTypeAudio": {
    "canonical": "audio",
    "variants": [
-    "오디오"
+    "오디오",
+    "オーディオ",
+    "Áudio",
+    "音频",
+    "音訊"
    ],
    "rationale": "Classifies an audio track by header aggregate; read-only classifier.",
    "match": "exact",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },

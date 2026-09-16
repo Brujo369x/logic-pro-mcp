@@ -2892,7 +2892,7 @@ private func makeTempoSliderFixture(
     #expect(fixture.session.pressedTitles == ["트랙 삭제"])
 }
 
-@Test func testDeleteTrackMissingItemHintNamesEnglishAndKoreanCandidates() async {
+@Test func testDeleteTrackMissingItemHintNamesTheMenuLeafItLookedFor() async {
     let fixture = makeDeleteTrackFixture(
         menuTitle: "Track",
         itemTitles: ["Delete Unused Tracks"]
@@ -2903,9 +2903,12 @@ private func makeTempoSliderFixture(
     #expect(!result.isSuccess)
     let object = decodeAccessibilityJSON(result.message)
     #expect(object["error"] as? String == "element_not_found")
+    // The hint used to spell the leaf as `Delete Track / 트랙 삭제`, which was the two languages
+    // this path knew. It names the LabelSet's canonical now, and the LabelSet carries all ten --
+    // so the hint says WHICH leaf was looked for without claiming that pair is the whole search.
     #expect(
         object["hint"] as? String ==
-            "Track > Delete Track / 트랙 삭제 menu item not found / not pressable"
+            "Track > Delete Track menu item not found / not pressable"
     )
     #expect(fixture.session.pressedTitles.isEmpty)
 }

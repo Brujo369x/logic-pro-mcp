@@ -72,60 +72,13 @@ struct Issue60LocalePhase3Tests {
     // is actually *consumed* by the read-only classifier it backs, end-to-end,
     // through a fake AX tree — in both English and Korean.
 
-    /// `enumerateMarkers` Strategy 3 (keyword fallback) must classify a marker
-    /// container by the `markerContainerKeywords` bag when no Marker-List window
-    /// and no AXRuler exist. Exercises EN + KO.
-    @Test("enumerateMarkers keyword-fallback classifies the marker container (EN + KO)",
-          arguments: ["Marker", "마커"])
-    func markerKeywordFallbackIsWired(containerLabel: String) {
-        let b = FakeAXRuntimeBuilder()
-        let app = b.element(8000)
-        let arrange = b.element(8001)
-        b.setAttribute(app, kAXWindowsAttribute as String, [arrange])
-        b.setAttribute(app, kAXMainWindowAttribute as String, arrange)
-        b.setAttribute(arrange, kAXRoleAttribute as String, kAXWindowRole as String)
-        // Title without any Marker-List suffix → Strategy 1 skipped.
-        b.setAttribute(arrange, kAXTitleAttribute as String, "Proj - Tracks")
-        // No AXRuler anywhere → Strategy 2 skipped, forcing the keyword fallback.
-        let markerGroup = b.element(8010)
-        b.setAttribute(markerGroup, kAXRoleAttribute as String, kAXGroupRole as String)
-        b.setAttribute(markerGroup, kAXDescriptionAttribute as String, containerLabel)
-        let t1 = b.element(8020)
-        let t2 = b.element(8021)
-        b.setAttribute(t1, kAXRoleAttribute as String, kAXStaticTextRole as String)
-        b.setAttribute(t1, kAXTitleAttribute as String, "Intro")
-        b.setAttribute(t2, kAXRoleAttribute as String, kAXStaticTextRole as String)
-        b.setAttribute(t2, kAXTitleAttribute as String, "Chorus")
-        b.setChildren(markerGroup, [t1, t2])
-        b.setChildren(arrange, [markerGroup])
-
-        let markers = AXLogicProElements.enumerateMarkers(in: arrange, runtime: b.makeLogicRuntime(appElement: app))
-        #expect(markers.map { $0.name } == ["Intro", "Chorus"], "locale \(containerLabel)")
-    }
-
-    /// A group with no marker keyword must NOT be classified as the marker
-    /// container — proves the bag discriminates rather than matching anything.
-    @Test("enumerateMarkers keyword-fallback ignores a non-marker group")
-    func markerKeywordFallbackDiscriminates() {
-        let b = FakeAXRuntimeBuilder()
-        let app = b.element(8030)
-        let arrange = b.element(8031)
-        b.setAttribute(app, kAXWindowsAttribute as String, [arrange])
-        b.setAttribute(app, kAXMainWindowAttribute as String, arrange)
-        b.setAttribute(arrange, kAXRoleAttribute as String, kAXWindowRole as String)
-        b.setAttribute(arrange, kAXTitleAttribute as String, "Proj - Tracks")
-        let mixerGroup = b.element(8040)
-        b.setAttribute(mixerGroup, kAXRoleAttribute as String, kAXGroupRole as String)
-        b.setAttribute(mixerGroup, kAXDescriptionAttribute as String, "Mixer")
-        let t1 = b.element(8041)
-        b.setAttribute(t1, kAXRoleAttribute as String, kAXStaticTextRole as String)
-        b.setAttribute(t1, kAXTitleAttribute as String, "Volume")
-        b.setChildren(mixerGroup, [t1])
-        b.setChildren(arrange, [mixerGroup])
-
-        let markers = AXLogicProElements.enumerateMarkers(in: arrange, runtime: b.makeLogicRuntime(appElement: app))
-        #expect(markers.isEmpty)
-    }
+    // The two `enumerateMarkers` keyword-fallback cases that used to sit here were removed on
+    // 2026-09-16 with the path they tested (#907). They proved that a marker container could be
+    // classified by `markerContainerKeywords` on a fake tree with no Marker-List window and no
+    // AXRuler -- a tree no Logic this repository pins produces, because 12.2 took markers out of
+    // the arrange-window AX subtree entirely. The bag itself is still exercised: it now resolves
+    // the marker group in the rename script, and `check-labelsets-are-derived.py` checks all ten
+    // of its languages against Apple's own row.
 
     /// `getTransportBar` falls through to the `looksLikeTransportContainer`
     /// classifier (no toolbar / no id="Transport" group), which must recognize

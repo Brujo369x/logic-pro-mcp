@@ -159,8 +159,14 @@ def applicability(canon, rows, row, members):
     carries 25 members spanning a dozen controls. Telling those three apart is a reading, so this
     reports them instead of guessing.
     """
-    held = {canon.normalize(rows[row][locale]) for locale in LOCALES}
-    extra = [member for member in members if canon.normalize(member) not in held]
+    # Case-FOLDED, the same way the applier dedupes and the guard checks, because that is the
+    # question the product asks: every `LabelSet.matches` mode is case-insensitive. Comparing
+    # case-exactly called the lowercase containment fragments `marker`, `bus` and `audio` members
+    # their row does not hold, when the row holds `Marker`, `Bus` and `Audio` and the product
+    # cannot tell those apart. The corpus stays case-exact; this question is not the corpus's.
+    held = {canon.normalize(rows[row][locale]).casefold() for locale in LOCALES}
+    extra = [member for member in members
+             if canon.normalize(member).casefold() not in held]
     return (SAFE if not extra else EXTRA_MEMBERS), extra
 
 

@@ -138,13 +138,13 @@ extension AXLogicProElements {
     /// `AXRow → AXCell` rows with name in cell column 2 and position in
     /// cell column 1.
     ///
-    /// **v3.1.8 — Logic 11.x fallback**: `AXRuler` structural position
-    /// inside the arrange area (the second `AXRuler` is the marker ruler;
-    /// the first is the timeline). Preserved for older builds whose marker
-    /// ruler is still in the arrange-window subtree.
-    ///
-    /// **legacy keyword fallback**: scan `AXGroup` descriptions for
-    /// `marker` / `마커`. Preserved for very old Logic versions.
+    /// The `AXRuler` fallback for Logic 11.x and the `AXGroup` keyword scan below it were REMOVED
+    /// on 2026-09-16. Both were dead on every Logic this repository can read: Apple took markers
+    /// out of the arrange-window AX subtree in 12.2, which is the paragraph above, so the arrange
+    /// area has no marker ruler and the keyword scan had nothing to find either. They could not be
+    /// tested, could not be cited, and could not be widened past the two languages the keyword bag
+    /// carried -- and a path that returns nothing is worse than no path, because its empty answer
+    /// is indistinguishable from "this project has no markers". #907.
     ///
     /// Strategy 1's data quality requires the user to keep the Marker List
     /// window open. Callers that need first-class markers without a
@@ -170,53 +170,10 @@ extension AXLogicProElements {
             }
         }
 
-        // Strategy 2 — Logic 11.x: AXRuler-based.
-        var rulerElement: AXUIElement? = nil
-        let rulers = AXHelpers.findAllDescendants(
-            of: arrangementArea, role: "AXRuler", maxDepth: 6, runtime: runtime.ax
-        )
-        if rulers.count >= 2 {
-            rulerElement = rulers[1]
-        } else if let only = rulers.first {
-            rulerElement = only
-        }
-
-        // Strategy 3 — keyword fallback (oldest path).
-        if rulerElement == nil {
-            // #60: centralized marker-container keyword bag (read-only classifier).
-            let markerKeywords = AXLocalePolicy.markerContainerKeywords.labels
-            let groups = AXHelpers.findAllDescendants(
-                of: arrangementArea, role: kAXGroupRole, maxDepth: 6, runtime: runtime.ax
-            )
-            for group in groups {
-                let id = AXHelpers.getIdentifier(group, runtime: runtime.ax)?.lowercased() ?? ""
-                let desc = AXHelpers.getDescription(group, runtime: runtime.ax)?.lowercased() ?? ""
-                let title = AXHelpers.getTitle(group, runtime: runtime.ax)?.lowercased() ?? ""
-                let combined = "\(id) \(desc) \(title)"
-                if markerKeywords.contains(where: { combined.contains($0.lowercased()) }) {
-                    rulerElement = group
-                    break
-                }
-            }
-        }
-
-        guard let ruler = rulerElement else { return [] }
-
-        let texts = AXHelpers.findAllDescendants(
-            of: ruler, role: kAXStaticTextRole, maxDepth: 4, runtime: runtime.ax
-        )
-        var markers: [MarkerState] = []
-        markers.reserveCapacity(min(texts.count, markerLimit))
-        for (index, text) in texts.prefix(markerLimit).enumerated() {
-            let name = AXHelpers.getTitle(text, runtime: runtime.ax)
-                ?? AXHelpers.getDescription(text, runtime: runtime.ax)
-                ?? axValueAsName(text, runtime: runtime.ax)
-                ?? ""
-            guard !name.isEmpty else { continue }
-            let parsed = extractMarkerPosition(text, runtime: runtime.ax)
-            markers.append(.fromParsed(parsed, ordinal: index, name: name))
-        }
-        return markers
+        // No arrange-window fallback. See the note above the doc comment: Logic 12.2 removed
+        // markers from that subtree, so anything looking there answers empty on every build this
+        // repository pins -- and an empty answer here reads as "no markers", not as "not found".
+        return []
     }
 
     /// Locate the open Marker List window (Logic 12.2+ surface). Title
