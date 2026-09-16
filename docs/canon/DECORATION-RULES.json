@@ -1,0 +1,40 @@
+{
+  "note": "Which trailing decoration a kind of control may carry that Logic's .strings tables do not. Logic stores a bare label and the interface draws the punctuation, so a canonical spelling can legitimately differ from every corpus value by exactly this and no more. Without the table there is no mechanical answer and the question falls to a person every time, which is not a system. Each rule is witnessed: the count and example come from live AX evidence in docs/observations/evidence/, not from a convention somebody remembered.",
+  "kinds": {
+    "menu_item": {
+      "name_suffixes": [
+        "MenuItem",
+        "Menu"
+      ],
+      "allows_trailing": [
+        "…"
+      ],
+      "why": "macOS draws an ellipsis on a menu item that opens a dialog rather than acting at once. Logic's tables hold the bare label.",
+      "witnessed": {
+        "occurrences": 522,
+        "example": "기존 프로젝트 열기…",
+        "in": "evidence/2026-09-15-ko-KR-project-chooser.census.json"
+      }
+    },
+    "field_label": {
+      "name_suffixes": [
+        "Label",
+        "FieldLabel"
+      ],
+      "allows_trailing": [
+        ":",
+        "："
+      ],
+      "why": "a form draws the colon after a field name. The table holds the name.",
+      "witnessed": {
+        "occurrences": 2631,
+        "example": "플립 모드:",
+        "in": "evidence/2026-09-15-ko-KR-automation-lane-and-control-surface.census.json"
+      }
+    }
+  },
+  "default": {
+    "allows_trailing": [],
+    "why": "A kind nobody declared may not add decoration. A button, a window title or a tab shows the label Logic ships, so a canonical differing from every corpus value by punctuation is a typo until its kind says otherwise."
+  }
+}

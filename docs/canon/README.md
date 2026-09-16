@@ -135,12 +135,17 @@ names the string to `locate`. Case is deliberately NOT folded: runtime matching 
 case-insensitive, so `Go To Position` against Logic's `Go to Position` still matches on screen and
 is not this defect. Folding case made the check fire 33 times, of which 3 were real.
 
-It advises rather than refuses, and that is measured too. The fold cannot separate `Input Port:`,
-a colon this repository added, from `Set Locators…`, where the ellipsis is macOS convention for a
-menu item that opens a dialog and the Korean variant carries it as well. Both are "absent as bytes
-with something folding to them"; the difference is what the label means. What IS refused is a
-literal matching the corpus after `normalize` but not before — the same label spelt with different
-bytes, which has one right answer.
+It REFUSES, and what makes that possible is a table rather than a judgement.
+`DECORATION-RULES.json` says which trailing punctuation each KIND of control may carry that Logic's
+tables do not: an ellipsis on a menu item that opens a dialog, a colon after a field name. Neither
+is a convention somebody remembered — each rule cites live AX evidence and a self-test asserts the
+example is really in the file it names (522 readings of the ellipsis, 2,631 of the colon).
+
+A LabelSet's own NAME says which kind it is: `setLocatorsMenuItem`, `controlSurfaceInputPortLabel`.
+A name declaring nothing gets the default, which allows none — so the cost of adding punctuation is
+naming what draws it, and nobody is asked to adjudicate the same question twice. `variants` are
+exempt throughout: they are deliberate tolerance and being absent from Apple's data is the point of
+them.
 
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 

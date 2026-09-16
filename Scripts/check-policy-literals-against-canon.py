@@ -76,6 +76,9 @@ _spec.loader.exec_module(canon)
 #: A pattern that stopped at `variants:` would have let a whole third field of Logic-facing strings
 #: into the tree unseen, which is the blind spot this guard exists to be. Written now rather than
 #: when that branch lands, because a gate learned about after the fact has already missed once.
+#: Every character `fold_for_near_miss` removes, so a trailing one can be named.
+_ALL_DECORATION = canon._DECORATION
+
 _LABELSET = re.compile(
     r'LabelSet\(\s*canonical:\s*("(?:[^"\\]|\\.)*")\s*,'
     r'\s*variants:\s*\[(.*?)\]\s*,'
@@ -152,6 +155,50 @@ def all_policy_literals() -> set:
             source = handle.read()
         out |= policy_literals(source)
         out |= bare_literals(source)
+    return out
+
+
+DECORATION_RULES = os.path.join(REPO, "docs", "canon", "DECORATION-RULES.json")
+
+
+def decoration_rules() -> dict:
+    with open(DECORATION_RULES, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def kind_of(name: str, rules: dict) -> str:
+    """Which kind of control a LabelSet names, from its own name. Longest suffix wins.
+
+    `setLocatorsMenuItem` is a menu item and `controlSurfaceInputPortLabel` is a field label, and
+    both say so. A set whose name declares nothing gets the default, which allows no decoration --
+    so the cost of adding punctuation is naming what draws it.
+    """
+    best, best_len = "default", 0
+    for kind, block in (rules.get("kinds") or {}).items():
+        for suffix in block.get("name_suffixes") or []:
+            if name.endswith(suffix) and len(suffix) > best_len:
+                best, best_len = kind, len(suffix)
+    return best
+
+
+def named_canonicals(source: str) -> dict:
+    """{LabelSet name: its canonical}, raw. The name is what says which kind of control it is."""
+    text = _LINE_COMMENT.sub("", _BLOCK_COMMENT.sub(" ", source))
+    out = {}
+    for match in re.finditer(r"static let (\w+)\s*=\s*LabelSet\(\s*canonical:\s*"
+                             r'("(?:[^"\\]|\\.)*")', text):
+        for value in _STRING.findall(match.group(2)):
+            value = value.replace("\\u{00A0}", "\u00a0").replace('\\"', '"')
+            if value.strip():
+                out[match.group(1)] = value
+    return out
+
+
+def all_named_canonicals() -> dict:
+    out = {}
+    for path in swift_sources():
+        with open(path, "r", encoding="utf-8") as handle:
+            out.update(named_canonicals(handle.read()))
     return out
 
 
@@ -249,49 +296,59 @@ def verify_buckets_offline(committed: dict) -> list:
 
 
 def near_miss_canonicals(manifest: dict) -> list:
-    """A `canonical` absent from every corpus while a shipped label folds to it. ADVISORY.
+    """A `canonical` absent from every corpus, whose only difference is decoration its kind may
+    not carry. REFUSED, not advised.
 
-    Printed, never failed on, and the reason is measured rather than cautious. The fold cannot
-    tell two cases apart:
+    `absent` proves a byte string is not in the corpus, which is exactly true and half an answer:
+    `Input Port:` is absent from all 23 corpora and Logic ships `Input Port`, so a colon proves
+    any label uncitable. What separates that from a real one is not judgement, it is a table.
 
-        `Input Port:`     a colon this repository added    -- looks like a typo
-        `Set Locators…`   a menu's ellipsis, macOS convention for "opens a dialog", and the
-                          Korean variant carries it too    -- correct as written
+    `docs/canon/DECORATION-RULES.json` says which trailing punctuation each KIND of control may
+    carry that Logic's tables do not, and each rule is witnessed in live AX evidence rather than
+    remembered: an ellipsis on a menu item that opens a dialog (522 readings), a colon after a
+    field name (2,631). A LabelSet's own name says which kind it is -- `setLocatorsMenuItem`,
+    `controlSurfaceInputPortLabel` -- and a name that declares nothing gets the default, which
+    allows none. So the cost of adding punctuation is naming what draws it.
 
-    Both are "absent as bytes, and something in the corpus folds to it". The difference is what
-    the label MEANS, and the corpus value it collides with is a different UI element: Logic's
-    `Set Locators` is `StrToolbItemName|||Set Locators`, a toolbar item, not the Navigate menu
-    entry. Observation records do not separate them either -- both strings appear three times.
-
-    So this advises and the author decides, like `used_for`. What IS refused is `byte_exact`:
-    a literal that matches the corpus after normalisation but not before is the SAME label spelt
-    with different bytes, and that has one right answer.
-
-    Offline: the folded digest sets are committed beside the absence sets, so this needs no Logic.
-    Only `canonical` -- `variants` are deliberate tolerance and being absent is the point of them.
+    `variants` are exempt throughout: they are deliberate tolerance and being absent from Apple's
+    data is the point of them. Refusing them was this rule's first mistake, on seven records.
     """
+    rules = decoration_rules()
+    default_allows = set((rules.get("default") or {}).get("allows_trailing") or [])
     corpora = [(source, locale)
                for source, block in (manifest.get("sources") or {}).items()
                for locale in (block.get("locales") or [])]
     found = []
-    for literal in sorted(all_canonicals()):
+    for name, literal in sorted(all_named_canonicals().items()):
+        if not literal:
+            continue
+        kind = kind_of(name, rules)
+        allowed = set(((rules.get("kinds") or {}).get(kind) or {}).get("allows_trailing")
+                      or default_allows)
+        trailing = literal[-1] if literal[-1] in _ALL_DECORATION else None
         near = []
         for source, locale in corpora:
             try:
                 if not canon.is_absent(source, locale, literal):
-                    near = []                      # cited outright; nothing to say
+                    near = []
                     break
                 if canon.differs_only_by_decoration(source, locale, literal):
                     near.append(f"{source}/{locale}")
             except canon.CanonError:
                 continue
-        if near:
-            found.append(
-                f"{literal!r} is the CANONICAL spelling this repository claims Logic uses, it is "
-                f"absent from every corpus, and {near[0]} holds a label that differs from it only "
-                f"by decoration -- a colon, an ellipsis, a capital, a space. Run "
-                f"`Scripts/logic_canon.py locate` on it and use the bytes Logic ships. "
-                f"(`variants` are exempt: tolerance is what they are for.)")
+        if not near:
+            continue
+        if trailing and trailing in allowed:
+            continue                      # the table says this kind draws it
+        where = f"kind {kind!r}" if kind != "default" else "no kind (its name declares none)"
+        permitted = " ".join(sorted(allowed)) or "nothing"
+        found.append(
+            f"{name}: canonical {literal!r} is absent from every corpus and {near[0]} holds a "
+            f"label differing from it only by decoration. It is {where}, which may add "
+            f"{permitted}. Either use the bytes Logic ships -- run "
+            f"`Scripts/logic_canon.py locate` -- or, if the interface really draws this, name the "
+            f"kind in the LabelSet's name and give docs/canon/DECORATION-RULES.json a witnessed "
+            f"rule for it.")
     return found
 
 
@@ -299,7 +356,7 @@ def check() -> list:
     literals = all_policy_literals()
     with open(CLASSIFICATION, "r", encoding="utf-8") as handle:
         committed = json.load(handle)["literals"]
-    problems = []
+    problems = list(near_miss_canonicals(canon.load_manifest()))
     for literal in sorted(literals - set(committed)):
         problems.append(
             f"{literal!r} is matched against Logic's interface and is classified nowhere. Run "
@@ -321,8 +378,6 @@ def check() -> list:
 
 def main() -> int:
     problems = check()
-    for note in near_miss_canonicals(canon.load_manifest()):
-        print(f"  note: {note}", file=sys.stderr)
     if problems:
         print(f"{len(problems)} problem(s) with the policy literals:", file=sys.stderr)
         for problem in problems:

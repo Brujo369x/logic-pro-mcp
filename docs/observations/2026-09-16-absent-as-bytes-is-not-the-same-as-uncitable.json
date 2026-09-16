@@ -68,9 +68,19 @@
     {
       "what": "digests in the committed folded sets",
       "count": 684978
+    },
+    {
+      "what": "strings ending in an ellipsis across the live evidence",
+      "count": 522,
+      "example": "기존 프로젝트 열기…"
+    },
+    {
+      "what": "strings ending in a colon across the live evidence",
+      "count": 2631,
+      "example": "플립 모드:"
     }
   ],
-  "conclusion": "No. 'Input Port:' is absent from all 23 corpora and Logic ships 'Input Port', so a colon proves any label uncitable. Three literals were proved absent that way and none had been read off a screen. A second digest set over the same values with decoration removed answers the other half offline. It advises rather than refuses: the fold cannot separate a colon this repository added from a menu's ellipsis, which is macOS convention and which the Korean variant carries too, and folding case as well gave 33 findings of which 3 were real. Made a refusal first, it rejected 7 correct records on main whose strings are a LabelSet's deliberate tolerance variants beside a canonical of 'Autopunch', which is correct and citable.",
+  "conclusion": "No. 'Input Port:' is absent from all 23 corpora and Logic ships 'Input Port', so a colon proves any label uncitable. Three literals were proved absent that way and none had been read off a screen. A second digest set over the same values with decoration removed answers the other half offline. It advises rather than refuses: the fold cannot separate a colon this repository added from a menu's ellipsis, which is macOS convention and which the Korean variant carries too, and folding case as well gave 33 findings of which 3 were real. Made a refusal first, it rejected 7 correct records on main whose strings are a LabelSet's deliberate tolerance variants beside a canonical of 'Autopunch', which is correct and citable. What separates a real near miss from a legitimate one is a table, not a judgement: docs/canon/DECORATION-RULES.json says which trailing punctuation each KIND of control may add, witnessed in that evidence -- 522 readings end in an ellipsis and 2631 in a colon -- and a LabelSet's own name says which kind it is. A name declaring nothing may add nothing.",
   "limits": [
     "The fold answers 'something differs from this only by decoration', never 'that is the same label'. Logic's `Set Locators` is a toolbar item and `Set Locators…` is the Navigate menu entry; they fold together and are different elements.",
     "Case is not folded, so a label differing only in capitalisation is not reported. That is deliberate -- runtime matching is case-insensitive -- and it means this cannot see a canonical whose only error is a capital.",
