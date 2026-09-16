@@ -891,15 +891,30 @@ class ANibLabelIsPairedByClassNotByGuess(unittest.TestCase):
 
 
 class ACorpusMustKnowWhichBytesItIsMadeOf(unittest.TestCase):
+    """Over an EMPTY bundle, not over the installed Logic.
+
+    The first version of `test_every_extractor_has_one` passed `/Applications/Logic Pro.app` and
+    therefore tested nothing on the one machine that matters: CI has no Logic, and `quickhelp`'s
+    branch does a bare `os.listdir` on `Contents/Resources`, so the case died with a
+    FileNotFoundError instead of answering whether every extractor has a branch. The property is
+    about this module's own dispatch, so the fixture is a directory shaped like a bundle and empty.
+    """
+
+    def setUp(self):
+        self.bundle = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.bundle, "Contents", "Resources"))
+        self.addCleanup(shutil.rmtree, self.bundle, True)
+
     def test_a_source_with_no_file_list_is_refused_rather_than_pinned_against_nothing(self):
         """An empty list recorded `files: 0` and a digest over nothing, and `status` would then
         call the corpus current against any Logic at all."""
         with self.assertRaises(canon.CanonError):
-            canon.corpus_files(APP, "a-source-nobody-added-a-branch-for")
+            canon.corpus_files(self.bundle, "a-source-nobody-added-a-branch-for")
 
     def test_every_extractor_has_one(self):
         for source in canon.EXTRACTORS:
-            canon.corpus_files(APP, source)
+            self.assertEqual(canon.corpus_files(self.bundle, source), [],
+                             f"{source} found files in an empty bundle")
 
 
 class EnglishAndItsTranslationsMustMeet(unittest.TestCase):
