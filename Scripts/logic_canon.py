@@ -1318,7 +1318,21 @@ def load_manifest() -> dict:
 # ---------------------------------------------------------------------------
 
 def resolve_offline(ref: CanonRef) -> str:
-    """The committed digest for a reference. Raises when it is not in the index."""
+    """The committed digest for a reference. Raises when it is not in the index.
+
+    A VALUE citation has no key, so there is no row to return a digest FROM: the claim is that
+    Apple ships some string here, and which string is carried by the citation's own `value`. It is
+    checkable only as a pair, which `check_citation` does. Callers that scan prose for references
+    and resolve each one -- proving the reference is pinned at all -- ask this instead, so it
+    answers for the source rather than for a row.
+    """
+    if ref.is_value_citation:
+        if not load_value_index(ref.source):
+            raise CanonResolveError(
+                f"{ref}: docs/canon/index/{ref.source}.values.tsv is missing or empty, so no value "
+                f"citation for this source is pinned. Run Scripts/logic_canon.py build on a "
+                f"machine with Logic.")
+        return ""
     table = load_index(ref.source)
     row = table.get(ref.index_row())
     if row is None:
@@ -1788,7 +1802,12 @@ def verify_index_against_absence() -> list:
     act nobody performs by accident.
     """
     problems = []
+    # `*.tsv` also matches `<source>.values.tsv`, which is a VALUE index -- two columns, not five.
+    # This walked it as a key index and died on the field count. A glob that predates a file type
+    # does not know about it, and the one it does not know about is the one that breaks it.
     for path in sorted(glob.glob(os.path.join(INDEX_DIR, "*.tsv"))):
+        if path.endswith(".values.tsv"):
+            continue
         source = os.path.basename(path)[: -len(".tsv")]
         for (unit, locale, key, field), short in load_index(source).items():
             try:

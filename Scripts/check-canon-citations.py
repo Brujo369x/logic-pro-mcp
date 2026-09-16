@@ -241,12 +241,45 @@ def _skip_members(blob, key):
     return members
 
 
+def _literals_named_in_records() -> set:
+    """Every string an observation record's readings quote.
+
+    A literal answered NOWHERE is debt only while nobody has said what it is. Once a record carries
+    it as a reading, it is the other half of this axis working: Apple does not ship the string, so
+    somebody measured it, and that is the SSOT the ledger exists to be. Counting those as debt
+    makes the axis refuse its own output -- which it did, on `Utility`, a label Apple ships no key
+    for and whose Korean was read off a live plug-in menu. Before it was a LabelSet it sat in a
+    hard-coded `titles.contains("유틸리티")`, uncounted and unmeasurable.
+    """
+    named = set()
+    root = os.path.join(REPO, "docs", "observations")
+    if not os.path.isdir(root):
+        return named
+    for name in sorted(os.listdir(root)):
+        if not name.endswith(".json"):
+            continue
+        record = _json(os.path.join(root, name), None)
+        if not isinstance(record, dict):
+            continue
+        # NOT `_observation_strings`: that applies `NOT_APPLICABLE_MIN`, an eight-character floor
+        # written for rule 13, where a short fragment is too weak to REFUSE a declaration on. Here
+        # the question is the opposite one -- has somebody measured this literal -- and `Utility`
+        # is seven characters, `유틸리티` four. A floor built to avoid false refusals became a
+        # floor that caused one.
+        for text in _every_string_in(record):
+            named.add(canon.normalize(text))
+    return named
+
+
 def _ratchet_members(blob, key):
     value = blob.get(key)
     if isinstance(value, dict):
         # POLICY-LITERALS.json is a map literal -> where it is answered. Only the ones answered
-        # NOWHERE are the debt; the other two buckets are the work succeeding.
-        return {name for name, where in value.items() if where == "nowhere"}
+        # NOWHERE are the debt; the other two buckets are the work succeeding -- and neither is a
+        # literal a record has measured, which is the axis's other half rather than a shortfall.
+        measured = _literals_named_in_records()
+        return {name for name, where in value.items()
+                if where == "nowhere" and canon.normalize(name) not in measured}
     return set(value or [])
 
 
@@ -507,6 +540,28 @@ NOT_APPLICABLE_MIN = 8
 #: English sentence does not produce by accident, and a record whose conclusion quotes a string
 #: Logic ships had a citation available wherever it put it.
 NOT_APPLICABLE_FIELDS = ("observations", "conclusion", "method", "question", "subject", "limits")
+
+
+def _every_string_in(record: dict) -> list:
+    """Every string in the record's substantive fields, at any length."""
+    out = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+        elif isinstance(node, str) and node.strip():
+            out.append(node)
+
+    for field in NOT_APPLICABLE_FIELDS:
+        walk(record.get(field))
+    for citation in record.get("canon") or []:
+        if isinstance(citation, dict) and isinstance(citation.get("value"), str):
+            out.append(citation["value"])
+    return out
 
 
 def _observation_strings(record: dict) -> list:
