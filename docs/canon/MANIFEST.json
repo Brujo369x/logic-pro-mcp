@@ -47,9 +47,13 @@
     "absence/strings.zh_TW.folded.u32": "3ac8f9d9bf1ad618500c13f453a4d977b056f3cd5702038a6784e3d8f3664519",
     "absence/strings.zh_TW.u32": "ef81ff10d762c8422eabdfa6a06770c5dc4db62922b7318742d778cee7e58bcb",
     "index/madsp.tsv": "664b694f0bacce322cf8b15a4539594f2106d2d5b7c38b10b0e3e508b30d2320",
+    "index/madsp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
     "index/nib.tsv": "553195c3d71ee2a71df337975994e7884f227b5a4a36a331b52db02d1d530d79",
+    "index/nib.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
     "index/quickhelp.tsv": "94046f4ccb47eaf494fb50368c690542361fce2117b40399168ab194ffb9504e",
-    "index/strings.tsv": "ba274dfa216a9962cad61cb8778836557d207b20118a9315726d7afbe07541e3"
+    "index/quickhelp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
+    "index/strings.tsv": "ba274dfa216a9962cad61cb8778836557d207b20118a9315726d7afbe07541e3",
+    "index/strings.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f"
   },
   "extractor_version": 1,
   "logic": {
@@ -67,6 +71,7 @@
         "-": 9.11299e-07
       },
       "cited_rows": 1,
+      "cited_values": 0,
       "corpus_digest": "3e015ce94a8c7ff1889b360fc443fb96667cce1302649a9d4d467b9a298bb64e",
       "entries": 14940,
       "files": 128,
@@ -85,6 +90,7 @@
         "-": 1.81142e-07
       },
       "cited_rows": 2,
+      "cited_values": 0,
       "corpus_digest": "50cc58b947e7a3bba4e11c438d8555e7e5737a823ba5b3b10cb51ff0bfbd7a07",
       "entries": 3313,
       "files": 1169,
@@ -121,6 +127,7 @@
         "zh_TW": 4.812842e-06
       },
       "cited_rows": 5,
+      "cited_values": 0,
       "corpus_digest": "21cc7dce8e354afa1ab3de915762a9b01054735823bd32c99114cd8fa5b2cadb",
       "entries": 390820,
       "files": 20,
@@ -337,6 +344,7 @@
         "zh_TW": 1.087226e-05
       },
       "cited_rows": 8,
+      "cited_values": 0,
       "corpus_digest": "830a5131378ede72bb0a20211985166f367b7a35a30a85d875c9c25ff0b89e1a",
       "entries": 605190,
       "files": 2538,

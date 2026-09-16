@@ -449,6 +449,60 @@ class CitationAndArtifactChecks(unittest.TestCase):
 
 
 
+class ACitationWithoutAKey(unittest.TestCase):
+    """The key was where the last human judgement lived, and the code never needed it.
+
+    `추가` is the value of `Add` and of `Label_For_Drummer_Editor_GhostNotes_Slider|||More`. Both
+    resolve, both pass every check, and only one MEANS what a change is about — so a key citation
+    asked somebody to choose, 164 times out of 227, with nothing mechanical to check the choice.
+
+    A `LabelSet` matches Logic at runtime BY VALUE. It never sees a key. So a value citation
+    asserts exactly what the code relies on, and the part that needed judgement is simply not in
+    the claim any more.
+    """
+
+    def test_a_value_reference_parses_and_round_trips(self):
+        ref = canon.CanonRef.parse("logic-canon://strings/ko#value")
+        self.assertTrue(ref.is_value_citation)
+        self.assertEqual((ref.source, ref.locale, ref.field), ("strings", "ko", "value"))
+        self.assertEqual(str(ref), "logic-canon://strings/ko#value")
+
+    def test_a_key_reference_is_not_a_value_citation(self):
+        ref = canon.CanonRef.parse(
+            "logic-canon://quickhelp/QuickHelp/ko/KCE_024_Record#composed")
+        self.assertFalse(ref.is_value_citation)
+
+    def test_a_value_reference_survives_find_refs(self):
+        """It has fewer segments than a key reference; the scanner must still take it whole."""
+        ref = "logic-canon://strings/ko#value"
+        self.assertEqual(canon.find_refs(f"as pinned in {ref} and nowhere else.\n"), [ref])
+
+    def test_only_value_is_accepted_as_the_field(self):
+        """`#composed` without a key would be a claim nothing can check."""
+        with self.assertRaises(canon.CanonRefError):
+            canon.CanonRef.parse("logic-canon://quickhelp/ko#composed")
+
+    def test_the_value_index_round_trips(self):
+        saved = canon.load_value_index("strings")
+        try:
+            canon.write_value_index("strings", {("ko", canon.short_digest("추가"))})
+            self.assertIn(("ko", canon.short_digest("추가")), canon.load_value_index("strings"))
+            canon.check_citation("logic-canon://strings/ko#value", "추가")
+            with self.assertRaises(canon.CanonError):
+                canon.check_citation("logic-canon://strings/ko#value", "존재하지않는값 zz91")
+        finally:
+            canon.write_value_index("strings", saved)
+
+    def test_an_unbuilt_source_refuses_rather_than_passing(self):
+        saved = canon.load_value_index("strings")
+        try:
+            canon.write_value_index("strings", set())
+            with self.assertRaises(canon.CanonError):
+                canon.check_citation("logic-canon://strings/ko#value", "추가")
+        finally:
+            canon.write_value_index("strings", saved)
+
+
 class TellingAbsenceFromATypo(unittest.TestCase):
     """`absent` proves a BYTE STRING is not in the corpus, which is exactly true and half an answer.
 

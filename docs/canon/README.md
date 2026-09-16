@@ -58,6 +58,32 @@ check time   (needs nothing)   resolve a citation against what was committed
 | `CI-SKIPS.json` | how many cases each guard may SKIP under CI, and why. A skip exits 0, so a guard that ran nothing reports the same as one that passed. May only shrink |
 | `PROSE-NUMBERS.json` | numbers this README may state that no artifact and no record carries, and why each has none. May only shrink |
 
+### A citation without a key
+
+```text
+logic-canon://<source>/<locale>#value
+```
+
+The key was where the last human judgement lived. `추가` is the value of `Add` and of
+`Label_For_Drummer_Editor_GhostNotes_Slider|||More`; both resolve, both pass every check, and only
+one *means* what a change is about. Of the 227 `.strings` values this repository matches Logic
+with, only 63 have a unique key — so the other 164 asked somebody to choose, every time, with
+nothing mechanical to check the choice against.
+
+They should not have been asked. A `LabelSet` matches Logic at runtime **by value**; it never sees
+a key. A key citation therefore asserts more than the code relies on, and the surplus is exactly
+the part no check can verify. A value citation asserts what is used: Apple ships this string, in
+this corpus, in this locale.
+
+It resolves against `index/<source>.values.tsv`, full digests of the values actually cited —
+deliberately **not** the absence sets. Those are 32-bit prefixes whose collisions are safe in one
+direction: a collision makes an absent string look present, which *refuses* an absence claim.
+Asking the same table whether a value is present inverts that, and would admit a citation to a
+string Apple does not ship.
+
+Use a key citation when the key is itself the claim — a QuickHelp key identifies a control, and
+that is a fact about Logic worth pinning.
+
 ### Finding the citation in the first place
 
 `Scripts/logic_canon.py locate '<string>'` prints every place a string is a whole value in
