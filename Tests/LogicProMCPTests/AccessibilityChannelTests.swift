@@ -65,10 +65,23 @@ func koreanProjectChooserIsRecognised() {
         emptyProjectLabelCount: 1,
         chooseButtonCount: 1,
         chooseEnabled: true))
-    // Unmeasured locales gain nothing, and saying so is the point.
-    #expect(!AccessibilityChannel.isExactEmptyProjectLabel(title: "空のプロジェクト", value: nil))
+    // This used to assert the opposite, under the comment "unmeasured locales gain nothing, and
+    // saying so is the point". That was true while a LabelSet held only the languages somebody had
+    // read off a running Logic. `projectChooserEmptyProjectLabel` now names the row Apple keys
+    // this tile under (#892), so the Japanese is one of its ten values and the tile IS recognised
+    // on a Japanese Logic. Nobody measured it; Apple supplied it.
+    #expect(AccessibilityChannel.isExactEmptyProjectLabel(title: "空のプロジェクト", value: nil))
+    // And this one still does not, which is the better half of the case: `Projekt auswählen` is a
+    // plausible German rendering that Apple does NOT use -- the row says `Wähle ein Projekt aus`.
+    // Derivation widens the set to what Apple ships and to nothing else, so a near miss stays a
+    // near miss no matter how reasonable it looks.
     #expect(!AccessibilityChannel.chooserSelectionIsUnambiguous(
         windowTitle: "Projekt auswählen",
+        emptyProjectLabelCount: 1,
+        chooseButtonCount: 1,
+        chooseEnabled: true))
+    #expect(AccessibilityChannel.chooserSelectionIsUnambiguous(
+        windowTitle: "Wähle ein Projekt aus",
         emptyProjectLabelCount: 1,
         chooseButtonCount: 1,
         chooseEnabled: true))
