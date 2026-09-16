@@ -252,8 +252,16 @@ def classify(app: str, literals: set) -> dict:
                 if title:
                     titles.add(canon.normalize(title))
     values = {canon.normalize(value) for _u, _l, _k, _f, value in canon.extract_strings(app)}
+    # The English column `.strings` does not have. Apple compiles it into `Base.lproj/<table>.nib`
+    # and ships no `en.lproj/<table>.strings` beside it -- measured: zero of the 162 such tables
+    # have both. Without this bucket an English label Apple ships classified `nowhere`, and the
+    # author who cited the Korean for the same control succeeded while the author who cited the
+    # English was sent to prove the uncitable. Four of this repo's own literals were in that state.
+    nib_values = {canon.normalize(value)
+                  for _u, _l, _k, _f, value in canon.extract_nibstrings(app)}
     return {literal: ("quickhelp_title" if literal in titles
-                      else "strings_value" if literal in values else "nowhere")
+                      else "strings_value" if literal in values
+                      else "nibstrings_value" if literal in nib_values else "nowhere")
             for literal in sorted(literals)}
 
 
@@ -291,6 +299,9 @@ def verify_buckets_offline(committed: dict) -> list:
                             f"holds it. The classification is false.")
         elif where == "quickhelp_title" and "quickhelp" not in present:
             problems.append(f"{literal!r} is classified `quickhelp_title` and no QuickHelp corpus "
+                            f"holds it. The classification is false.")
+        elif where == "nibstrings_value" and "nibstrings" not in present:
+            problems.append(f"{literal!r} is classified `nibstrings_value` and no Base.lproj nib "
                             f"holds it. The classification is false.")
     return problems
 

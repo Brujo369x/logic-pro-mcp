@@ -1131,7 +1131,7 @@
    ],
    "match": "exact_strict",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
     "de-DE": "measured"
@@ -1939,7 +1939,7 @@
    "rationale": "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal.",
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
     "de-DE": "unmeasured"
@@ -2598,7 +2598,7 @@
    "rationale": "One of the two project-organisation radios that identify the Save As panel.",
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
     "de-DE": "unmeasured"

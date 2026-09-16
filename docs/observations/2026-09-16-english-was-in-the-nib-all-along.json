@@ -1,0 +1,168 @@
+{
+  "id": "2026-09-16-english-was-in-the-nib-all-along",
+  "date": "2026-09-16",
+  "schema": 3,
+  "subject": "Where Logic keeps the English text of a label, and why a corpus of .strings could not find it",
+  "question": "Of the tables whose translations this repository can cite, how many ship English at all, and can the English be addressed by the same key?",
+  "verdict": "works",
+  "issues": [
+    895,
+    892,
+    902
+  ],
+  "surface": "system.bundle",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/logic_canon.py census",
+    "expected": "nibstrings: files 162, entries 6270, locales {en: 6270}",
+    "cost": "~25s; reads the app bundle, launches nothing"
+  },
+  "depends": [
+    "Scripts/logic_canon.py",
+    "Scripts/nibarchive.py"
+  ],
+  "method": "Walked every `.nib` in the bundle and separated them by how Apple localizes them. For the base-internationalised ones, read the archive's class table and paired each `NSLocalizableString` with the `NSString` that follows it, which is where Interface Builder puts the `.strings` key. Joined the result against each translated locale's overlay by key, and checked whether any of those tables also ships an `en.lproj` overlay. Then asked what each nib population would close if it were added to the corpus, before adding any of it. The two citations below are read back through `Scripts/logic_canon.py resolve`: key 300557.title in KeyCommands and key 3.title in AAFExportView.",
+  "canon": [
+    {
+      "ref": "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/en/300557.title#value",
+      "value": "Learn by Key Label",
+      "used_for": "the string #895 opens with: citable in Korean at this same key and, before this change, provably absent in English",
+      "binding": {
+        "kind": "record"
+      }
+    },
+    {
+      "ref": "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAAFExportView.strings/en/3.title#value",
+      "value": "Audio File Export Settings:",
+      "used_for": "a field label carrying the colon its kind is allowed, read from the nib and keyed like its translations",
+      "binding": {
+        "kind": "record"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "nibs in the bundle",
+      "count": 1169
+    },
+    {
+      "what": "of them, base-internationalised (Base.lproj)",
+      "count": 162
+    },
+    {
+      "what": "of them, fully localized per locale in the old style (60 per .lproj x 10)",
+      "count": 600
+    },
+    {
+      "what": "of them, in no .lproj at all",
+      "count": 407
+    },
+    {
+      "what": "(key, English) pairs read from the 162 by the class rule",
+      "count": 6270
+    },
+    {
+      "what": "objects the class rule could not pair",
+      "count": 0
+    },
+    {
+      "what": "of the 162 tables, those that also ship an en.lproj overlay",
+      "count": 0
+    },
+    {
+      "what": "keys in the translated overlay, per locale, for the 159 tables that have one",
+      "count": 6216
+    },
+    {
+      "what": "of those, keys the nib also has",
+      "count": 6188
+    },
+    {
+      "what": "keys the nib has and the overlay does not",
+      "count": 0
+    },
+    {
+      "what": "tables whose key sets are identical",
+      "count": 146
+    },
+    {
+      "what": "locales for which every one of those numbers is the same",
+      "count": 9
+    },
+    {
+      "what": "overlay keys with no nib pair -- Interface Builder placeholders",
+      "count": 28,
+      "values": [
+        "255",
+        "100",
+        "30.0",
+        "1",
+        "0",
+        "<PLACEHOLDER STRING: DO NOT LOCALIZE>,A used token"
+      ]
+    },
+    {
+      "what": "of the 162, nibs with no overlay in any locale",
+      "count": 3,
+      "values": [
+        "MAGraphPanel.nib",
+        "NoteRepeater.nib",
+        "PlugInManager.nib"
+      ]
+    },
+    {
+      "what": "NSLocalizableString objects in the 600 + 407 non-base nibs",
+      "count": 0
+    },
+    {
+      "what": "distinct English values those 467 nibs hold at cell-title sites, not already in Base",
+      "count": 3374
+    },
+    {
+      "what": "of this repository's uncitable literals they would close",
+      "count": 0
+    },
+    {
+      "what": "English values Apple was already known to translate, before the join",
+      "count": 66589
+    },
+    {
+      "what": "after it",
+      "count": 68417
+    },
+    {
+      "what": "LabelSet literals classified `nowhere`, before",
+      "count": 102
+    },
+    {
+      "what": "after",
+      "count": 98
+    },
+    {
+      "what": "nibs that are not base-internationalised (600 old-style plus 407 unlocalized)",
+      "count": 1007
+    },
+    {
+      "what": "English values that became known-translated once the two namespaces were joined",
+      "count": 1828
+    }
+  ],
+  "conclusion": "Logic keeps the English text of 162 label tables inside `Base.lproj/<table>.nib` and ships no `en.lproj/<table>.strings` for a single one of them, so a corpus built from `.strings` had no English for any of those tables and answered ABSENT for every English label in them. The English is addressable: Interface Builder stores the `.strings` key next to the text, and joined by that key 6188 of the overlay's 6216 keys agree while NOT ONE key is nib-only -- so English can be cited at the same address as its own translations rather than in a namespace of its own. The 28 keys left over are numeric placeholders and two literal DO-NOT-LOCALIZE tokens. The second-order effect is larger than the first: with English and its translations in one namespace, 1828 more English values are known to be TRANSLATED by Apple, and 'Apple does not translate this' is the answer that exempts a literal comparison from needing a LabelSet -- so before this, the permissive answer was being given for 6270 labels on no evidence. `NSLocalizableString` is a base-internationalization construct and the other 1007 nibs have none, so this reader yields nothing from them; measured before deciding, their 3374 English values close none of this repository's uncitable literals, and sweeping them in on a cell-title filter would also sweep in Interface Builder's own defaults.",
+  "limits": [
+    "Base.lproj only. 407 nibs sit in no `.lproj` -- 312 of them MAPlugInGUI plug-in screens -- and 600 more are fully localized per locale in the old style. Their labels are plain `NSString` under cell titles, mixed with Interface Builder's defaults (`Item 1`, `Header Text`, `$LN`), so reading them needs a filter nothing has measured. Named in SOURCES.json as a gap, and filed as #902.",
+    "Presence is not use. A label compiled into a nib may belong to a screen the running code never shows, exactly as for `strings`.",
+    "The three tables with no overlay in any locale name a `.strings` file that is not on disk. That is the address the overlay WOULD use; the English is real and the screen is untranslated.",
+    "`translated.en.u32` is a 32-bit digest set, so it can call an untranslated string translated -- the direction that asks an author for a LabelSet they may not need. It cannot do the reverse."
+  ],
+  "evidence": [
+    "evidence/2026-09-16-english-was-in-the-nib-all-along.json"
+  ],
+  "supersedes": null
+}

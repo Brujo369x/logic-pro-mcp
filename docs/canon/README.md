@@ -112,10 +112,11 @@ they must be complete, because proving absence needs the whole corpus.
 
 ### The corpus is bounded, and the bound is the claim's bound
 
-The absence sets cover four sources: `QuickHelp.plist`, every `.strings` file, MADSP's parameter
-tables, and nib runtime attributes. They do **not** cover strings compiled into the Logic binary,
-strings living inside nib object graphs, AppKit strings in the dyld shared cache, or the Help Book,
-which Logic serves over the network rather than shipping.
+The absence sets cover five sources: `QuickHelp.plist`, every `.strings` file, MADSP's parameter
+tables, nib runtime attributes, and the English compiled into `Base.lproj` nibs. They do **not**
+cover strings compiled into the Logic binary, the labels in the 1,007 nibs Apple does not
+base-internationalise, AppKit strings in the dyld shared cache, or the Help Book, which Logic serves
+over the network rather than shipping.
 
 The bound is the denominator of every absence proof here, so it is ratcheted: `MANIFEST.json`'s
 (source, locale) set is compared against the merge base and may only grow. It was not, and the
@@ -123,7 +124,7 @@ consequence was measured rather than argued — deleting `madsp` and `nib` from 
 index and absence files from disk, and the entries records named, left a tree where all 48 guards
 passed and every absence proof searched half the corpus it claimed. Each check verified the
 manifest against artefacts the same build wrote, so consistency was preserved while the claim
-shrank. Growing is free, because #895 has to add one.
+shrank. Growing is free, and #895 did exactly that: it added `nibstrings`.
 
 Its SIZE is ratcheted separately, because that comparison is a number rather than a membership.
 `verify_absence_counts` already reads the counts and its own docstring says what that is worth —
@@ -175,9 +176,13 @@ them.
 
 So `absent` means *not in this corpus*, never *not in Logic*. Two consequences worth stating:
 
-- an absence claim over English `strings` is the weakest proof the system can produce, because
-  English lives in `Base.lproj` nibs rather than in `.strings` overlays — 97 of 135 tables that
-  back a live match have no `en.lproj` file at all;
+- an absence claim over English used to be the weakest proof the system could produce, because
+  English lives in `Base.lproj` nibs rather than in `.strings` overlays — measured: of the 162
+  tables whose labels live in a nib, **zero** ship an `en.lproj` file. `nibstrings` (#895) reads
+  them, keyed the way their own translations are keyed, so English is now cited at the same address
+  as its Korean. What remains uncovered is the other direction of the same fact: 1,007 nibs are not
+  base-internationalised at all, their labels are plain `NSString` mixed with Interface Builder's
+  defaults, and no filter over them has been measured;
 - the one live AXHelp value this repository cannot cite is most plausibly an AppKit string, and
   that plausibility is recorded as unverified rather than as a finding.
 

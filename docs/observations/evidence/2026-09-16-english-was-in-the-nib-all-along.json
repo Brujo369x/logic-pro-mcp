@@ -1,0 +1,279 @@
+{
+  "logic": {
+    "app": "Logic Pro",
+    "build": "6674",
+    "version": "12.3"
+  },
+  "nib_populations": {
+    "no .lproj": 407,
+    "de.lproj": 60,
+    "ja.lproj": 60,
+    "en.lproj": 60,
+    "zh_CN.lproj": 60,
+    "es.lproj": 60,
+    "it.lproj": 60,
+    "ko.lproj": 60,
+    "Base.lproj": 162,
+    "zh_TW.lproj": 60,
+    "fr.lproj": 60,
+    "pt.lproj": 60
+  },
+  "base_lproj": {
+    "units": 162,
+    "pairs": 6270,
+    "unpairable_objects": 0,
+    "units_with_an_en_lproj_overlay": 0,
+    "units_with_no_overlay_in_any_locale": [
+      "MAGraphPanel",
+      "NoteRepeater",
+      "PlugInManager"
+    ]
+  },
+  "join_against_each_translated_locale": {
+    "de": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "es": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "fr": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "it": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "ja": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "ko": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "pt": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "zh_CN": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    },
+    "zh_TW": {
+      "tables": 159,
+      "overlay_keys": 6216,
+      "nib_keys": 6188,
+      "common": 6188,
+      "nib_only": 0,
+      "overlay_only": 28,
+      "identical": 146
+    }
+  },
+  "overlay_keys_with_no_nib_pair": [
+    {
+      "table": "AdvancedSearch",
+      "key": "100178.title",
+      "ko": "30.0"
+    },
+    {
+      "table": "AdvancedSearch",
+      "key": "100200.title",
+      "ko": "1"
+    },
+    {
+      "table": "Bounce",
+      "key": "300619.title",
+      "ko": "500"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "102120.title",
+      "ko": "255"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "102169.title",
+      "ko": "255,00"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "102561.title",
+      "ko": "255"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "6he-KW-mpn.title",
+      "ko": "127"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "973-it-Cat.title",
+      "ko": "255"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "BAw-qc-uRD.title",
+      "ko": "현재"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "dTq-tb-Xy4.title",
+      "ko": "1"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "dqh-oO-oTR.title",
+      "ko": "1"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "kZD-dH-335.title",
+      "ko": "128 스텝"
+    },
+    {
+      "table": "ControllerAssignments",
+      "key": "zfE-o6-lu2.title",
+      "ko": "0"
+    },
+    {
+      "table": "CopyMIDIEvents",
+      "key": "100014.title",
+      "ko": "0"
+    },
+    {
+      "table": "CopyScreenset",
+      "key": "100016.title",
+      "ko": "1"
+    },
+    {
+      "table": "ExportRegionAsAudioFileView",
+      "key": "7Kj-c1-pRb.title",
+      "ko": "<PLACEHOLDER STRING: DO NOT LOCALIZE>,Resource Token 1,Resource Token 2,Resource Token 3,Resource Token 4,Resource Token 5"
+    },
+    {
+      "table": "ExportRegionAsAudioFileView",
+      "key": "lHN-81-PH1.title",
+      "ko": "<PLACEHOLDER STRING: DO NOT LOCALIZE>,A used token,Another used token,And a third one"
+    },
+    {
+      "table": "GBAudioEditorInspectorView",
+      "key": "578.title",
+      "ko": "100"
+    },
+    {
+      "table": "GBAudioEditorInspectorView",
+      "key": "585.title",
+      "ko": "100"
+    },
+    {
+      "table": "GBAudioEditorInspectorView",
+      "key": "592.title",
+      "ko": "100"
+    },
+    {
+      "table": "GoToMarker",
+      "key": "100026.title",
+      "ko": "1"
+    },
+    {
+      "table": "GotoPage",
+      "key": "100026.title",
+      "ko": "1"
+    },
+    {
+      "table": "PrefsAudio",
+      "key": "epu-2A-bQg.title",
+      "ko": "0"
+    },
+    {
+      "table": "PrefsAudio",
+      "key": "yeI-re-d7D.title",
+      "ko": "0"
+    },
+    {
+      "table": "SaveAsPerformance",
+      "key": "100023.title",
+      "ko": "100"
+    },
+    {
+      "table": "SongSettingsSync",
+      "key": "100035.title",
+      "ko": "25.0"
+    },
+    {
+      "table": "SongSettingsSync",
+      "key": "100073.title",
+      "ko": "44.1"
+    },
+    {
+      "table": "SongSettingsTuning",
+      "key": "100110.title",
+      "ko": "(440,0Hz)"
+    }
+  ],
+  "manifest": {
+    "nibstrings": {
+      "absence_entries": {
+        "en": 2837
+      },
+      "absence_false_positive": {
+        "en": 6.60541e-07
+      },
+      "cited_rows": 0,
+      "cited_values": 3,
+      "corpus_digest": "63b6fe3a97a427b7e3ef93b0c0b049c2d647e8919781a03187df4e36bc10aee5",
+      "entries": 6270,
+      "files": 162,
+      "folded_entries": {
+        "en": 2690
+      },
+      "locales": [
+        "en"
+      ]
+    },
+    "translated_en_values": 68417
+  }
+}

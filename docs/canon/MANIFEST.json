@@ -4,6 +4,8 @@
     "absence/madsp.-.u32": "1402d0aea9a289b16bf15768528068f6a915bed279000dfbf650cf4fe1fd351f",
     "absence/nib.-.folded.u32": "f40a37598e4af1f2bcac78dc60028cd2e7e41860ea09c55198d0e7b7e5d05add",
     "absence/nib.-.u32": "7e2d01e8bc426022e74b705ccc72b0e7235125abe2cf6fe7681a27397fd47db9",
+    "absence/nibstrings.en.folded.u32": "4126a61e469582b90578e149098ba1f1b9f98353530c3456295e7c720641420f",
+    "absence/nibstrings.en.u32": "a417fdb909f57d7a44b43ed23ccdcd8521822c31ca55116f7e300797247b791e",
     "absence/quickhelp.de.folded.u32": "b31c23794ee49f1e61b9474bcbff555985890e7958e946022d612f35d28fb00d",
     "absence/quickhelp.de.u32": "a40ae686d5d934bd5de10c5c0dd80b5571a10972e9e47fbcb1162ade3c99dec9",
     "absence/quickhelp.en.folded.u32": "6fecc00c423c199ab2f082efac4642775171339c73d919efe20cd7cd4647570c",
@@ -46,17 +48,19 @@
     "absence/strings.zh_CN.u32": "00411c6c92eb549954f8a9f025f0bbbff1318392cc6ec0a906f53c105eb607eb",
     "absence/strings.zh_TW.folded.u32": "3ac8f9d9bf1ad618500c13f453a4d977b056f3cd5702038a6784e3d8f3664519",
     "absence/strings.zh_TW.u32": "ef81ff10d762c8422eabdfa6a06770c5dc4db62922b7318742d778cee7e58bcb",
-    "absence/translated.en.u32": "beccb61fbb65639b07cc0f1479a3d0e91c86ed375d6122fa552b50918db33399",
+    "absence/translated.en.u32": "76e168e6b66ad5d0149f4a89a31af2d7339b3709945cba1775184388f41040ee",
     "index/madsp.tsv": "664b694f0bacce322cf8b15a4539594f2106d2d5b7c38b10b0e3e508b30d2320",
     "index/madsp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
     "index/nib.tsv": "553195c3d71ee2a71df337975994e7884f227b5a4a36a331b52db02d1d530d79",
     "index/nib.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
+    "index/nibstrings.tsv": "75a81279509a9e6362419212fba15c44f642414e976f066cf48253a9b1bae417",
+    "index/nibstrings.values.tsv": "4a65c93478104768845b361e40d5d902436f256b77a160b0cfcd455ad2075cff",
     "index/quickhelp.tsv": "94046f4ccb47eaf494fb50368c690542361fce2117b40399168ab194ffb9504e",
     "index/quickhelp.values.tsv": "81c2945e23ef803ec6c80a4b3b1dab6f4d4d7f16554dc07956accb89e667190f",
     "index/strings.tsv": "ba274dfa216a9962cad61cb8778836557d207b20118a9315726d7afbe07541e3",
     "index/strings.values.tsv": "38d6d4d79b22e359d2af139961cbd1bcd214044d448107e03a32c70ee5303b77"
   },
-  "extractor_version": 1,
+  "extractor_version": 2,
   "logic": {
     "app": "Logic Pro",
     "build": "6674",
@@ -100,6 +104,25 @@
       },
       "locales": [
         "-"
+      ]
+    },
+    "nibstrings": {
+      "absence_entries": {
+        "en": 2837
+      },
+      "absence_false_positive": {
+        "en": 6.60541e-07
+      },
+      "cited_rows": 2,
+      "cited_values": 3,
+      "corpus_digest": "63b6fe3a97a427b7e3ef93b0c0b049c2d647e8919781a03187df4e36bc10aee5",
+      "entries": 6270,
+      "files": 162,
+      "folded_entries": {
+        "en": 2690
+      },
+      "locales": [
+        "en"
       ]
     },
     "quickhelp": {
@@ -374,11 +397,8 @@
         "pt",
         "zh_CN",
         "zh_TW"
-      ],
-      "unresolved_citations": [
-        "logic-canon://strings/en#value"
       ]
     }
   },
-  "translated_en_values": 66589
+  "translated_en_values": 68417
 }

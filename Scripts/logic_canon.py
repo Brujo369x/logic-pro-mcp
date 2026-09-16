@@ -79,7 +79,7 @@ DEFAULT_APP = "/Applications/Logic Pro.app"
 #: Bumped when extraction or normalization changes in a way that moves a digest. The manifest
 #: records it, and a checker refuses an index built by a different one rather than comparing
 #: digests that were never comparable.
-EXTRACTOR_VERSION = 1
+EXTRACTOR_VERSION = 2
 
 #: The ten locale names Logic ships QuickHelp under. `build` verifies this list against the bundle
 #: and fails when it disagrees, because a locale appearing or vanishing is exactly the kind of
@@ -783,12 +783,105 @@ def extract_nib_runtime_attributes(app: str):
         yield (key_path, "-", value, "nibs", "\n".join(sorted(paths)))
 
 
+def extract_nibstrings(app: str):
+    """English, addressed by the SAME (unit, key) the translated `.strings` overlay already uses.
+
+    Apple uses base internationalization: the English is compiled into `Base.lproj/<table>.nib` and
+    only the translated locales get a `<locale>.lproj/<table>.strings` overlay. So a corpus that
+    reads `.strings` alone has no English for those tables at all -- measured here: of the 162
+    Base.lproj nibs that carry labels, ZERO have an `en.lproj/<table>.strings` beside them. An
+    author citing the Korean succeeded and an author citing the English was told to prove a string
+    Apple ships is uncitable. That is a false absence, and absence is the one direction this module
+    must never be wrong about.
+
+    The pairing is read from the archive's CLASSES, not guessed from what the strings look like:
+    Interface Builder emits the English as an `NSLocalizableString` object and the `.strings` key
+    for it as the NEXT object, an `NSString`. Measured over the whole bundle: 6,270 pairs from 162
+    nibs with zero objects that did not follow the rule. Joined against the nine translated
+    locales, 6,188 of 6,216 keys agree with the overlay and NOT ONE key is nib-only, so the unit
+    here is the overlay's own address and a citation lands in the same table as its translations.
+
+    The 28 keys the overlay has and the nib does not are the interface's numeric placeholders
+    (`255`, `100`, `30.0`) and two literal `<PLACEHOLDER STRING: DO NOT LOCALIZE>` -- text
+    Interface Builder holds for a field the running code fills in, not a label Apple shows.
+    """
+    sys.path.insert(0, os.path.join(REPO, "Scripts"))
+    import nibarchive  # noqa: E402  -- resolved from Scripts/, which is this file's own directory
+
+    failures: list[str] = []
+    for root, dirs, files in os.walk(app):
+        if os.path.basename(root) != "Base.lproj":
+            continue
+        for name in dirs:
+            if name.endswith(".nib"):
+                raise CanonDecodeError(
+                    f"{_rel(app, os.path.join(root, name))} is a .nib DIRECTORY. This extractor "
+                    f"reads files only, so the corpus would silently be short.")
+        for name in sorted(files):
+            if not name.endswith(".nib"):
+                continue
+            path = os.path.join(root, name)
+            try:
+                with open(path, "rb") as handle:
+                    archive = nibarchive.parse(handle.read())
+            except Exception as exc:
+                failures.append(f"{_rel(app, path)}: {exc}")
+                continue
+            unit = os.path.join(
+                _rel(app, os.path.dirname(os.path.dirname(path))),
+                name[: -len(".nib")] + ".strings")
+            for key, value in _nib_localizable_pairs(archive, _rel(app, path)):
+                yield (unit, "en", key, "value", value)
+    if failures:
+        # Not swallowed, for the same reason the runtime-attribute extractor does not swallow: a
+        # nib that would not parse is a hole in the corpus, and a hole nobody is told about is how
+        # an absence proof comes to be taken over a corpus that was short.
+        raise CanonDecodeError(f"{len(failures)} nib(s) did not parse; first: {failures[0]}")
+
+
+def _nib_localizable_pairs(archive, rel_path: str):
+    """Yield (key, english) for every `NSLocalizableString` in the archive, by the class rule.
+
+    Raises rather than skipping when the object AFTER an `NSLocalizableString` is not the
+    `NSString` holding its key. Skipping would drop English Apple ships and the corpus would then
+    prove that string absent -- so a shape this reader does not understand stops the build.
+    """
+    import nibarchive  # noqa: E402
+
+    classes = archive["classes"]
+    objects = archive["objects"]
+    texts = nibarchive.strings_by_object(archive)
+    for index, obj in enumerate(objects):
+        name = classes[obj["class"]] if obj["class"] < len(classes) else None
+        if name != "NSLocalizableString":
+            continue
+        english = texts.get(index, {}).get("NS.bytes")
+        following = objects[index + 1] if index + 1 < len(objects) else None
+        next_class = (classes[following["class"]]
+                      if following is not None and following["class"] < len(classes) else None)
+        key = texts.get(index + 1, {}).get("NS.bytes") if following is not None else None
+        if english is None or next_class != "NSString" or not key:
+            raise CanonDecodeError(
+                f"{rel_path} object {index} is an NSLocalizableString this reader cannot pair: "
+                f"english={english!r} next_class={next_class!r} key={key!r}. The pairing is the "
+                f"only thing that makes the English citable, so an unread one stops the build "
+                f"rather than becoming an absence.")
+        yield (key, english)
+
+
 EXTRACTORS = {
     "quickhelp": extract_quickhelp,
     "strings": extract_strings,
     "madsp": extract_madsp,
     "nib": extract_nib_runtime_attributes,
+    "nibstrings": extract_nibstrings,
 }
+
+#: Sources that address the SAME (unit, key) and must be joined before asking whether Apple
+#: translates an English string. `nibstrings` is the English column of `strings` -- Apple compiles
+#: it into `Base.lproj/<table>.nib` instead of shipping `en.lproj/<table>.strings`, and measured on
+#: this build not one of the 162 tables has both. Anything not listed here stands alone.
+TRANSLATION_NAMESPACE = {"nibstrings": "strings"}
 
 
 def locate_in(rows, text: str, *, source: str = "?"):
@@ -1316,6 +1409,21 @@ def corpus_files(app: str, source: str) -> list[str]:
             for name in files:
                 if name.endswith(".nib"):
                     out.append(_rel(app, os.path.join(root, name)))
+    elif source == "nibstrings":
+        for root, _dirs, files in os.walk(app):
+            if os.path.basename(root) != "Base.lproj":
+                continue
+            for name in files:
+                if name.endswith(".nib"):
+                    out.append(_rel(app, os.path.join(root, name)))
+    else:
+        # A source with no branch here returned an EMPTY list, so its manifest entry recorded
+        # `files: 0` and a corpus digest taken over nothing -- and `status` would then call the
+        # corpus current against any Logic at all. Silence is the wrong answer to "which bytes is
+        # this source made of".
+        raise CanonError(
+            f"corpus_files has no branch for source {source!r}. Add one: a source whose file list "
+            f"is empty is pinned against no bytes, and every drift check over it is vacuous.")
     return sorted(out)
 
 
@@ -1590,6 +1698,47 @@ def round_trip_report(app: str) -> dict:
     return out
 
 
+def derive_translated_english(app: str, extractors: dict | None = None) -> list[int]:
+    """Which English values Apple TRANSLATES, as 32-bit digests, so a guard can ask offline.
+
+    CI has no Logic, and "does Apple translate this label" is what decides whether matching it by
+    literal is a localisation bug -- the first version of the AX-comparison guard read the bundle
+    for this and therefore could not run in the one place the answer is needed.
+
+    Over EVERY source, never a subset. This is one global artefact with no per-source partition, so
+    deriving it from a partial rebuild would rewrite the whole answer from a fraction of the corpus
+    -- the same shape as the `manifest["sources"]` bug at the top of `build`, and just as quiet,
+    because the file that results is well-formed and simply smaller.
+
+    And grouped under TRANSLATION_NAMESPACE rather than under the source name. English for a
+    base-internationalised table lives in `nibstrings` while its nine translations live in
+    `strings`; keyed by source they never meet, so all 6,270 of those English labels would be
+    recorded as strings Apple does not translate -- the answer that EXEMPTS a literal comparison
+    from needing a LabelSet. Wrong in the permissive direction, in the guard this file serves.
+    `extract_nibstrings` names its unit as the overlay's own address precisely so this join lands.
+    """
+    rows: dict = {}
+    for source in sorted(extractors if extractors is not None else EXTRACTORS):
+        namespace = TRANSLATION_NAMESPACE.get(source, source)
+        extractor = (extractors if extractors is not None else EXTRACTORS)[source]
+        for unit, locale, key, field, value in extractor(app):
+            rows.setdefault((namespace, unit, key, field), {})[locale] = value
+    translated = set()
+    untranslated = set()
+    for per in rows.values():
+        english = per.get("en")
+        if english is None:
+            continue
+        folded = normalize(english)
+        others = {normalize(value) for locale, value in per.items() if locale != "en"}
+        (translated if others - {folded} else untranslated).add(folded)
+    # A SET of digests, not of strings. Two English values can truncate to the same 32 bits, and
+    # emitting both wrote a duplicate entry into the file -- measured: one duplicate across 68,417.
+    # The reader treats the file as a set either way, so it cost nothing but a wrong count and an
+    # artefact that would not reproduce from a differently-ordered walk.
+    return sorted({_u32(text) for text in translated})
+
+
 def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = REPO) -> dict:
     """Extract the corpus, write the absence sets, pin the manifest, resolve every citation.
 
@@ -1678,6 +1827,13 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                     continue
                 if ref.source != source:
                     continue
+                if ref.is_value_citation:
+                    # Confirmed below, against the locale's VALUE set, because a value citation
+                    # names no key and so addresses no row. Sending it down the row path reported
+                    # `logic-canon://strings/en#value` as an unresolved citation in the manifest
+                    # for every build that has one -- a standing false alarm about a reference the
+                    # same run had just confirmed, next to the real unresolved ones.
+                    continue
                 row = by_source[source].get(ref.index_row())
                 if row is None:
                     unresolved.append(ref_text)
@@ -1719,19 +1875,7 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
     # Logic, and "does Apple translate this label" is what decides whether matching it by literal
     # is a localisation bug -- the first version of the AX-comparison guard read the bundle for
     # this and therefore could not run in the one place the answer is needed.
-    en_to_others: dict = {}
-    for source in sources:
-        rows: dict = {}
-        for unit, locale, key, field, value in EXTRACTORS[source](app):
-            rows.setdefault((unit, key, field), {})[locale] = value
-        for per in rows.values():
-            english = per.get("en")
-            if english is None:
-                continue
-            folded = normalize(english)
-            others = {normalize(v) for loc, v in per.items() if loc != "en"}
-            en_to_others[folded] = en_to_others.get(folded, False) or bool(others - {folded})
-    translated = sorted({_u32(text) for text, differs in en_to_others.items() if differs})
+    translated = derive_translated_english(app)
     os.makedirs(ABSENCE_DIR, exist_ok=True)
     with open(translated_path(), "wb") as handle:
         handle.write(b"LCA1")
