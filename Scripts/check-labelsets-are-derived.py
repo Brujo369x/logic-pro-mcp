@@ -106,8 +106,15 @@ def declarations(source: str):
 
 def check(source: str, canon) -> tuple:
     failures, checked = [], 0
-    index = canon.load_index("strings")
     manifest = canon.load_manifest()
+    # One row can span two SOURCES: Apple compiles the English of 162 tables into `Base.lproj` nibs
+    # and ships the nine translations as `.strings`, so `GotoPosition.strings 5.title` is
+    # `nibstrings` in English and `strings` in every other language. The reference names whichever
+    # source holds the locale it cites, and the CHECK has to read both or it reports a language as
+    # missing that Apple ships -- the false absence #895 exists to stop, arriving by a new route.
+    namespace_of = {name: canon.TRANSLATION_NAMESPACE.get(name, name)
+                    for name in (manifest.get("sources") or {})}
+    indexes = {name: canon.load_index(name) for name in namespace_of}
     for name, members, ref_text in declarations(source):
         if not ref_text:
             continue
@@ -122,15 +129,26 @@ def check(source: str, canon) -> tuple:
                 f"{name}: `derivedFrom` must name a ROW -- a unit, a locale and a key. "
                 f"{ref_text!r} names no key, so there is nothing to read ten locales from.")
             continue
-        locales = (manifest.get("sources", {}).get(ref.source, {}).get("locales") or [])
-        locales = [locale for locale in locales if locale != "-"]
+        peers = [name for name, space in namespace_of.items()
+                 if space == namespace_of.get(ref.source, ref.source)]
+        locales = sorted({locale
+                          for name in peers
+                          for locale in (manifest["sources"][name].get("locales") or [])
+                          if locale != "-"})
         if not locales:
             failures.append(f"{name}: source {ref.source!r} pins no locales")
             continue
-        digests = {canon.short_digest(member) for member in members}
+        # Case-FOLDED, because that is the question the product asks. Every `LabelSet.matches`
+        # mode is case-insensitive, so the lowercase `mixer` this product carries for containment
+        # DOES match Apple's `Mixer`; comparing exact digests called that a language the product
+        # cannot work in. `build` pins a `#ci` digest beside each cited row for exactly this.
+        digests = {canon.short_digest(canon.normalize(member).casefold())
+                   for member in members}
         uncovered, unpinned = [], []
         for locale in sorted(locales):
-            pinned = index.get((ref.unit, locale, ref.key, ref.field))
+            row = (ref.unit, locale, ref.key, ref.field + canon.CASE_INSENSITIVE)
+            pinned = next((indexes[name].get(row) for name in peers
+                           if indexes[name].get(row)), None)
             if pinned is None:
                 unpinned.append(locale)
             elif pinned not in digests:

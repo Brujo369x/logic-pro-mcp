@@ -792,6 +792,15 @@ def check_references(failures: list) -> int:
         for rel in where:
             if rel.endswith(".json") and rel.startswith("docs/observations/"):
                 continue  # checked against its own `canon` block, with the binding as well
+            if _is_derived_from(rel, ref_text):
+                # A `derivedFrom:` reference is checked by `check-labelsets-are-derived.py`, and
+                # checked HARDER: not that the English appears near it, but that for every one of
+                # the ten locales Logic ships some member of the LabelSet is the value Apple pins
+                # at that row. Demanding the English verbatim as well would force the row's exact
+                # spelling into `variants` beside the lowercase fragment this product matches by
+                # containment -- `Mixer` beside `mixer` -- which `check-probe-product-drift.py`
+                # refuses, and rightly: case-folded matching would merge them.
+                continue
             if rel not in bodies:
                 with open(os.path.join(REPO, rel), "r", encoding="utf-8", errors="replace") as fh:
                     bodies[rel] = canon.normalize(fh.read())
@@ -1081,6 +1090,22 @@ def _citable_strings_in(body: str) -> list:
             except canon.CanonError:
                 continue
     return found
+
+
+_DERIVED_FROM_SITE = {}
+
+
+def _is_derived_from(rel: str, ref_text: str) -> bool:
+    """Whether this reference appears in that file only as the value of a `derivedFrom:` field."""
+    if rel not in _DERIVED_FROM_SITE:
+        try:
+            with open(os.path.join(REPO, rel), encoding="utf-8", errors="replace") as handle:
+                body = handle.read()
+        except OSError:
+            body = ""
+        _DERIVED_FROM_SITE[rel] = set(
+            re.findall(r'derivedFrom:\s*"([^"]*)"', body))
+    return ref_text in _DERIVED_FROM_SITE[rel]
 
 
 def _quotes_the_value(folded_body: str, ref, committed: str) -> bool:

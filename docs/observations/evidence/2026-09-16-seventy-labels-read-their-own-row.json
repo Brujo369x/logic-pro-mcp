@@ -1,0 +1,27 @@
+{
+  "verdicts": {
+    "value": 55,
+    "namespace": 57,
+    "no-row": 17,
+    "ambiguous": 30
+  },
+  "applicability": {
+    "safe": 78,
+    "extra-members": 34
+  },
+  "namespace_used": {
+    "StrTabBtnLabel": 3,
+    "StrToolbItemName": 3,
+    "#acc": 14,
+    "#und": 3,
+    "#key": 3,
+    "#mti": 26,
+    "#par": 2,
+    "StrTransportBtns": 3
+  },
+  "variants_before": 372,
+  "variants_after": 798,
+  "labelsets_naming_a_row": 76,
+  "policy_literals": 811,
+  "nowhere": 98
+}

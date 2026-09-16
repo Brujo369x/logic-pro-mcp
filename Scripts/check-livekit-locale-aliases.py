@@ -39,6 +39,7 @@ change that can be live-verified rather than in a guard run. The count is what s
 """
 import ast
 import glob
+import json
 import os
 import re
 import sys
@@ -173,6 +174,29 @@ def python_dict(text, name):
 
 
 
+def derived_policy_spellings(repo_dir):
+    """Every policy string that came from Apple's corpus rather than from a live reading.
+
+    `docs/locale/ui-labels.json` records `provenance` per variant: which observation record read
+    that string off a running Logic. A variant with none, in a LabelSet that names a
+    `derivedFrom` row, arrived by derivation -- it is a fact about Apple's bytes and not about what
+    AX publishes, so a harness that locates elements by AXDescription is not required to carry it.
+    """
+    path = os.path.join(repo_dir, "docs", "locale", "ui-labels.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            labels = json.load(handle).get("labels") or {}
+    except (OSError, ValueError):
+        return set()
+    out = set()
+    for entry in labels.values():
+        provenance = entry.get("provenance") or {}
+        for variant in entry.get("variants") or []:
+            if variant not in provenance:
+                out.add(variant)
+    return out
+
+
 def measured_strings(repo_dir):
     """Every string that appears anywhere in an observation record.
 
@@ -204,6 +228,7 @@ def main():
 
     failed = 0
 
+    derived_spellings = derived_policy_spellings(REPO)
     region_table = python_dict(kit_text, "AX_REGION_LABELS")
     if region_table is None:
         print("-> FAIL: evidence.AX_REGION_LABELS not found or not a literal dict")
@@ -217,11 +242,23 @@ def main():
                 continue
             reachable = [key] + list(region_table.get(key, []))
             gap = missing(policy_labels, reachable)
-            state = "ok" if not gap else "FAIL"
+            # A DERIVED spelling is not required here, and requiring it would break this file's own
+            # rule. `AX_REGION_LABELS` is a claim about what Logic publishes as an AXDescription,
+            # read off a running Logic; a derived spelling is a claim about what Apple ships in
+            # `.strings`, read off the bundle. They are different measurements, and a `.strings`
+            # value is not evidence that AX emits it. "ONLY measured pairs belong here" is written
+            # at the top of `evidence.py` for exactly this reason, so the forward direction now
+            # demands the spellings somebody READ and reports the rest.
+            unmeasured = [spelling for spelling in gap if spelling not in derived_spellings]
+            derived_gap = [spelling for spelling in gap if spelling in derived_spellings]
+            state = "ok" if not unmeasured else "FAIL"
             print(f"   {state:>4}  AX_REGION_LABELS[{key!r}]: reaches "
-                  f"{len(policy_labels) - len(gap)} of {len(policy_labels)} policy spelling(s)")
-            if gap:
-                print(f"-> FAIL: {swift_name} declares {gap} which the region table cannot reach")
+                  f"{len(policy_labels) - len(gap)} of {len(policy_labels)} policy spelling(s)"
+                  + (f", {len(derived_gap)} of them derived and not required"
+                     if derived_gap else ""))
+            if unmeasured:
+                print(f"-> FAIL: {swift_name} declares {unmeasured} which the region table cannot "
+                      f"reach, and which a live reading -- not the corpus -- put in the policy")
                 failed = 1
 
     # THE REVERSE DIRECTION. A kit spelling the policy does not carry means the harness can find a

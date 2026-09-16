@@ -3,4 +3,24 @@
 # a digest of bytes inside Logic, and a typed one is a claim about Apple's
 # data that nothing measured.
 Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAAFExportView.strings	en	3.title	value	7a8b74c545d5
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAAFExportView.strings	en	3.title	value#ci	fbaece096527
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAddSelToArrange.strings	en	100050.title	value	19766ed6ccb2
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAddSelToArrange.strings	en	100050.title	value#ci	2374d91794b7
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FBounceInPlace.strings	en	12.title	value	48f31b5d553e
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FBounceInPlace.strings	en	12.title	value#ci	9175c7e4d1c9
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FBounceInPlace.strings	en	7B5-NP-XpR.title	value	f7b984d4067d
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FBounceInPlace.strings	en	7B5-NP-XpR.title	value#ci	d67e3f1d1233
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FContentRelocation.strings	en	QR6-Rb-bj7.headerCell.title	value	920e413c7d41
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FContentRelocation.strings	en	QR6-Rb-bj7.headerCell.title	value#ci	073c1634c496
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FEXSKeyActions.strings	en	110.title	value	1509f561f241
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FEXSKeyActions.strings	en	110.title	value#ci	157dca92e425
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FGotoPosition.strings	en	5.title	value	bc056ff452c6
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FGotoPosition.strings	en	5.title	value#ci	13d76f70e1c2
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings	en	164.title	value	569ca49f4aaf
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FInstall.strings	en	164.title	value#ci	1e142e6277b1
 Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings	en	300557.title	value	665027ad7b4b
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings	en	300557.title	value#ci	cf958a406a87
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings	en	300622.title	value	a4b76af59533
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings	en	300622.title	value#ci	8e1e7b4fca20
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FSaveAsOptionsView.strings	en	Zb7-X8-NPE.title	value	59de121db1b8
+Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FSaveAsOptionsView.strings	en	Zb7-X8-NPE.title	value#ci	bc4a71180870

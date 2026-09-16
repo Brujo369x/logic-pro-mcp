@@ -19,8 +19,16 @@ struct Issue60LocalePhase4Tests {
     @Test("every Phase 4 LabelSet carries exactly its original inline tokens")
     func bagsPreserveOriginalTokens() {
         let cases: [(String, [String], Set<String>)] = [
-            ("mixerInspectorContext", AXLocalePolicy.mixerInspectorContext.labels, ["inspector", "인스펙터"]),
-            ("mixerNamedElement", AXLocalePolicy.mixerNamedElement.labels, ["mixer", "믹서"]),
+            // Extended 2026-09-16 (#892). Every string past the original two is a value Apple
+            // ships at the row this LabelSet names in `derivedFrom` -- `Inspector#acc` -- not a
+            // translation anybody wrote. The set stays EXACT here on purpose: that is what makes
+            // this a drift guard, so a future addition still has to say where it came from.
+            ("mixerInspectorContext", AXLocalePolicy.mixerInspectorContext.labels, ["inspector", "인스펙터", "インスペクタ", "Informationen", "Inspecteur", "Inspetor", "检查器", "檢閱器"]),
+            // Extended 2026-09-16 (#892). Every string past the original two is a value Apple
+            // ships at the row this LabelSet names in `derivedFrom` -- `Mixer#acc` -- not a
+            // translation anybody wrote. The set stays EXACT here on purpose: that is what makes
+            // this a drift guard, so a future addition still has to say where it came from.
+            ("mixerNamedElement", AXLocalePolicy.mixerNamedElement.labels, ["mixer", "믹서", "ミキサー", "Mezclador", "Table de mixage", "混音器"]),
             ("sliderSendHint", AXLocalePolicy.sliderSendHint.labels, ["send", "센드"]),
             ("sliderZoomHint", AXLocalePolicy.sliderZoomHint.labels, ["zoom", "확대"]),
             ("sliderVolumeHint", AXLocalePolicy.sliderVolumeHint.labels, ["volume", "fader", "볼륨", "ボリューム"]),
@@ -28,7 +36,11 @@ struct Issue60LocalePhase4Tests {
             ("pluginBypassControl", AXLocalePolicy.pluginBypassControl.labels, ["bypass", "바이패스", "バイパス"]),
             ("pluginOpenOrListControl", AXLocalePolicy.pluginOpenOrListControl.labels, ["open", "열기", "list", "목록", "開く"]),
             ("pluginAutomationLabelExact", AXLocalePolicy.pluginAutomationLabelExact.labels, ["읽기, 오토메이션이 활성화됨", "read"]),
-            ("pluginAutomationLabelSubstring", AXLocalePolicy.pluginAutomationLabelSubstring.labels, ["automation", "오토메이션"]),
+            // Extended 2026-09-16 (#892). Every string past the original two is a value Apple
+            // ships at the row this LabelSet names in `derivedFrom` -- MAMixer's `Localizable.strings` key `automation` -- not a
+            // translation anybody wrote. The set stays EXACT here on purpose: that is what makes
+            // this a drift guard, so a future addition still has to say where it came from.
+            ("pluginAutomationLabelSubstring", AXLocalePolicy.pluginAutomationLabelSubstring.labels, ["automation", "오토메이션", "オートメーション", "automatización", "automazione", "automação", "自动化", "自動混音"]),
             ("audioPluginSlotLabel", AXLocalePolicy.audioPluginSlotLabel.labels, ["audio plug-in", "audio effect", "오디오 플러그인", "오디오 이펙트", "オーディオプラグイン"]),
             ("sendOrIOControlLabel", AXLocalePolicy.sendOrIOControlLabel.labels, ["send", "센드", "input", "output", "입력", "출력"]),
             ("nonInsertButtonText", AXLocalePolicy.nonInsertButtonText.labels, [

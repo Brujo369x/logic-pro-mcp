@@ -43,10 +43,15 @@ CASES = [
     ("the shared helper is renamed away",
      PROBE, "func matchesPolicyLabel", "func matchesPolicyLabelRenamed",
      "no matchesPolicyLabel"),
+    # Anchored on the canonical and the START of the variants list, not on its contents. The first
+    # version named the exact two-element list, which stopped existing the moment #892 derived the
+    # other seven languages -- and the case then reported ANCHOR ABSENT rather than passing, which
+    # is the only reason it was noticed. A mutation anchor coupled to data a migration edits is an
+    # anchor that goes stale while the tree it guards keeps changing.
     ("a label set gains a member differing only by case",
      POLICY,
-     'canonical: "mixer",\n        variants: ["믹서"]',
-     'canonical: "mixer",\n        variants: ["믹서", "Mixer"]',
+     'canonical: "mixer",\n        variants: [',
+     'canonical: "mixer",\n        variants: ["Mixer", ',
      "differ only by case"),
     ("the product stops folding, so the rule the probe mirrors is gone",
      PRODUCT, ".whitespacesAndNewlines).lowercased()", ".whitespacesAndNewlines)",

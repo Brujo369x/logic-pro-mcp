@@ -22,7 +22,13 @@
    "variants": [
     "모든 트랙을 오디오 파일로…",
     "すべてのトラックをオーディオファイルとして…",
-    "Alle Spuren als Audiodateien …"
+    "Alle Spuren als Audiodateien …",
+    "Todas las pistas como archivos de audio…",
+    "Toutes les pistes en fichiers audio…",
+    "Tutte le tracce come file audio…",
+    "Todas as Pistas como Arquivos de Áudio…",
+    "所有轨道为音频文件…",
+    "所有音軌為音訊檔案⋯"
    ],
    "rationale": "Measured all-tracks audio-file export leaf: EN uses `All Tracks` against singular/Selected entries; KO uses `모든 트랙을` against `1개의 트랙을` and `선택 범위를`. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Export > All Tracks as Audio Files…. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -81,7 +87,13 @@
    "canonical": "Tracks",
    "variants": [
     "트랙",
-    "トラック"
+    "トラック",
+    "Spuren",
+    "Pistas",
+    "Pistes",
+    "Tracce",
+    "轨道",
+    "音軌"
    ],
    "rationale": "Witnesses that an arrange window exists after project.new; read-only classification.",
    "match": "contains",
@@ -89,7 +101,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "assignControlHelpKeyword": {
@@ -154,14 +166,20 @@
   "automationModeContext": {
    "canonical": "automation",
    "variants": [
-    "오토메이션"
+    "오토메이션",
+    "オートメーション",
+    "automatización",
+    "automazione",
+    "automação",
+    "自动化",
+    "自動混音"
    ],
    "rationale": "Gates the track-header automation-mode read to the automation control; read-only classifier.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -256,7 +274,14 @@
   "barSliderLabel": {
    "canonical": "bar",
    "variants": [
-    "마디"
+    "마디",
+    "Takt",
+    "compás",
+    "mesure",
+    "misura",
+    "compasso",
+    "小节",
+    "小節"
    ],
    "rationale": "Identifies the bar slider in the control bar; verbatim description match; read-only.",
    "match": "contains",
@@ -264,7 +289,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "beatSliderLabel": {
@@ -284,15 +309,23 @@
   "beatsDisplayModeItem": {
    "canonical": "beats",
    "variants": [
-    "비트"
+    "비트",
+    "拍",
+    "Schläge",
+    "tiempos",
+    "temps",
+    "battiti",
+    "batidas",
+    "个节拍",
+    "節拍"
    ],
    "rationale": "The display-mode menu item whose Playhead Position group exposes bar, beat, division and tick. Read live 2026-09-14: selecting it by title moved the group from two named sliders to four, and its own AXValueDescription from `4 마디 1 비트 ` to `4 마디 1 비트 1 디비전 1 틱 `.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "bounceMenuItem": {
@@ -300,7 +333,10 @@
    "variants": [
     "바운스",
     "バウンス",
-    "Bouncen"
+    "Bouncen",
+    "Renderizar",
+    "并轨",
+    "併軌"
    ],
    "rationale": "File menu entry that opens the Bounce dialog; menu-only in the AppleScript bounce path. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Bounce. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -359,7 +395,12 @@
    "canonical": "Cancel",
    "variants": [
     "취소",
-    "キャンセル"
+    "キャンセル",
+    "Abbrechen",
+    "Cancelar",
+    "Annuler",
+    "Annulla",
+    "取消"
    ],
    "rationale": "Dialog dismissal fallback; no success state is inferred from this click. JA live-confirmed (Logic 12.3: `キャンセル`).",
    "match": "contains",
@@ -367,7 +408,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "controlBarGroupLabel": {
@@ -390,7 +431,14 @@
    "canonical": "Create",
    "variants": [
     "생성",
-    "作成"
+    "作成",
+    "Erzeugen",
+    "creación",
+    "Créer",
+    "Crea",
+    "Criar",
+    "创建",
+    "製作"
    ],
    "rationale": "Mandatory New Track sheet's only exit; reconciler-clicked, then verified by track-count readback. KO live-confirmed (Logic 12.3); JA live-confirmed (Logic 12.3: `作成`).",
    "match": "exact",
@@ -398,7 +446,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "createMarkerMenuItem": {
@@ -406,7 +454,13 @@
    "variants": [
     "마커 생성",
     "マーカーを作成",
-    "Marker erzeugen"
+    "Marker erzeugen",
+    "Crear marcador",
+    "Créer un marqueur",
+    "Crea marcatore",
+    "Criar Marcador",
+    "创建标记",
+    "製作標記"
    ],
    "rationale": "Navigate menu entry that creates a marker at the playhead. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -560,7 +614,14 @@
   "eventListColumnChannel": {
    "canonical": "Ch",
    "variants": [
-    "채널"
+    "채널",
+    "Kan.",
+    "Can.",
+    "Ca.",
+    "Canale",
+    "Canal",
+    "通道",
+    "聲道"
    ],
    "rationale": "Event List channel column; identity is the canonical English form.",
    "roles": [
@@ -577,7 +638,7 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -591,7 +652,13 @@
   },
   "eventListColumnL": {
    "canonical": "L",
-   "variants": [],
+   "variants": [
+    "G",
+    "S",
+    "E",
+    "锁定",
+    "左"
+   ],
    "rationale": "Event List lock column; unlabelled in every locale measured.",
    "roles": [
     "AXButton"
@@ -622,7 +689,15 @@
   "eventListColumnLength": {
    "canonical": "Length",
    "variants": [
-    "길이"
+    "길이",
+    "長さ",
+    "Länge",
+    "duración",
+    "Durée",
+    "Lunghezza",
+    "Duração",
+    "长度",
+    "長度"
    ],
    "rationale": "Region-level length column; distinguishes the region list from the event list.",
    "roles": [
@@ -639,7 +714,7 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -654,7 +729,15 @@
   "eventListColumnLengthInfo": {
    "canonical": "Length/Info",
    "variants": [
-    "길이/정보"
+    "길이/정보",
+    "長さ/情報",
+    "Länge/Info",
+    "Longitud/info",
+    "Durée/Infos",
+    "Lunghezza/informazioni",
+    "Duração/Informações",
+    "长度/简介",
+    "長度/資訊"
    ],
    "rationale": "Event List length column; identity is the canonical English form.",
    "roles": [
@@ -670,8 +753,8 @@
    "coverage": {
     "en-US": "measured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -748,7 +831,13 @@
   "eventListColumnNumber": {
    "canonical": "Num",
    "variants": [
-    "번호"
+    "번호",
+    "番号",
+    "Núm.",
+    "Nombre",
+    "Núm",
+    "编号",
+    "數量"
    ],
    "rationale": "Event List number column; identity is the canonical English form.",
    "roles": [
@@ -764,7 +853,7 @@
    "coverage": {
     "en-US": "measured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    },
    "coverage_records": {
@@ -812,7 +901,13 @@
   "eventListColumnStatus": {
    "canonical": "Status",
    "variants": [
-    "상태"
+    "상태",
+    "状況",
+    "Estado",
+    "État",
+    "Stato",
+    "状态",
+    "狀態"
    ],
    "rationale": "Event List status column; identity is the canonical English form.",
    "roles": [
@@ -828,7 +923,7 @@
    "coverage": {
     "en-US": "measured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    },
    "coverage_records": {
@@ -844,7 +939,13 @@
   "eventListColumnTrack": {
    "canonical": "Trk",
    "variants": [
-    "트랙"
+    "트랙",
+    "Pista",
+    "Piste",
+    "Trc",
+    "Pis",
+    "轨道",
+    "音軌"
    ],
    "rationale": "Region-level track column; distinguishes the region list from the event list.",
    "roles": [
@@ -876,7 +977,11 @@
   "eventListColumnValue": {
    "canonical": "Val",
    "variants": [
-    "값"
+    "값",
+    "値",
+    "Val.",
+    "Valeur",
+    "值"
    ],
    "rationale": "Event List value column; identity is the canonical English form.",
    "roles": [
@@ -892,7 +997,7 @@
    "coverage": {
     "en-US": "measured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    },
    "coverage_records": {
@@ -922,14 +1027,24 @@
   },
   "eventPositionAsTimeMenuItem": {
    "canonical": "Event Position and Length as Time",
-   "variants": [],
+   "variants": [
+    "이벤트 위치 및 길이를 시간으로",
+    "イベントの位置と長さを時間で表示",
+    "Event-Position und Länge als Zeit einblenden",
+    "Posición y longitud del evento como tiempo",
+    "Position et durée de l’évènement sous forme de temps",
+    "Posizione e durata evento come tempo",
+    "Posição e Duração do Evento como Tempo",
+    "用时间表示的事件位置和长度",
+    "以時間顯示事件位置和長度"
+   ],
    "rationale": "Decides whether Event List positions are bar/beat or timecode; read-only.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
-    "ko-KR": "unmeasured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "exportMenuItem": {
@@ -937,7 +1052,12 @@
    "variants": [
     "내보내기",
     "書き出す",
-    "Exportieren"
+    "Exportieren",
+    "Exportar",
+    "Exporter",
+    "Esporta",
+    "导出",
+    "輸出"
    ],
    "rationale": "File submenu title measured in English and Korean; a locale without one of these labels is refused as an unmeasured stem-export menu label. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Export. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1062,7 +1182,12 @@
    "variants": [
     "이동",
     "移動",
-    "Gehe zu"
+    "Gehe zu",
+    "Ir a",
+    "Aller à",
+    "Vai a",
+    "Ir para",
+    "前往"
    ],
    "rationale": "Navigate menu entry that opens the Go To submenu used by goto_position. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1122,7 +1247,12 @@
    "variants": [
     "위치로 이동",
     "位置の移動",
-    "Zu Position"
+    "Zu Position",
+    "Ir a la posición",
+    "Aller à la position",
+    "Vai a posizione",
+    "Ir para a posição",
+    "前往位置"
    ],
    "rationale": "Used only to dismiss a stale dialog before another verified operation. This covers the reviewed EN/KO/JA dialog titles; broader locale/menu policy remains tracked separately. German read 2026-09-12 by OPENING the dialog on a de-DE Logic and reading its window title (#876), twice, both times `Zu Position` on an AXFloatingWindow. It is not in the navigation-free census — the census opens nothing — which is why the live run that needed it reported `dialog_unidentified_new_window`: the menu leaf fired, the window appeared, and the product could not name it. The AppleScript literal list this LabelSet now renders also carried `Go to Position`, and it is NOT carried here. It had no provenance, `matches(_:mode:.exactStrict)` is case-sensitive so the Swift side never accepted it either, and keeping it would put two members in this set that differ only by case — which `check-probe-product-drift.py` refuses, because a later move to case-folded matching would merge them. So the generated handler is deliberately NARROWER than the literal it replaced by exactly that one string, and the two sides now agree.",
    "provenance": {
@@ -1153,7 +1283,11 @@
    "variants": [
     "위치…",
     "位置…",
-    "Position …"
+    "Position …",
+    "Posición…",
+    "Posizione…",
+    "Posição…",
+    "位置⋯"
    ],
    "rationale": "Go To submenu leaf that opens the Go To Position dialog. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1236,7 +1370,13 @@
    "variants": [
     "모든 플러그인 윈도우",
     "すべてのプラグインウインドウ",
-    "Alle Plug-in-Fenster"
+    "Alle Plug-in-Fenster",
+    "Todas las ventanas de módulos",
+    "Toutes les fenêtres de module",
+    "tutte le finestre dei plugin",
+    "Todas as Janelas de Plug‑ins",
+    "所有插件窗口",
+    "所有外掛模組視窗"
    ],
    "rationale": "Best-effort cleanup so stale plugin windows do not steal later menu focus. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1313,7 +1453,12 @@
    "variants": [
     "가져오기",
     "読み込む",
-    "Importieren"
+    "Importieren",
+    "Importar",
+    "Importer",
+    "Importa",
+    "导入",
+    "輸入"
    ],
    "rationale": "File menu entry that opens the Import submenu used by midi.import_file. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1527,7 +1672,12 @@
    "canonical": "Delete",
    "variants": [
     "削除",
-    "삭제"
+    "삭제",
+    "Löschen",
+    "Suprimir",
+    "Supprimer",
+    "Elimina",
+    "刪除"
    ],
    "rationale": "Live-confirmed on Logic 12.3: Marker List Delete is `削除` in Japanese and `삭제` in Korean. It is used only with exactStrict because the Edit menu also has Delete-Undo-History entries; prefix or containment matching can reach a different destructive command.",
    "roles": [
@@ -1542,7 +1692,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "markerListEditMenuButton": {
@@ -1550,7 +1700,13 @@
    "variants": [
     "編集",
     "편집",
-    "Bearbeiten"
+    "Bearbeiten",
+    "Edición",
+    "Édition",
+    "Modifica",
+    "Editar",
+    "编辑",
+    "編輯"
    ],
    "rationale": "Live-confirmed on Logic 12.3: the Marker List toolbar AXMenuButton exposes the exact AXDescription `編集` in Japanese and `편집` in Korean; the bottom AXButton with the same label is deliberately rejected unless its actions advertise AXShowMenu. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "match": "exact",
@@ -1565,7 +1721,14 @@
    "canonical": "Number of Items",
    "variants": [
     "항목 수",
-    "項目数"
+    "項目数",
+    "Anzahl der Objekte",
+    "Número de ítems",
+    "Nombre d’éléments",
+    "Numero di elementi",
+    "Número de Itens",
+    "项目数",
+    "項目數量"
    ],
    "rationale": "Live-measured on Logic 12.3 on 2026-08-17: AXDescription and AXHelp both read `항목 수` in Korean and `項目数` in Japanese, alongside the English `Number of Items`. Until that date this LabelSet deliberately carried no variants because none had been measured; the values it renders were measured in the same pass (`2개의 마커`, `0個のマーカー`) and drove the count parser's separator rule.",
    "match": "exact_strict",
@@ -1573,7 +1736,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "midiEffectSlotHelpKeyword": {
@@ -1593,7 +1756,13 @@
    "variants": [
     "MIDI 파일…",
     "MIDIファイル…",
-    "MIDI-Datei …"
+    "MIDI-Datei …",
+    "Archivo MIDI…",
+    "Fichier MIDI…",
+    "File MIDI…",
+    "Arquivo de MIDI…",
+    "MIDI 文件…",
+    "MIDI 檔案⋯"
    ],
    "rationale": "Import submenu leaf that opens the MIDI file chooser for midi.import_file. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1652,14 +1821,20 @@
    "canonical": "Import",
    "variants": [
     "가져오기",
-    "Importieren"
+    "Importieren",
+    "読み込む",
+    "Importar",
+    "Importer",
+    "Importa",
+    "导入",
+    "輸入"
    ],
    "rationale": "The commit button of Logic's MIDI-import open panel. German read 2026-09-13 by OPENING the panel on a de-DE Logic and enumerating its buttons: `Abbrechen` and `Importieren`, the latter disabled until a file is chosen. It does share the panel's title — which is why it was held back until somebody looked rather than inferred from the window name.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    }
   },
@@ -1667,14 +1842,18 @@
    "canonical": "No",
    "variants": [
     "아니요",
-    "Nein"
+    "Nein",
+    "いいえ",
+    "Non",
+    "Não",
+    "否"
    ],
    "rationale": "Declines the post-import tempo alert so a MIDI import cannot rewrite the project's tempo map. German read 2026-09-13 off the live alert, whose buttons are `Nein` / `Tempo importieren` / `Abbrechen`.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    }
   },
@@ -1682,14 +1861,20 @@
    "canonical": "Import",
    "variants": [
     "가져오기",
-    "Importieren"
+    "Importieren",
+    "読み込む",
+    "Importar",
+    "Importer",
+    "Importa",
+    "导入",
+    "輸入"
    ],
    "rationale": "Distinguishes Logic's MIDI-import open panel from the tempo alert that may follow it; both carry subrole AXDialog, so the title is the only separator available. German read 2026-09-12 from the product's own refusal envelope (#876), which named the blocking dialog `Importieren`.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    }
   },
@@ -1711,28 +1896,38 @@
   "mixerInspectorContext": {
    "canonical": "inspector",
    "variants": [
-    "인스펙터"
+    "인스펙터",
+    "インスペクタ",
+    "Informationen",
+    "Inspecteur",
+    "Inspetor",
+    "检查器",
+    "檢閱器"
    ],
    "rationale": "Marks an inspector ancestor so mixer-area detection skips it; read-only classifier.",
    "match": "contains",
    "coverage": {
     "en-US": "unmeasured",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "mixerNamedElement": {
    "canonical": "mixer",
    "variants": [
-    "믹서"
+    "믹서",
+    "ミキサー",
+    "Mezclador",
+    "Table de mixage",
+    "混音器"
    ],
    "rationale": "Identifies the mixer container by exact normalized name; read-only classifier.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -1740,7 +1935,13 @@
    "canonical": "Move",
    "variants": [
     "이동",
-    "Bewegen"
+    "Bewegen",
+    "移動",
+    "Trasladar",
+    "Déplacer",
+    "Sposta",
+    "Mover",
+    "移动"
    ],
    "rationale": "Edit menu entry that opens the Move submenu used to reposition a selected region. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1762,7 +1963,7 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "measured"
    }
   },
@@ -1836,7 +2037,13 @@
    "variants": [
     "신규",
     "新規",
-    "Neu"
+    "Neu",
+    "Nuevo",
+    "Nouveau",
+    "Nuovo",
+    "Novo",
+    "新建",
+    "新增"
    ],
    "rationale": "Reveals the New Project chooser, or creates the project directly where Logic skips it. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -1895,7 +2102,14 @@
    "canonical": "New Track",
    "variants": [
     "새로운 트랙",
-    "新規トラック"
+    "新規トラック",
+    "Neue Spur",
+    "Nueva pista",
+    "Nouvelle piste",
+    "Nuova traccia",
+    "Nova Pista",
+    "新轨道",
+    "新增音軌"
    ],
    "rationale": "Identifies the mandatory New Track sheet by AXDescription, independently of Cancel state; read-only classifier. KO live-confirmed (Logic 12.3); JA live-confirmed (Logic 12.3: `新規トラック`, Cancel enabled).",
    "match": "exact",
@@ -1903,7 +2117,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "nonInsertButtonText": {
@@ -1950,15 +2164,23 @@
   "oneFilePerTrackPopupValue": {
    "canonical": "One File per Track",
    "variants": [
-    "트랙당 하나의 파일"
+    "트랙당 하나의 파일",
+    "トラックごとに1ファイル",
+    "Eine Datei pro Spur",
+    "Un archivo por pista",
+    "Un fichier par piste",
+    "Un file per traccia",
+    "Um Arquivo por Pista",
+    "每个轨道一个文件",
+    "每個音軌一個檔案"
    ],
    "rationale": "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "openMarkerListMenuItem": {
@@ -1966,7 +2188,12 @@
    "variants": [
     "마커 목록 열기",
     "マーカーリストを開く",
-    "Marker-Liste öffnen"
+    "Marker-Liste öffnen",
+    "Abrir lista de marcadores",
+    "Ouvrir la liste des marqueurs",
+    "Apri elenco marcatori",
+    "打开标记列表",
+    "打開標記列表"
    ],
    "rationale": "Navigate menu entry that opens the Marker List window. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -2119,14 +2346,20 @@
   "pluginAutomationLabelSubstring": {
    "canonical": "automation",
    "variants": [
-    "오토메이션"
+    "오토메이션",
+    "オートメーション",
+    "automatización",
+    "automazione",
+    "automação",
+    "自动化",
+    "自動混音"
    ],
    "rationale": "Rejects automation-mode slot labels (substring) when extracting a plugin display name; read-only filter.",
    "match": "contains",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -2250,7 +2483,11 @@
   "pluginWindowEditorViewMenuItem": {
    "canonical": "Editor",
    "variants": [
-    "편집기"
+    "편집기",
+    "エディタ",
+    "Éditeur",
+    "编辑器",
+    "編輯器"
    ],
    "rationale": "Measured live on 2026-09-02 in Compressor's scoped View menu; paired evidence for Controls/컨트롤.",
    "roles": [
@@ -2264,7 +2501,7 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    }
   },
@@ -2283,21 +2520,37 @@
   "pluginWindowViewSwitcher": {
    "canonical": "View",
    "variants": [
-    "보기"
+    "보기",
+    "表示",
+    "Ansicht",
+    "Visualización",
+    "Présentation",
+    "Vista",
+    "Visualizar",
+    "显示",
+    "顯示方式"
    ],
    "rationale": "Measured live on 2026-09-02 in Compressor: the Controls/editor AXMenuButton identifies itself by AXDescription (View/보기); AXTitle is not a view readback.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "projectChooserCommitButton": {
    "canonical": "Choose",
    "variants": [
-    "선택"
+    "선택",
+    "選択",
+    "Auswählen",
+    "Seleccionar",
+    "Choisir",
+    "Scegli",
+    "Escolher",
+    "选取",
+    "選擇"
    ],
    "rationale": "The chooser's commit control, matched by AXButton title. Korean read live 2026-09-15 beside `취소` and `기존 프로젝트 열기…` in the same census (#885). ja-JP and de-DE unmeasured.",
    "provenance": {
@@ -2319,14 +2572,22 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "projectChooserEmptyProjectLabel": {
    "canonical": "Empty Project",
    "variants": [
-    "비어 있는 프로젝트"
+    "비어 있는 프로젝트",
+    "空のプロジェクト",
+    "Leeres Projekt",
+    "Proyecto vacío",
+    "Projet vide",
+    "Progetto vuoto",
+    "Projeto Vazio",
+    "空项目",
+    "空白計畫案"
    ],
    "rationale": "The Empty Project tile's label, read as an AXStaticText value after selecting the `새로운 프로젝트` category. Korean read live 2026-09-15 (#885); the details panel alongside it read `비어 있는 프로젝트 생성`, which is how the selection is confirmed without a coordinate. ja-JP and de-DE unmeasured.",
    "provenance": {
@@ -2348,14 +2609,22 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "projectChooserWindowTitle": {
    "canonical": "Choose a Project",
    "variants": [
-    "프로젝트 선택"
+    "프로젝트 선택",
+    "プロジェクトを選択",
+    "Wähle ein Projekt aus",
+    "Seleccionar un proyecto",
+    "Choisir un projet",
+    "Scegli un progetto",
+    "Escolha um projeto",
+    "选取项目",
+    "選擇計畫案"
    ],
    "rationale": "Identifies Logic's New Project chooser by its AXWindow title; read-only classification. Korean read live 2026-09-15 off the window `파일 > 템플릿으로부터 신규…` opened with no document, whose title was `프로젝트 선택` exactly (AXStandardWindow, not an AXDialog). ja-JP and de-DE unmeasured (#885).",
    "provenance": {
@@ -2377,8 +2646,8 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "projectOrSectionMenuItem": {
@@ -2521,7 +2790,13 @@
    "variants": [
     "별도 저장…",
     "別名で保存…",
-    "Sichern unter …"
+    "Sichern unter …",
+    "Guardar como…",
+    "Enregistrer sous…",
+    "Salva come…",
+    "Salvar como…",
+    "保存为…",
+    "儲存為⋯"
    ],
    "rationale": "File menu entry that opens the Save panel; the panel is the only path to save_as. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Save As…. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -2595,43 +2870,66 @@
   "savePanelFolderRadio": {
    "canonical": "Folder",
    "variants": [
-    "폴더"
+    "폴더",
+    "フォルダ",
+    "Ordner",
+    "Carpeta",
+    "Dossier",
+    "Cartella",
+    "Pasta",
+    "文件夹",
+    "檔案夾"
    ],
    "rationale": "One of the two project-organisation radios that identify the Save As panel.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "savePanelPackageRadio": {
    "canonical": "Package",
    "variants": [
-    "패키지"
+    "패키지",
+    "パッケージ",
+    "Paket",
+    "Paquete",
+    "Paquet",
+    "Pacchetto",
+    "Pacote",
+    "包",
+    "套件"
    ],
    "rationale": "One of the two project-organisation radios that identify the Save As panel.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "savePanelWindowTitle": {
    "canonical": "Save",
    "variants": [
-    "저장"
+    "저장",
+    "保存",
+    "Sichern",
+    "Guardar",
+    "Enregistrer",
+    "Salva",
+    "Salvar",
+    "儲存"
    ],
    "rationale": "Title of the Save As panel window; the structural classifier matches it exactly.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "sendOrIOControlLabel": {
@@ -2705,7 +3003,13 @@
    "variants": [
     "스텝 입력 키보드",
     "ステップインプットキーボード",
-    "Step-Input-Keyboard"
+    "Step-Input-Keyboard",
+    "Teclado de introducción por pasos",
+    "Clavier d’entrée pas à pas",
+    "tastiera di inserimento step",
+    "Teclado de Entrada de Passos",
+    "逐个输入键盘",
+    "循步輸入鍵盤"
    ],
    "rationale": "Native Window-menu toggle, matched by containment because Logic prefixes a verb this set does not carry. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -2762,7 +3066,14 @@
    "canonical": "Show Tempo List",
    "variants": [
     "템포 목록 보기",
-    "Tempoliste einblenden"
+    "Tempoliste einblenden",
+    "テンポリストを表示",
+    "Mostrar lista de tempo",
+    "Afficher la liste du tempo",
+    "Mostra “Elenco ritmo”",
+    "Mostrar Lista de Andamentos",
+    "显示速度列表",
+    "顯示拍速列表"
    ],
    "rationale": "Measured 2026-09-02 on live Logic Pro 12.3 ko-KR: opens the Tempo List table. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -2784,7 +3095,7 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "measured"
    }
   },
@@ -2902,17 +3213,27 @@
   },
   "sortTracksByAudioChannelMenuItem": {
    "canonical": "오디오 채널",
-   "variants": [],
+   "variants": [
+    "Audio Channel",
+    "オーディオチャンネル",
+    "Audiokanal",
+    "Canal de audio",
+    "Canal audio",
+    "Canale audio",
+    "Canal de Áudio",
+    "音频通道",
+    "聲道"
+   ],
    "rationale": "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured.",
    "roles": [
     "AXMenuItem"
    ],
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -2950,17 +3271,27 @@
   },
   "sortTracksByInstrumentNameMenuItem": {
    "canonical": "악기 이름",
-   "variants": [],
+   "variants": [
+    "Instrument Names",
+    "音源名",
+    "Instrumentennamen",
+    "Nombres de instrumento",
+    "Noms des instruments",
+    "nomi strumenti",
+    "Nomes dos Instrumentos",
+    "乐器名称",
+    "樂器名稱"
+   ],
    "rationale": "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured.",
    "roles": [
     "AXMenuItem"
    ],
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -2974,17 +3305,27 @@
   },
   "sortTracksByMIDIChannelMenuItem": {
    "canonical": "MIDI 채널",
-   "variants": [],
+   "variants": [
+    "MIDI Channels",
+    "MIDIチャンネル",
+    "MIDI-Kanäle",
+    "Canales MIDI",
+    "Canaux MIDI",
+    "Canali MIDI",
+    "Canais de MIDI",
+    "MIDI 通道",
+    "MIDI 聲道"
+   ],
    "rationale": "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured.",
    "roles": [
     "AXMenuItem"
    ],
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -2998,17 +3339,26 @@
   },
   "sortTracksByMenuItem": {
    "canonical": "트랙을 다음으로 정렬",
-   "variants": [],
+   "variants": [
+    "Sort Tracks by",
+    "トラックを並べ替える",
+    "Spuren sortieren nach",
+    "Ordenar pistas por",
+    "Trier les pistes par",
+    "Ordina tracce per",
+    "轨道排序方式",
+    "按以下方式排列音軌"
+   ],
    "rationale": "Measured 2026-09-02 on Korean Logic Pro 12.3: Track > Sort Tracks By submenu title. No other locale is measured; never translate this menu label.",
    "roles": [
     "AXMenuItem"
    ],
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3070,17 +3420,27 @@
   },
   "sortTracksByUsedMenuItem": {
    "canonical": "사용 여부",
-   "variants": [],
+   "variants": [
+    "Used, Unused",
+    "使用、不使用",
+    "Benutzt, Unbenutzt",
+    "En uso, Sin usar",
+    "Utilisé/Inutilisé",
+    "Usate, non usate",
+    "Usadas, Não Usadas",
+    "已使用, 未使用",
+    "已使用、未使用"
+   ],
    "rationale": "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured.",
    "roles": [
     "AXMenuItem"
    ],
    "match": "exact",
    "coverage": {
-    "en-US": "unmeasured",
+    "en-US": "derived",
     "ko-KR": "measured",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3095,29 +3455,42 @@
   "stemExportCommitButton": {
    "canonical": "Export",
    "variants": [
-    "내보내기"
+    "내보내기",
+    "書き出す",
+    "Exportieren",
+    "Exportar",
+    "Exporter",
+    "Esporta",
+    "导出",
+    "輸出"
    ],
    "rationale": "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "stemExportDismissButton": {
    "canonical": "Cancel",
    "variants": [
-    "취소"
+    "취소",
+    "キャンセル",
+    "Abbrechen",
+    "Cancelar",
+    "Annuler",
+    "Annulla",
+    "取消"
    ],
    "rationale": "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "stemExportProgressWindowTitle": {
@@ -3136,7 +3509,14 @@
    "canonical": "Step Input Keyboard",
    "variants": [
     "스텝 입력 키보드",
-    "ステップインプットキーボード"
+    "ステップインプットキーボード",
+    "Step-Input-Keyboard",
+    "Teclado de introducción por pasos",
+    "Clavier d’entrée pas à pas",
+    "tastiera di inserimento step",
+    "Teclado de Entrada de Passos",
+    "逐个输入键盘",
+    "循步輸入鍵盤"
    ],
    "rationale": "Verifies the Step Input Keyboard window opened or closed after the menu action.",
    "match": "contains",
@@ -3144,21 +3524,28 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "subdivisionSliderLabel": {
    "canonical": "division",
    "variants": [
-    "디비전"
+    "디비전",
+    "ディビジョン",
+    "Rasterwert",
+    "división",
+    "divisione",
+    "divisão",
+    "个等份",
+    "細分"
    ],
    "rationale": "Identifies the subdivision slider in the Playhead Position group; verbatim description match; read-only. Korean read live 2026-09-14 on Logic 12.3 (6674): the group exposes this slider ONLY while the control bar's display mode is `비트` / Beats — in the default `비트 및 프로젝트` it has two children, bar and beat.",
    "match": "contains",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "tempoFieldLabel": {
@@ -3179,21 +3566,34 @@
   "tempoListNumberOfItemsLabel": {
    "canonical": "Number of Items",
    "variants": [
-    "항목 수"
+    "항목 수",
+    "項目数",
+    "Anzahl der Objekte",
+    "Número de ítems",
+    "Nombre d’éléments",
+    "Numero di elementi",
+    "Número de Itens",
+    "项目数",
+    "項目數量"
    ],
    "rationale": "Measured 2026-09-02 on live Logic Pro 12.3 ko-KR as AXDescription `항목 수` on the Tempo List event-count AXStaticText.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "ja-JP": "derived",
+    "de-DE": "derived"
    }
   },
   "tempoMenuItem": {
    "canonical": "Tempo",
    "variants": [
-    "템포"
+    "템포",
+    "テンポ",
+    "Ritmo",
+    "Andamento",
+    "速度",
+    "拍速"
    ],
    "rationale": "Measured 2026-09-02 on live Logic Pro 12.3 ko-KR as the Edit-menu submenu `템포`.",
    "roles": [
@@ -3277,7 +3677,14 @@
    "canonical": "To Playhead",
    "variants": [
     "재생헤드로",
-    "Für Abspielposition"
+    "Für Abspielposition",
+    "再生ヘッド位置に",
+    "Al cursor de reproducción",
+    "Vers la tête de lecture",
+    "Sulla testina di riproduzione",
+    "Para o Cursor de Reprodução",
+    "到播放头",
+    "至播放磁頭"
    ],
    "rationale": "Move submenu leaf that repositions the selected region to the playhead. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "provenance": {
@@ -3299,7 +3706,7 @@
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "measured"
    }
   },
@@ -3461,7 +3868,12 @@
    "variants": [
     "음소거",
     "ミュート",
-    "Ton aus"
+    "Ton aus",
+    "Silenciar",
+    "Muet",
+    "Muto",
+    "静音",
+    "靜音"
    ],
    "rationale": "Identifies the track Mute button by description substring; read-only state extraction. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at the inspector strip's mute button. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires.",
    "roles": [
@@ -3510,14 +3922,18 @@
   "trackSoloButton": {
    "canonical": "Solo",
    "variants": [
-    "솔로"
+    "솔로",
+    "ソロ",
+    "Assolo",
+    "独奏",
+    "獨奏"
    ],
    "rationale": "Identifies the track Solo button by description substring; read-only state extraction.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
     "ko-KR": "derived",
-    "ja-JP": "unmeasured",
+    "ja-JP": "derived",
     "de-DE": "derived"
    }
   },
@@ -3549,13 +3965,18 @@
   },
   "trackTypeBus": {
    "canonical": "bus",
-   "variants": [],
+   "variants": [
+    "버스",
+    "バス",
+    "总线",
+    "匯流排"
+   ],
    "rationale": "Classifies a bus track; read-only classifier.",
    "match": "exact",
    "coverage": {
     "en-US": "derived",
-    "ko-KR": "unmeasured",
-    "ja-JP": "unmeasured",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
     "de-DE": "unmeasured"
    }
   },
@@ -3772,7 +4193,13 @@
    "canonical": "play",
    "variants": [
     "재생",
-    "再生"
+    "再生",
+    "Wiedergabe",
+    "reproducir",
+    "lecture",
+    "riproduci",
+    "reproduzir",
+    "播放"
    ],
    "rationale": "Identifies the Play transport control when reading TransportState; read-only.",
    "match": "contains",
@@ -3780,7 +4207,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "transportRecordArmExclusion": {
@@ -3801,7 +4228,14 @@
    "canonical": "record",
    "variants": [
     "녹음",
-    "録音"
+    "録音",
+    "Aufnahme",
+    "grabar",
+    "enregistrer",
+    "registra",
+    "gravar",
+    "录音",
+    "錄製"
    ],
    "rationale": "Identifies the Record transport control; excluded by arm-tokens at the call site; read-only.",
    "match": "contains",
@@ -3809,7 +4243,7 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "derived"
    }
   },
   "transportSliderHints": {

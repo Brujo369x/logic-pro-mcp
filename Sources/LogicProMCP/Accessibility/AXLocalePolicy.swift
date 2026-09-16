@@ -232,8 +232,10 @@ enum AXLocalePolicy {
     /// the same reason the English one was.
     static let hideAllPluginWindowsMenuItem = LabelSet(
         canonical: "All Plug-in Windows",
-        variants: ["모든 플러그인 윈도우", "すべてのプラグインウインドウ", "Alle Plug-in-Fenster"],
+        variants: ["모든 플러그인 윈도우", "すべてのプラグインウインドウ", "Alle Plug-in-Fenster", "Todas las ventanas de módulos", "Toutes les fenêtres de module", "tutte le finestre dei plugin", "Todas as Janelas de Plug‑ins", "所有插件窗口", "所有外掛模組視窗"],
         rationale: "Best-effort cleanup so stale plugin windows do not steal later menu focus. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/All%20Plug-in%20Windows%23acc#value"
     )
 
     /// Same change, and this one was load-bearing: `edit.toggle_step_input`
@@ -253,8 +255,10 @@ enum AXLocalePolicy {
     /// Japanese forms here already assume, since neither was measured WITH a verb attached.
     static let showStepInputKeyboardMenuItem = LabelSet(
         canonical: "Step Input Keyboard",
-        variants: ["스텝 입력 키보드", "ステップインプットキーボード", "Step-Input-Keyboard"],
+        variants: ["스텝 입력 키보드", "ステップインプットキーボード", "Step-Input-Keyboard", "Teclado de introducción por pasos", "Clavier d’entrée pas à pas", "tastiera di inserimento step", "Teclado de Entrada de Passos", "逐个输入键盘", "循步輸入鍵盤"],
         rationale: "Native Window-menu toggle, matched by containment because Logic prefixes a verb this set does not carry. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Step%20Input%20Keyboard%23acc#value"
     )
 
     /// Japanese measured live 2026-09-06, from Logic's own window list during a toggle:
@@ -269,8 +273,10 @@ enum AXLocalePolicy {
     /// operation reported State B `readback_unavailable` about a window that was plainly open.
     static let stepInputKeyboardWindowTitle = LabelSet(
         canonical: "Step Input Keyboard",
-        variants: ["스텝 입력 키보드", "ステップインプットキーボード"],
+        variants: ["스텝 입력 키보드", "ステップインプットキーボード", "Step-Input-Keyboard", "Teclado de introducción por pasos", "Clavier d’entrée pas à pas", "tastiera di inserimento step", "Teclado de Entrada de Passos", "逐个输入键盘", "循步輸入鍵盤"],
         rationale: "Verifies the Step Input Keyboard window opened or closed after the menu action."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Step%20Input%20Keyboard%23acc#value"
     )
 
     /// Variants are READ FROM THE LIVE MENU BAR, never translated by hand. Measured on a Korean
@@ -283,32 +289,48 @@ enum AXLocalePolicy {
     /// The collector compared these positionally against English literals, so on a Korean Logic it
     /// threw `headerMismatch` and the note readback could not run at all — the `English and Korean
     /// locale coverage` proof `MIDIProviderGate` requires of this provider.
-    static let eventListColumnL = LabelSet(canonical: "L", variants: [],
-        rationale: "Event List lock column; unlabelled in every locale measured.")
+    static let eventListColumnL = LabelSet(canonical: "L", variants: ["G", "S", "E", "锁定", "左"],
+        rationale: "Event List lock column; unlabelled in every locale measured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/L#value")
     static let eventListColumnM = LabelSet(canonical: "M", variants: [],
         rationale: "Event List mute column; unlabelled in every locale measured.")
     static let eventListColumnPosition = LabelSet(canonical: "Position", variants: ["위치"],
         rationale: "Event List position column; identity is the canonical English form.")
-    static let eventListColumnStatus = LabelSet(canonical: "Status", variants: ["상태"],
-        rationale: "Event List status column; identity is the canonical English form.")
-    static let eventListColumnChannel = LabelSet(canonical: "Ch", variants: ["채널"],
-        rationale: "Event List channel column; identity is the canonical English form.")
-    static let eventListColumnNumber = LabelSet(canonical: "Num", variants: ["번호"],
-        rationale: "Event List number column; identity is the canonical English form.")
-    static let eventListColumnValue = LabelSet(canonical: "Val", variants: ["값"],
-        rationale: "Event List value column; identity is the canonical English form.")
-    static let eventListColumnLengthInfo = LabelSet(canonical: "Length/Info", variants: ["길이/정보"],
-        rationale: "Event List length column; identity is the canonical English form.")
+    static let eventListColumnStatus = LabelSet(canonical: "Status", variants: ["상태", "状況", "Estado", "État", "Stato", "状态", "狀態"],
+        rationale: "Event List status column; identity is the canonical English form."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FContentRelocation.strings/en/QR6-Rb-bj7.headerCell.title#value")
+    static let eventListColumnChannel = LabelSet(canonical: "Ch", variants: ["채널", "Kan.", "Can.", "Ca.", "Canale", "Canal", "通道", "聲道"],
+        rationale: "Event List channel column; identity is the canonical English form."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Ch#value")
+    static let eventListColumnNumber = LabelSet(canonical: "Num", variants: ["번호", "番号", "Núm.", "Nombre", "Núm", "编号", "數量"],
+        rationale: "Event List number column; identity is the canonical English form."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Num#value")
+    static let eventListColumnValue = LabelSet(canonical: "Val", variants: ["값", "値", "Val.", "Valeur", "值"],
+        rationale: "Event List value column; identity is the canonical English form."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Val#value")
+    static let eventListColumnLengthInfo = LabelSet(canonical: "Length/Info", variants: ["길이/정보", "長さ/情報", "Länge/Info", "Longitud/info", "Durée/Infos", "Lunghezza/informazioni", "Duração/Informações", "长度/简介", "長度/資訊"],
+        rationale: "Event List length column; identity is the canonical English form."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Length%2FInfo#value")
 
     /// The region-level header, which is how the collector tells "you are looking at the wrong level"
     /// apart from "Logic changed its columns". Measured in Korean as
     /// `["L","M","위치","이름","트랙","길이"]`.
     static let eventListColumnName = LabelSet(canonical: "Name", variants: ["이름"],
         rationale: "Region-level name column; distinguishes the region list from the event list.")
-    static let eventListColumnTrack = LabelSet(canonical: "Trk", variants: ["트랙"],
-        rationale: "Region-level track column; distinguishes the region list from the event list.")
-    static let eventListColumnLength = LabelSet(canonical: "Length", variants: ["길이"],
-        rationale: "Region-level length column; distinguishes the region list from the event list.")
+    static let eventListColumnTrack = LabelSet(canonical: "Trk", variants: ["트랙", "Pista", "Piste", "Trc", "Pis", "轨道", "音軌"],
+        rationale: "Region-level track column; distinguishes the region list from the event list."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Trk#value")
+    static let eventListColumnLength = LabelSet(canonical: "Length", variants: ["길이", "長さ", "Länge", "duración", "Durée", "Lunghezza", "Duração", "长度", "長度"],
+        rationale: "Region-level length column; distinguishes the region list from the event list."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#und` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Length%23und#value")
 
     /// The Event pane's "position and length as Time" toggle. Matched by title on the pane's own View
     /// menu; a Time-mode reading is refused because the collector's tick arithmetic assumes bars and
@@ -317,8 +339,10 @@ enum AXLocalePolicy {
     /// fails closed.
     static let eventPositionAsTimeMenuItem = LabelSet(
         canonical: "Event Position and Length as Time",
-        variants: [],
+        variants: ["이벤트 위치 및 길이를 시간으로", "イベントの位置と長さを時間で表示", "Event-Position und Länge als Zeit einblenden", "Posición y longitud del evento como tiempo", "Position et durée de l’évènement sous forme de temps", "Posizione e durata evento come tempo", "Posição e Duração do Evento como Tempo", "用时间表示的事件位置和长度", "以時間顯示事件位置和長度"],
         rationale: "Decides whether Event List positions are bar/beat or timecode; read-only."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Event%20Position%20and%20Length%20as%20Time#value"
     )
 
     static let fileMenuBar = LabelSet(
@@ -336,34 +360,44 @@ enum AXLocalePolicy {
     /// which is the point: a translated guess would look right and match nothing.
     static let projectChooserWindowTitle = LabelSet(
         canonical: "Choose a Project",
-        variants: ["프로젝트 선택"],
+        variants: ["프로젝트 선택", "プロジェクトを選択", "Wähle ein Projekt aus", "Seleccionar un proyecto", "Choisir un projet", "Scegli un progetto", "Escolha um projeto", "选取项目", "選擇計畫案"],
         rationale: "Identifies Logic's New Project chooser by its AXWindow title; read-only classification. Korean read live 2026-09-15 off the window `파일 > 템플릿으로부터 신규…` opened with no document, whose title was `프로젝트 선택` exactly (AXStandardWindow, not an AXDialog). ja-JP and de-DE unmeasured (#885)."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Choose%20a%20Project#value"
     )
 
     static let projectChooserCommitButton = LabelSet(
         canonical: "Choose",
-        variants: ["선택"],
+        variants: ["선택", "選択", "Auswählen", "Seleccionar", "Choisir", "Scegli", "Escolher", "选取", "選擇"],
         rationale: "The chooser's commit control, matched by AXButton title. Korean read live 2026-09-15 beside `취소` and `기존 프로젝트 열기…` in the same census (#885). ja-JP and de-DE unmeasured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Choose#value"
     )
 
     static let projectChooserEmptyProjectLabel = LabelSet(
         canonical: "Empty Project",
-        variants: ["비어 있는 프로젝트"],
+        variants: ["비어 있는 프로젝트", "空のプロジェクト", "Leeres Projekt", "Proyecto vacío", "Projet vide", "Progetto vuoto", "Projeto Vazio", "空项目", "空白計畫案"],
         rationale: "The Empty Project tile's label, read as an AXStaticText value after selecting the `새로운 프로젝트` category. Korean read live 2026-09-15 (#885); the details panel alongside it read `비어 있는 프로젝트 생성`, which is how the selection is confirmed without a coordinate. ja-JP and de-DE unmeasured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Empty%20Project#value"
     )
 
     static let newProjectMenuItem = LabelSet(
         canonical: "New",
-        variants: ["신규", "新規", "Neu"],
+        variants: ["신규", "新規", "Neu", "Nuevo", "Nouveau", "Nuovo", "Novo", "新建", "新增"],
         rationale: "Reveals the New Project chooser, or creates the project directly where Logic skips it. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/New%23mti#value"
     )
 
     /// #369: File > Export. Both forms were read from Logic's File menu; no other locale has been
     /// measured for this submenu, so callers must refuse rather than translate or guess one.
     static let exportMenuItem = LabelSet(
         canonical: "Export",
-        variants: ["내보내기", "書き出す", "Exportieren"],
+        variants: ["내보내기", "書き出す", "Exportieren", "Exportar", "Exporter", "Esporta", "导出", "輸出"],
         rationale: "File submenu title measured in English and Korean; a locale without one of these labels is refused as an unmeasured stem-export menu label. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Export. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Export%23mti#value"
     )
 
     /// #369: File > Export > All Tracks as Audio Files… — the only measured leaf that reaches the
@@ -376,28 +410,36 @@ enum AXLocalePolicy {
     /// as an unmeasured all-tracks-audio-file label instead of falling back to keyword matching.
     static let allTracksAsAudioFilesMenuItem = LabelSet(
         canonical: "All Tracks as Audio Files…",
-        variants: ["모든 트랙을 오디오 파일로…", "すべてのトラックをオーディオファイルとして…", "Alle Spuren als Audiodateien …"],
+        variants: ["모든 트랙을 오디오 파일로…", "すべてのトラックをオーディオファイルとして…", "Alle Spuren als Audiodateien …", "Todas las pistas como archivos de audio…", "Toutes les pistes en fichiers audio…", "Tutte le tracce come file audio…", "Todas as Pistas como Arquivos de Áudio…", "所有轨道为音频文件…", "所有音軌為音訊檔案⋯"],
         rationale: "Measured all-tracks audio-file export leaf: EN uses `All Tracks` against singular/Selected entries; KO uses `모든 트랙을` against `1개의 트랙을` and `선택 범위를`. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Export > All Tracks as Audio Files…. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/All%20Tracks%20as%20Audio%20Files%E2%80%A6#value"
     )
 
     /// #369: controls inside the per-track stem-export panel. The panel's own
     /// window title is the OS Open-panel string, so it is not a usable signal.
     static let oneFilePerTrackPopupValue = LabelSet(
         canonical: "One File per Track",
-        variants: ["트랙당 하나의 파일"],
+        variants: ["트랙당 하나의 파일", "トラックごとに1ファイル", "Eine Datei pro Spur", "Un archivo por pista", "Un fichier par piste", "Un file per traccia", "Um Arquivo por Pista", "每个轨道一个文件", "每個音軌一個檔案"],
         rationale: "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FBounceInPlace.strings/en/7B5-NP-XpR.title#value"
     )
 
     static let stemExportCommitButton = LabelSet(
         canonical: "Export",
-        variants: ["내보내기"],
+        variants: ["내보내기", "書き出す", "Exportieren", "Exportar", "Exporter", "Esporta", "导出", "輸出"],
         rationale: "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Export%23mti#value"
     )
 
     static let stemExportDismissButton = LabelSet(
         canonical: "Cancel",
-        variants: ["취소"],
+        variants: ["취소", "キャンセル", "Abbrechen", "Cancelar", "Annuler", "Annulla", "取消"],
         rationale: "Measured from the live stem-export panel on 2026-09-01; the panel window title is the OS Open-panel string and is therefore not a usable signal."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAddSelToArrange.strings/en/100050.title#value"
     )
 
     /// #369: The transient progress window title is rendered with an ordinary
@@ -408,6 +450,8 @@ enum AXLocalePolicy {
         canonical: "Logic Pro",
         variants: [],
         rationale: "Measured on the live Korean progress dialog on 2026-09-02 as `Logic\\u{00A0}Pro`; whitespace is normalized only for this product-title rendering."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Logic%20Pro#value"
     )
 
     static func progressWindowTitleMatches(_ title: String) -> Bool {
@@ -429,14 +473,18 @@ enum AXLocalePolicy {
     /// is refused by `TempoMapAX` before it tries this path.
     static let tempoMenuItem = LabelSet(
         canonical: "Tempo",
-        variants: ["템포"],
+        variants: ["템포", "テンポ", "Ritmo", "Andamento", "速度", "拍速"],
         rationale: "Measured 2026-09-02 on live Logic Pro 12.3 ko-KR as the Edit-menu submenu `템포`."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Tempo%23mti#value"
     )
 
     static let showTempoListMenuItem = LabelSet(
         canonical: "Show Tempo List",
-        variants: ["템포 목록 보기", "Tempoliste einblenden"],
+        variants: ["템포 목록 보기", "Tempoliste einblenden", "テンポリストを表示", "Mostrar lista de tempo", "Afficher la liste du tempo", "Mostra “Elenco ritmo”", "Mostrar Lista de Andamentos", "显示速度列表", "顯示拍速列表"],
         rationale: "Measured 2026-09-02 on live Logic Pro 12.3 ko-KR: opens the Tempo List table. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Show%20Tempo%20List#value"
     )
 
     /// The Tempo List's independent count witness. On the measured Korean build its AXStaticText
@@ -444,8 +492,10 @@ enum AXLocalePolicy {
     /// the AXRow count and refuses a disagreement rather than publishing a shorter list.
     static let tempoListNumberOfItemsLabel = LabelSet(
         canonical: "Number of Items",
-        variants: ["항목 수"],
+        variants: ["항목 수", "項目数", "Anzahl der Objekte", "Número de ítems", "Nombre d’éléments", "Numero di elementi", "Número de Itens", "项目数", "項目數量"],
         rationale: "Measured 2026-09-02 on live Logic Pro 12.3 ko-KR as AXDescription `항목 수` on the Tempo List event-count AXStaticText."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Number%20of%20Items#value"
     )
 
     /// #519: the Navigate menu bar item. All three labels are MEASURED, none translated.
@@ -482,8 +532,10 @@ enum AXLocalePolicy {
     /// form: a locale without this measurement must refuse.
     static let sortTracksByMenuItem = LabelSet(
         canonical: "트랙을 다음으로 정렬",
-        variants: [],
+        variants: ["Sort Tracks by", "トラックを並べ替える", "Spuren sortieren nach", "Ordenar pistas por", "Trier les pistes par", "Ordina tracce per", "轨道排序方式", "按以下方式排列音軌"],
         rationale: "Measured 2026-09-02 on Korean Logic Pro 12.3: Track > Sort Tracks By submenu title. No other locale is measured; never translate this menu label."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Sort%20Tracks%20by#value"
     )
 
     static let sortTracksMenuPath = MenuPath(
@@ -493,14 +545,18 @@ enum AXLocalePolicy {
 
     static let sortTracksByMIDIChannelMenuItem = LabelSet(
         canonical: "MIDI 채널",
-        variants: [],
+        variants: ["MIDI Channels", "MIDIチャンネル", "MIDI-Kanäle", "Canales MIDI", "Canaux MIDI", "Canali MIDI", "Canais de MIDI", "MIDI 通道", "MIDI 聲道"],
         rationale: "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/MIDI%20Channels%23mti#value"
     )
 
     static let sortTracksByAudioChannelMenuItem = LabelSet(
         canonical: "오디오 채널",
-        variants: [],
+        variants: ["Audio Channel", "オーディオチャンネル", "Audiokanal", "Canal de audio", "Canal audio", "Canale audio", "Canal de Áudio", "音频通道", "聲道"],
         rationale: "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Audio%20Channel#value"
     )
 
     static let sortTracksByOutputChannelMenuItem = LabelSet(
@@ -511,8 +567,10 @@ enum AXLocalePolicy {
 
     static let sortTracksByInstrumentNameMenuItem = LabelSet(
         canonical: "악기 이름",
-        variants: [],
+        variants: ["Instrument Names", "音源名", "Instrumentennamen", "Nombres de instrumento", "Noms des instruments", "nomi strumenti", "Nomes dos Instrumentos", "乐器名称", "樂器名稱"],
         rationale: "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Instrument%20Names%23acc#value"
     )
 
     static let sortTracksByTrackNameMenuItem = LabelSet(
@@ -523,8 +581,10 @@ enum AXLocalePolicy {
 
     static let sortTracksByUsedMenuItem = LabelSet(
         canonical: "사용 여부",
-        variants: [],
+        variants: ["Used, Unused", "使用、不使用", "Benutzt, Unbenutzt", "En uso, Sin usar", "Utilisé/Inutilisé", "Usate, non usate", "Usadas, Não Usadas", "已使用, 未使用", "已使用、未使用"],
         rationale: "Measured 2026-09-02 on Korean Logic Pro 12.3 as a Track > Sort Tracks By leaf; no other locale is measured."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Used%2C%20Unused#value"
     )
 
     static let sortTracksByCreationDateMenuItem = LabelSet(
@@ -571,8 +631,10 @@ enum AXLocalePolicy {
     /// guess in a LabelSet is what this defect was.
     static let saveAsMenuItem = LabelSet(
         canonical: "Save As…",
-        variants: ["별도 저장…", "別名で保存…", "Sichern unter …"],
+        variants: ["별도 저장…", "別名で保存…", "Sichern unter …", "Guardar como…", "Enregistrer sous…", "Salva come…", "Salvar como…", "保存为…", "儲存為⋯"],
         rationale: "File menu entry that opens the Save panel; the panel is the only path to save_as. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Save As…. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FKeyCommands.strings/en/300622.title#value"
     )
 
     /// #747: the Save panel's own window title, and the two "Organize my project as" radios inside
@@ -586,29 +648,37 @@ enum AXLocalePolicy {
     /// `element_not_found` after the panel was already on screen.
     static let savePanelWindowTitle = LabelSet(
         canonical: "Save",
-        variants: ["저장"],
+        variants: ["저장", "保存", "Sichern", "Guardar", "Enregistrer", "Salva", "Salvar", "儲存"],
         rationale: "Title of the Save As panel window; the structural classifier matches it exactly."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FEXSKeyActions.strings/en/110.title#value"
     )
 
     /// #747: the `Package` radio in the Save panel. See `savePanelWindowTitle`.
     static let savePanelPackageRadio = LabelSet(
         canonical: "Package",
-        variants: ["패키지"],
+        variants: ["패키지", "パッケージ", "Paket", "Paquete", "Paquet", "Pacchetto", "Pacote", "包", "套件"],
         rationale: "One of the two project-organisation radios that identify the Save As panel."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FSaveAsOptionsView.strings/en/Zb7-X8-NPE.title#value"
     )
 
     /// #747: the `Folder` radio in the Save panel. See `savePanelWindowTitle`.
     static let savePanelFolderRadio = LabelSet(
         canonical: "Folder",
-        variants: ["폴더"],
+        variants: ["폴더", "フォルダ", "Ordner", "Carpeta", "Dossier", "Cartella", "Pasta", "文件夹", "檔案夾"],
         rationale: "One of the two project-organisation radios that identify the Save As panel."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Folder%23mti#value"
     )
 
     /// #519: File > Bounce.
     static let bounceMenuItem = LabelSet(
         canonical: "Bounce",
-        variants: ["바운스", "バウンス", "Bouncen"],
+        variants: ["바운스", "バウンス", "Bouncen", "Renderizar", "并轨", "併軌"],
         rationale: "File menu entry that opens the Bounce dialog; menu-only in the AppleScript bounce path. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at File > Bounce. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `StrToolbItemName` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/StrToolbItemName%7C%7C%7CBounce#value"
     )
 
     /// #519: the Bounce submenu's "Project or Section…" leaf. Both the curly-ellipsis (`…`) and
@@ -623,8 +693,10 @@ enum AXLocalePolicy {
     /// #519: File > Import.
     static let importMenuItem = LabelSet(
         canonical: "Import",
-        variants: ["가져오기", "読み込む", "Importieren"],
+        variants: ["가져오기", "読み込む", "Importieren", "Importar", "Importer", "Importa", "导入", "輸入"],
         rationale: "File menu entry that opens the Import submenu used by midi.import_file. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Import%23mti#value"
     )
 
     /// #519: File > Import > MIDI File….
@@ -650,8 +722,10 @@ enum AXLocalePolicy {
     /// opens that panel on a German Logic and reads it.
     static let midiImportCommitButton = LabelSet(
         canonical: "Import",
-        variants: ["가져오기", "Importieren"],
+        variants: ["가져오기", "Importieren", "読み込む", "Importar", "Importer", "Importa", "导入", "輸入"],
         rationale: "The commit button of Logic's MIDI-import open panel. German read 2026-09-13 by OPENING the panel on a de-DE Logic and enumerating its buttons: `Abbrechen` and `Importieren`, the latter disabled until a file is chosen. It does share the panel's title — which is why it was held back until somebody looked rather than inferred from the window name."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Import%23mti#value"
     )
 
     /// The button that DECLINES Logic's "import the tempo too?" alert after a MIDI import.
@@ -666,8 +740,10 @@ enum AXLocalePolicy {
     /// it, and a set that held both would let the wrong one be pressed first.
     static let midiImportDeclineTempoButton = LabelSet(
         canonical: "No",
-        variants: ["아니요", "Nein"],
+        variants: ["아니요", "Nein", "いいえ", "Non", "Não", "否"],
         rationale: "Declines the post-import tempo alert so a MIDI import cannot rewrite the project's tempo map. German read 2026-09-13 off the live alert, whose buttons are `Nein` / `Tempo importieren` / `Abbrechen`."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/No#value"
     )
 
     /// The alert's own question text, which is how it can be identified POSITIVELY.
@@ -685,28 +761,36 @@ enum AXLocalePolicy {
 
     static let midiImportPanelTitle = LabelSet(
         canonical: "Import",
-        variants: ["가져오기", "Importieren"],
+        variants: ["가져오기", "Importieren", "読み込む", "Importar", "Importer", "Importa", "导入", "輸入"],
         rationale: "Distinguishes Logic's MIDI-import open panel from the tempo alert that may follow it; both carry subrole AXDialog, so the title is the only separator available. German read 2026-09-12 from the product's own refusal envelope (#876), which named the blocking dialog `Importieren`."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Import%23mti#value"
     )
 
     static let midiFileMenuItem = LabelSet(
         canonical: "MIDI File…",
-        variants: ["MIDI 파일…", "MIDIファイル…", "MIDI-Datei …"],
+        variants: ["MIDI 파일…", "MIDIファイル…", "MIDI-Datei …", "Archivo MIDI…", "Fichier MIDI…", "File MIDI…", "Arquivo de MIDI…", "MIDI 文件…", "MIDI 檔案⋯"],
         rationale: "Import submenu leaf that opens the MIDI file chooser for midi.import_file. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/MIDI%20File%E2%80%A6#value"
     )
 
     /// #519: Edit > Move.
     static let moveMenuItem = LabelSet(
         canonical: "Move",
-        variants: ["이동", "Bewegen"],
+        variants: ["이동", "Bewegen", "移動", "Trasladar", "Déplacer", "Sposta", "Mover", "移动"],
         rationale: "Edit menu entry that opens the Move submenu used to reposition a selected region. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Move#value"
     )
 
     /// #519: Edit > Move > To Playhead.
     static let toPlayheadMenuItem = LabelSet(
         canonical: "To Playhead",
-        variants: ["재생헤드로", "Für Abspielposition"],
+        variants: ["재생헤드로", "Für Abspielposition", "再生ヘッド位置に", "Al cursor de reproducción", "Vers la tête de lecture", "Sulla testina di riproduzione", "Para o Cursor de Reprodução", "到播放头", "至播放磁頭"],
         rationale: "Move submenu leaf that repositions the selected region to the playhead. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/To%20Playhead#value"
     )
 
     /// #519: Navigate > Set Locators….
@@ -722,36 +806,46 @@ enum AXLocalePolicy {
     /// specifier, so the shared Korean text never crosses into the wrong menu.
     static let goToMenuItem = LabelSet(
         canonical: "Go To",
-        variants: ["이동", "移動", "Gehe zu"],
+        variants: ["이동", "移動", "Gehe zu", "Ir a", "Aller à", "Vai a", "Ir para", "前往"],
         rationale: "Navigate menu entry that opens the Go To submenu used by goto_position. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Go%20To#value"
     )
 
     /// #519: Navigate > Go To > Position….
     static let goToPositionMenuItem = LabelSet(
         canonical: "Position…",
-        variants: ["위치…", "位置…", "Position …"],
+        variants: ["위치…", "位置…", "Position …", "Posición…", "Posizione…", "Posição…", "位置⋯"],
         rationale: "Go To submenu leaf that opens the Go To Position dialog. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Position%E2%80%A6#value"
     )
 
     /// #519: Navigate > Open Marker List.
     static let openMarkerListMenuItem = LabelSet(
         canonical: "Open Marker List",
-        variants: ["마커 목록 열기", "マーカーリストを開く", "Marker-Liste öffnen"],
+        variants: ["마커 목록 열기", "マーカーリストを開く", "Marker-Liste öffnen", "Abrir lista de marcadores", "Ouvrir la liste des marqueurs", "Apri elenco marcatori", "打开标记列表", "打開標記列表"],
         rationale: "Navigate menu entry that opens the Marker List window. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Open%20Marker%20List#value"
     )
 
     /// #519: Navigate > Create Marker.
     static let createMarkerMenuItem = LabelSet(
         canonical: "Create Marker",
-        variants: ["마커 생성", "マーカーを作成", "Marker erzeugen"],
+        variants: ["마커 생성", "マーカーを作成", "Marker erzeugen", "Crear marcador", "Créer un marqueur", "Crea marcatore", "Criar Marcador", "创建标记", "製作標記"],
         rationale: "Navigate menu entry that creates a marker at the playhead. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `StrToolbItemName` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/StrToolbItemName%7C%7C%7CCreate%20Marker#value"
     )
 
     /// The Marker List toolbar's own Edit menu button, not the application menu bar.
     static let markerListEditMenuButton = LabelSet(
         canonical: "Edit",
-        variants: ["編集", "편집", "Bearbeiten"],
+        variants: ["編集", "편집", "Bearbeiten", "Edición", "Édition", "Modifica", "Editar", "编辑", "編輯"],
         rationale: "Live-confirmed on Logic 12.3: the Marker List toolbar AXMenuButton exposes the exact AXDescription `編集` in Japanese and `편집` in Korean; the bottom AXButton with the same label is deliberately rejected unless its actions advertise AXShowMenu. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Edit%23mti#value"
     )
 
     /// The Marker List's own "Number of Items" static text — Logic's independent rendering of
@@ -766,15 +860,19 @@ enum AXLocalePolicy {
     /// is why they are pinned as measured strings and not derived from one another.
     static let markerListNumberOfItemsLabel = LabelSet(
         canonical: "Number of Items",
-        variants: ["항목 수", "項目数"],
+        variants: ["항목 수", "項目数", "Anzahl der Objekte", "Número de ítems", "Nombre d’éléments", "Numero di elementi", "Número de Itens", "项目数", "項目數量"],
         rationale: "Live-measured on Logic 12.3 on 2026-08-17: AXDescription and AXHelp both read `항목 수` in Korean and `項目数` in Japanese, alongside the English `Number of Items`. Until that date this LabelSet deliberately carried no variants because none had been measured; the values it renders were measured in the same pass (`2개의 마커`, `0個のマーカー`) and drove the count parser's separator rule."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Number%20of%20Items#value"
     )
 
     /// The destructive Marker List Edit-menu command. This must always be whole-string matched.
     static let markerListDeleteMenuItem = LabelSet(
         canonical: "Delete",
-        variants: ["削除", "삭제"],
+        variants: ["削除", "삭제", "Löschen", "Suprimir", "Supprimer", "Elimina", "刪除"],
         rationale: "Live-confirmed on Logic 12.3: Marker List Delete is `削除` in Japanese and `삭제` in Korean. It is used only with exactStrict because the Edit menu also has Delete-Undo-History entries; prefix or containment matching can reach a different destructive command."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#key` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Delete%23key#value"
     )
 
     static let undoMenuItemPrefix = LabelSet(
@@ -797,14 +895,18 @@ enum AXLocalePolicy {
 
     static let goToPositionDialogTitle = LabelSet(
         canonical: "Go To Position",
-        variants: ["위치로 이동", "位置の移動", "Zu Position"],
+        variants: ["위치로 이동", "位置の移動", "Zu Position", "Ir a la posición", "Aller à la position", "Vai a posizione", "Ir para a posição", "前往位置"],
         rationale: "Used only to dismiss a stale dialog before another verified operation. This covers the reviewed EN/KO/JA dialog titles; broader locale/menu policy remains tracked separately. German read 2026-09-12 by OPENING the dialog on a de-DE Logic and reading its window title (#876), twice, both times `Zu Position` on an AXFloatingWindow. It is not in the navigation-free census — the census opens nothing — which is why the live run that needed it reported `dialog_unidentified_new_window`: the menu leaf fired, the window appeared, and the product could not name it. The AppleScript literal list this LabelSet now renders also carried `Go to Position`, and it is NOT carried here. It had no provenance, `matches(_:mode:.exactStrict)` is case-sensitive so the Swift side never accepted it either, and keeping it would put two members in this set that differ only by case — which `check-probe-product-drift.py` refuses, because a later move to case-folded matching would merge them. So the generated handler is deliberately NARROWER than the literal it replaced by exactly that one string, and the two sides now agree."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FGotoPosition.strings/en/5.title#value"
     )
 
     static let cancelButton = LabelSet(
         canonical: "Cancel",
-        variants: ["취소", "キャンセル"],
+        variants: ["취소", "キャンセル", "Abbrechen", "Cancelar", "Annuler", "Annulla", "取消"],
         rationale: "Dialog dismissal fallback; no success state is inferred from this click. JA live-confirmed (Logic 12.3: `キャンセル`)."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAddSelToArrange.strings/en/100050.title#value"
     )
 
     /// #346/#350: the mandatory New Track sheet's only exit ("Create"). The modal
@@ -813,8 +915,10 @@ enum AXLocalePolicy {
     /// (Logic 12.3: `생성`); JA live-confirmed (Logic 12.3: `作成`).
     static let createButton = LabelSet(
         canonical: "Create",
-        variants: ["생성", "作成"],
+        variants: ["생성", "作成", "Erzeugen", "creación", "Créer", "Crea", "Criar", "创建", "製作"],
         rationale: "Mandatory New Track sheet's only exit; reconciler-clicked, then verified by track-count readback. KO live-confirmed (Logic 12.3); JA live-confirmed (Logic 12.3: `作成`)."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#und` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Create%23und#value"
     )
 
     /// #346/#350: `AXDescription` that identifies the mandatory New Track sheet.
@@ -824,8 +928,10 @@ enum AXLocalePolicy {
     /// `新規トラック`).
     static let newTrackSheetDescription = LabelSet(
         canonical: "New Track",
-        variants: ["새로운 트랙", "新規トラック"],
+        variants: ["새로운 트랙", "新規トラック", "Neue Spur", "Nueva pista", "Nouvelle piste", "Nuova traccia", "Nova Pista", "新轨道", "新增音軌"],
         rationale: "Identifies the mandatory New Track sheet by AXDescription, independently of Cancel state; read-only classifier. KO live-confirmed (Logic 12.3); JA live-confirmed (Logic 12.3: `新規トラック`, Cancel enabled)."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FBounceInPlace.strings/en/12.title#value"
     )
 
     /// #346/#350/#545: primary destructive button on the track-delete confirm sheets.
@@ -885,14 +991,18 @@ enum AXLocalePolicy {
 
     static let transportPlayControl = LabelSet(
         canonical: "play",
-        variants: ["재생", "再生"],
+        variants: ["재생", "再生", "Wiedergabe", "reproducir", "lecture", "riproduci", "reproduzir", "播放"],
         rationale: "Identifies the Play transport control when reading TransportState; read-only."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/play#value"
     )
 
     static let transportRecordControl = LabelSet(
         canonical: "record",
-        variants: ["녹음", "録音"],
+        variants: ["녹음", "録音", "Aufnahme", "grabar", "enregistrer", "registra", "gravar", "录音", "錄製"],
         rationale: "Identifies the Record transport control; excluded by arm-tokens at the call site; read-only."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMALiveLoopsUI.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/record#value"
     )
 
     static let transportCycleControl = LabelSet(
@@ -923,6 +1033,8 @@ enum AXLocalePolicy {
         canonical: "Audio Units",
         variants: ["音频单元", "音訊單元"],
         rationale: "Derived from Apple's `Audio Units` across the ten locales Logic ships; only zh_CN and zh_TW differ (Logic 12.3 build 6674). Cited in docs/observations/2026-09-16-two-languages-was-the-whole-design.json."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Audio%20Units#value"
     )
 
     /// The plug-in menu's Utility category.
@@ -939,9 +1051,10 @@ enum AXLocalePolicy {
 
     static let transportCountInControl = LabelSet(
         canonical: "Count In",
-        variants: ["Einzählen", "Compás de entrada", "Décompte", "Precount", "カウントイン",
-                   "카운트 인", "Contagem preparatória", "预备", "預備拍"],
+        variants: ["Einzählen", "Compás de entrada", "Décompte", "Precount", "カウントイン", "카운트 인", "Contagem preparatória", "预备", "預備拍"],
         rationale: "Derived from Apple's own StrTransportBtns|||Count In across all ten locales Logic ships (Logic 12.3 build 6674). Cited in docs/observations/2026-09-16-two-languages-was-the-whole-design.json."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `StrTransportBtns` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/StrTransportBtns%7C%7C%7CCount%20In#value"
     )
 
     static let transportMetronomeControl = LabelSet(
@@ -1001,8 +1114,10 @@ enum AXLocalePolicy {
 
     static let barSliderLabel = LabelSet(
         canonical: "bar",
-        variants: ["마디"],
+        variants: ["마디", "Takt", "compás", "mesure", "misura", "compasso", "小节", "小節"],
         rationale: "Identifies the bar slider in the control bar; verbatim description match; read-only."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/bar#value"
     )
 
     static let beatSliderLabel = LabelSet(
@@ -1013,8 +1128,10 @@ enum AXLocalePolicy {
 
     static let subdivisionSliderLabel = LabelSet(
         canonical: "division",
-        variants: ["디비전"],
+        variants: ["디비전", "ディビジョン", "Rasterwert", "división", "divisione", "divisão", "个等份", "細分"],
         rationale: "Identifies the subdivision slider in the Playhead Position group; verbatim description match; read-only. Korean read live 2026-09-14 on Logic 12.3 (6674): the group exposes this slider ONLY while the control bar's display mode is `비트` / Beats — in the default `비트 및 프로젝트` it has two children, bar and beat."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/division#value"
     )
 
     static let tickSliderLabel = LabelSet(
@@ -1033,8 +1150,10 @@ enum AXLocalePolicy {
 
     static let beatsDisplayModeItem = LabelSet(
         canonical: "beats",
-        variants: ["비트"],
+        variants: ["비트", "拍", "Schläge", "tiempos", "temps", "battiti", "batidas", "个节拍", "節拍"],
         rationale: "The display-mode menu item whose Playhead Position group exposes bar, beat, division and tick. Read live 2026-09-14: selecting it by title moved the group from two named sliders to four, and its own AXValueDescription from `4 마디 1 비트 ` to `4 마디 1 비트 1 디비전 1 틱 `."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/beats#value"
     )
 
     /// Tempo slider description for `findTempoSlider` (verbatim `.exactStrict`).
@@ -1071,20 +1190,26 @@ enum AXLocalePolicy {
     /// the #516 regression, still live for anyone not running Logic in English.
     static let arrangeWindowTitleSuffix = LabelSet(
         canonical: "Tracks",
-        variants: ["트랙", "トラック"],
+        variants: ["트랙", "トラック", "Spuren", "Pistas", "Pistes", "Tracce", "轨道", "音軌"],
         rationale: "Witnesses that an arrange window exists after project.new; read-only classification."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `StrTabBtnLabel` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/StrTabBtnLabel%7C%7C%7CTracks#value"
     )
 
     static let trackMuteButton = LabelSet(
         canonical: "Mute",
-        variants: ["음소거", "ミュート", "Ton aus"],
+        variants: ["음소거", "ミュート", "Ton aus", "Silenciar", "Muet", "Muto", "静音", "靜音"],
         rationale: "Identifies the track Mute button by description substring; read-only state extraction. Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at the inspector strip's mute button. German read 2026-09-12 by aligning the en-US and de-DE navigation-free censuses of that day (#876): 1986 aligned pairs with 13 base and 2 target rows unplaced, and this label's string was read off a de-DE element whose AX role its own name requires."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mute%23acc#value"
     )
 
     static let trackSoloButton = LabelSet(
         canonical: "Solo",
-        variants: ["솔로"],
+        variants: ["솔로", "ソロ", "Assolo", "独奏", "獨奏"],
         rationale: "Identifies the track Solo button by description substring; read-only state extraction."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Solo%23acc#value"
     )
 
     static let trackRecordButton = LabelSet(
@@ -1113,8 +1238,10 @@ enum AXLocalePolicy {
     // best-effort and, when absent, degrade safely to the unchanged `.off`.
     static let automationModeContext = LabelSet(
         canonical: "automation",
-        variants: ["오토메이션"],
+        variants: ["오토메이션", "オートメーション", "automatización", "automazione", "automação", "自动化", "自動混音"],
         rationale: "Gates the track-header automation-mode read to the automation control; read-only classifier."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAMixer.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/automation#value"
     )
     static let automationModeWrite = LabelSet(
         canonical: "write",
@@ -1301,15 +1428,19 @@ enum AXLocalePolicy {
     /// Inspector-context marker — prunes inspector ancestors from mixer scans.
     static let mixerInspectorContext = LabelSet(
         canonical: "inspector",
-        variants: ["인스펙터"],
+        variants: ["인스펙터", "インスペクタ", "Informationen", "Inspecteur", "Inspetor", "检查器", "檢閱器"],
         rationale: "Marks an inspector ancestor so mixer-area detection skips it; read-only classifier."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Inspector%23acc#value"
     )
 
     /// Mixer container id/desc/title exact match (normalized lowercase equality).
     static let mixerNamedElement = LabelSet(
         canonical: "mixer",
-        variants: ["믹서"],
+        variants: ["믹서", "ミキサー", "Mezclador", "Table de mixage", "混音器"],
         rationale: "Identifies the mixer container by exact normalized name; read-only classifier."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mixer%23acc#value"
     )
 
     /// Slider type hints (mutually exclusive groups in `sliderText`).
@@ -1355,8 +1486,10 @@ enum AXLocalePolicy {
     /// button as the view switcher.
     static let pluginWindowViewSwitcher = LabelSet(
         canonical: "View",
-        variants: ["보기"],
+        variants: ["보기", "表示", "Ansicht", "Visualización", "Présentation", "Vista", "Visualizar", "显示", "顯示方式"],
         rationale: "Measured live on 2026-09-02 in Compressor: the Controls/editor AXMenuButton identifies itself by AXDescription (View/보기); AXTitle is not a view readback."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/View%23mti#value"
     )
 
     /// The measured Controls item in the scoped plugin-window View menu.
@@ -1374,8 +1507,10 @@ enum AXLocalePolicy {
     /// as a title readback.
     static let pluginWindowEditorViewMenuItem = LabelSet(
         canonical: "Editor",
-        variants: ["편집기"],
+        variants: ["편집기", "エディタ", "Éditeur", "编辑器", "編輯器"],
         rationale: "Measured live on 2026-09-02 in Compressor's scoped View menu; paired evidence for Controls/컨트롤."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Editor%23acc#value"
     )
 
     /// #405: the "Smart Controls" toggle in a Drummer track's docked Smart Controls
@@ -1400,8 +1535,10 @@ enum AXLocalePolicy {
     )
     static let pluginAutomationLabelSubstring = LabelSet(
         canonical: "automation",
-        variants: ["오토메이션"],
+        variants: ["오토메이션", "オートメーション", "automatización", "automazione", "automação", "自动化", "自動混音"],
         rationale: "Rejects automation-mode slot labels (substring) when extracting a plugin display name; read-only filter."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAMixer.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/automation#value"
     )
 
     /// Empty audio-plugin insert-slot button classification.
@@ -1476,8 +1613,10 @@ enum AXLocalePolicy {
     )
     static let trackTypeBus = LabelSet(
         canonical: "bus",
-        variants: [],
+        variants: ["버스", "バス", "总线", "匯流排"],
         rationale: "Classifies a bus track; read-only classifier."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAToolKit.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/bus#value"
     )
     static let trackTypeMaster = LabelSet(
         canonical: "master",
