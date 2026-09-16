@@ -477,6 +477,22 @@ class ACitationWithoutAKey(unittest.TestCase):
         ref = "logic-canon://strings/ko#value"
         self.assertEqual(canon.find_refs(f"as pinned in {ref} and nowhere else.\n"), [ref])
 
+    def test_prose_may_show_the_shape_without_stating_a_citation(self):
+        """A pull request body explaining the format was refused for stating a malformed reference.
+
+        `find_refs` is greedy on purpose — a malformed reference must surface as an error rather
+        than vanish from a scan — and `<source>/<locale>` is the one shape that is not one.
+        `_pct_encode` escapes `<` and `>`, so a real reference cannot contain either.
+        """
+        prose = ("the form is logic-canon://<source>/<locale>#value, and this change cites "
+                 "logic-canon://strings/ko#value\n")
+        self.assertEqual(canon.find_refs(prose), ["logic-canon://strings/ko#value"])
+
+    def test_a_malformed_reference_without_brackets_is_still_returned(self):
+        """The exemption is angle brackets only; everything else must still surface."""
+        self.assertEqual(canon.find_refs("logic-canon://NOTASOURCE/x#value\n"),
+                         ["logic-canon://NOTASOURCE/x#value"])
+
     def test_only_value_is_accepted_as_the_field(self):
         """`#composed` without a key would be a claim nothing can check."""
         with self.assertRaises(canon.CanonRefError):

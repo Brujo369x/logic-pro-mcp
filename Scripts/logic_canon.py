@@ -569,7 +569,14 @@ def find_refs(text: str) -> list[str]:
     anything starting with the scheme is returned, and `CanonRef.parse` decides whether it is well
     formed. A malformed reference must surface as an error, not vanish from a scan.
     """
-    return re.findall(r"logic-canon://\S+?#[A-Za-z0-9_]+", text)
+    found = re.findall(r"logic-canon://\S+?#[A-Za-z0-9_]+", text)
+    # `<source>` and `<locale>` are how prose SHOWS the shape of a reference, and this scan was
+    # greedy enough to take them for citations -- so a pull request body explaining the format was
+    # refused for stating a malformed reference. `_pct_encode` escapes `<` and `>` to %3C and %3E,
+    # so a real reference cannot contain either: an angle bracket is a placeholder, never a key.
+    # The greed is deliberate everywhere else -- a malformed reference must surface as an error
+    # rather than vanish -- and this is the one shape that is not one.
+    return [ref for ref in found if "<" not in ref and ">" not in ref]
 
 
 # ---------------------------------------------------------------------------
