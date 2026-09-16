@@ -1099,17 +1099,43 @@ def _quotes_the_value(folded_body: str, ref, committed: str) -> bool:
     if ref.is_value_citation:
         pinned = canon.load_value_index(ref.source)
         for line in folded_body.splitlines():
-            text = line.strip()
-            for candidate in (text, text.split(":", 1)[-1].strip()):
-                if candidate and (ref.locale, canon.short_digest(candidate)) in pinned:
+            for candidate in _quote_candidates(line):
+                if (ref.locale, canon.short_digest(candidate)) in pinned:
                     return True
         return False
     for line in folded_body.splitlines():
-        text = line.strip()
-        for candidate in (text, text.split(":", 1)[-1].strip()):
-            if candidate and canon.short_digest(candidate) == committed:
+        for candidate in _quote_candidates(line):
+            if canon.short_digest(candidate) == committed:
                 return True
     return False
+
+
+def _quote_candidates(line: str):
+    """The strings on one line that could be somebody writing the value down as the quote.
+
+    The whole line, and what follows the first colon -- and then the same again with a surrounding
+    pair of double quotes and a trailing comma removed, because the places a citation now lives
+    include Swift and JSON, where a value is written `canonical: "File",` and never bare. Without
+    that, a `logic-canon://` reference can only be quoted in prose, which pushes it out of the
+    source file it is about and into a document that drifts from it.
+
+    Still by DIGEST and still per line: a value that happens to appear inside a sentence is not a
+    value somebody wrote down, and the candidate has to BE the value, not contain it.
+    """
+    text = line.strip()
+    seen = set()
+    for candidate in (text, text.split(":", 1)[-1].strip()):
+        for form in (candidate, _unquoted(candidate)):
+            if form and form not in seen:
+                seen.add(form)
+                yield form
+
+
+def _unquoted(text: str) -> str:
+    stripped = text.rstrip(",").strip()
+    if len(stripped) >= 2 and stripped[0] == '"' and stripped[-1] == '"':
+        return stripped[1:-1]
+    return ""
 
 
 def _changed_from_argv():
