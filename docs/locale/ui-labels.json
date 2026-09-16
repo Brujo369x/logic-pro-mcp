@@ -3175,6 +3175,21 @@
     "de-DE": "derived"
    }
   },
+  "showLibraryMenuItem": {
+   "canonical": "Show Library",
+   "variants": [
+    "라이브러리 보기",
+    "라이브러리"
+   ],
+   "rationale": "Logic exposes View menu items as localized AX titles without stable identifiers.",
+   "match": "exact",
+   "coverage": {
+    "en-US": "unmeasured",
+    "ko-KR": "derived",
+    "ja-JP": "unmeasured",
+    "de-DE": "unmeasured"
+   }
+  },
   "showMixerMenuItem": {
    "canonical": "Show Mixer",
    "variants": [

@@ -571,14 +571,9 @@ extension AccessibilityChannel {
         }
         try? await Task.sleep(nanoseconds: 120_000_000)
 
-        let libraryMenuItem = AXLocalePolicy.LabelSet(
-            canonical: "Show Library",
-            variants: ["라이브러리 보기", "라이브러리"],
-            rationale: "Logic exposes View menu items as localized AX titles without stable identifiers."
-        )
         guard let item = AXLocalePolicy.findMenuItem(
             under: viewMenu,
-            matching: libraryMenuItem,
+            matching: AXLocalePolicy.showLibraryMenuItem,
             mode: .exact,
             runtime: runtime.ax
         ) else {

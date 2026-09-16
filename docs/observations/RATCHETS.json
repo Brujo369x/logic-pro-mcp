@@ -215,6 +215,7 @@
       "regionKindDrummer→드러머",
       "regionKindDrummer→세션 플레이어",
       "setLocatorsMenuItem→로케이터 설정…",
+      "showLibraryMenuItem→라이브러리 보기",
       "trackContentExplicit→Spuren enthält",
       "trackContentExplicit→track content",
       "trackContentExplicit→track contents",
@@ -287,6 +288,7 @@
         "regionKindDrummer",
         "regionKindMidi",
         "setLocatorsMenuItem",
+        "showLibraryMenuItem",
         "showMixerMenuItem",
         "sliderSendHint",
         "sliderZoomHint",
@@ -343,6 +345,7 @@
         "regionKindDrummer",
         "regionKindMidi",
         "setLocatorsMenuItem",
+        "showLibraryMenuItem",
         "sliderSendHint",
         "sliderZoomHint",
         "sortTracksByCreationDateMenuItem",
@@ -384,6 +387,7 @@
         "regionKindMidi",
         "setLocatorsMenuItem",
         "settingPopupValue",
+        "showLibraryMenuItem",
         "showMixerMenuItem",
         "sliderSendHint",
         "sliderZoomHint",
@@ -425,7 +429,36 @@
     }
   },
   "note": "What the ledger does not know, as SETS of identities. A member may leave; a new member fails CI. Sets rather than counts because a count is defeated by a swap — add one undocumented variant, document a different one, and the total is unchanged while the ledger knows strictly less about a new string. The guard also compares against the MERGE BASE, so raising the file in the same commit as the regression does not help. Raising requires a dated reason under `raised`. ADR-019 D8. Live: observations-status.py --unproven",
-  "raised": {},
+  "raised": {
+    "undocumented_variants": {
+      "date": "2026-09-16",
+      "members": [
+        "showLibraryMenuItem→라이브러리 보기"
+      ],
+      "reason": "#892: `showLibraryMenuItem` was declared INLINE in AccessibilityChannel+Library.swift and matched exactly as it does now. `docs/locale/ui-labels.json` is generated from AXLocalePolicy.swift alone, so the ledger could not see it -- not its coverage, not its variants, not how many of the ten languages it reached -- while `check-policy-literals-against-canon.py` was classifying its literals all along. That is how the gap stayed hidden in plain sight. Moving it here is what made it countable, so the rise is the gap becoming visible rather than a new gap appearing. It cannot be derived: `Show Library` and `라이브러리 보기` are absent from EVERY corpus in every locale, and Apple ships `Show Mixer` with its verb, so a missing verb is not the explanation. Closing it needs somebody to read this View menu on a running Logic."
+    },
+    "unmeasured_coverage.en-US": {
+      "date": "2026-09-16",
+      "members": [
+        "showLibraryMenuItem"
+      ],
+      "reason": "#892: `showLibraryMenuItem` was declared INLINE in AccessibilityChannel+Library.swift and matched exactly as it does now. `docs/locale/ui-labels.json` is generated from AXLocalePolicy.swift alone, so the ledger could not see it -- not its coverage, not its variants, not how many of the ten languages it reached -- while `check-policy-literals-against-canon.py` was classifying its literals all along. That is how the gap stayed hidden in plain sight. Moving it here is what made it countable, so the rise is the gap becoming visible rather than a new gap appearing. It cannot be derived: `Show Library` and `라이브러리 보기` are absent from EVERY corpus in every locale, and Apple ships `Show Mixer` with its verb, so a missing verb is not the explanation. Closing it needs somebody to read this View menu on a running Logic."
+    },
+    "unmeasured_coverage.ja-JP": {
+      "date": "2026-09-16",
+      "members": [
+        "showLibraryMenuItem"
+      ],
+      "reason": "#892: `showLibraryMenuItem` was declared INLINE in AccessibilityChannel+Library.swift and matched exactly as it does now. `docs/locale/ui-labels.json` is generated from AXLocalePolicy.swift alone, so the ledger could not see it -- not its coverage, not its variants, not how many of the ten languages it reached -- while `check-policy-literals-against-canon.py` was classifying its literals all along. That is how the gap stayed hidden in plain sight. Moving it here is what made it countable, so the rise is the gap becoming visible rather than a new gap appearing. It cannot be derived: `Show Library` and `라이브러리 보기` are absent from EVERY corpus in every locale, and Apple ships `Show Mixer` with its verb, so a missing verb is not the explanation. Closing it needs somebody to read this View menu on a running Logic."
+    },
+    "unmeasured_coverage.de-DE": {
+      "date": "2026-09-16",
+      "members": [
+        "showLibraryMenuItem"
+      ],
+      "reason": "#892: `showLibraryMenuItem` was declared INLINE in AccessibilityChannel+Library.swift and matched exactly as it does now. `docs/locale/ui-labels.json` is generated from AXLocalePolicy.swift alone, so the ledger could not see it -- not its coverage, not its variants, not how many of the ten languages it reached -- while `check-policy-literals-against-canon.py` was classifying its literals all along. That is how the gap stayed hidden in plain sight. Moving it here is what made it countable, so the rise is the gap becoming visible rather than a new gap appearing. It cannot be derived: `Show Library` and `라이브러리 보기` are absent from EVERY corpus in every locale, and Apple ships `Show Mixer` with its verb, so a missing verb is not the explanation. Closing it needs somebody to read this View menu on a running Logic."
+    }
+  },
   "schema": 2,
   "seeded": "2026-09-05"
 }

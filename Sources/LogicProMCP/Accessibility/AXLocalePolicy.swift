@@ -1470,6 +1470,26 @@ enum AXLocalePolicy {
     /// (round-1 #7): a whole-string, case-insensitive, DIACRITIC-SENSITIVE match
     /// — use with `.exactStrict`. Read-only locator; the browser is otherwise
     /// selected structurally, and a wrong match only widens/narrows a fallback.
+    /// View > Show Library, the menu item that opens the Library panel.
+    ///
+    /// Moved here on 2026-09-16 (#892) from an inline declaration inside
+    /// `AccessibilityChannel+Library.swift`. It matched the same way it does now; what changed is
+    /// that the ledger can SEE it. `docs/locale/ui-labels.json` is generated from this file alone,
+    /// so an inline declaration was invisible to the coverage census, to the variant ratchets and
+    /// to every count of how many languages this product reaches -- while the literals themselves
+    /// were being classified all along, which is how the gap stayed hidden in plain sight.
+    ///
+    /// NOT derived, and the reason is a measurement: `Show Library` and `라이브러리 보기` are
+    /// absent from EVERY corpus in every locale. Apple ships `Show Mixer` with its verb, so the
+    /// verb is not the explanation on its own. Until somebody reads this menu on a running Logic,
+    /// these two spellings are what this product has, and the other eight languages are a counted
+    /// gap rather than an invisible one.
+    static let showLibraryMenuItem = LabelSet(
+        canonical: "Show Library",
+        variants: ["라이브러리 보기", "라이브러리"],
+        rationale: "Logic exposes View menu items as localized AX titles without stable identifiers."
+    )
+
     static let libraryPanelLabel = LabelSet(
         canonical: "library",
         variants: ["라이브러리", "ライブラリ", "Bibliothek", "Biblioteca", "Bibliothèque", "libreria", "资源库", "資料庫"],
@@ -2309,6 +2329,7 @@ enum AXLocalePolicy {
         automationModeOff,
         settingPopupValue,
         markerContainerKeywords,
+        showLibraryMenuItem,
         libraryPanelLabel,
         transportContainerMetadata,
         transportContainerControlKeywords,
