@@ -1090,6 +1090,20 @@ def _quotes_the_value(folded_body: str, ref, committed: str) -> bool:
     happens to appear inside a sentence is not the same as a value somebody wrote down as the
     quote, and a substring test would accept the former.
     """
+    # A VALUE citation has no row and therefore no single `committed` digest: the reference names
+    # a corpus and a locale, and WHICH string is the citation's own quote. One reference can
+    # legitimately appear twice in a body with two different values -- `Count In` and
+    # `Audio Units` are both `logic-canon://strings/en#value`. So the test is that some line is a
+    # value `build` pinned for that source and locale, which is the same proof by a different
+    # index.
+    if ref.is_value_citation:
+        pinned = canon.load_value_index(ref.source)
+        for line in folded_body.splitlines():
+            text = line.strip()
+            for candidate in (text, text.split(":", 1)[-1].strip()):
+                if candidate and (ref.locale, canon.short_digest(candidate)) in pinned:
+                    return True
+        return False
     for line in folded_body.splitlines():
         text = line.strip()
         for candidate in (text, text.split(":", 1)[-1].strip()):
