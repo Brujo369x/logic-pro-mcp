@@ -65,9 +65,19 @@ LINE_COMMENT = re.compile(r"//[^\n]*")
 _CANON_CACHE = {}
 
 
+#: The ledger speaks BCP-47 and the corpus is keyed by Logic's `.lproj` names, which agree for
+#: seven of the ten and do not for Chinese: Logic ships `zh_CN.lproj` and `zh_TW.lproj`, so
+#: splitting on the hyphen yields `zh`, which is not a corpus Logic has.
+#:
+#: That mattered silently. `_apple_ships` swallowed the CanonError an unknown locale raises and
+#: read it as "Apple does not ship this" -- so every Chinese label answered `unmeasured`, and
+#: widening `supported_locales` to ten would have recorded 334 gaps that are not there.
+_LPROJ = {"zh-CN": "zh_CN", "zh-TW": "zh_TW", "zh-Hans": "zh_CN", "zh-Hant": "zh_TW"}
+
+
 def _locale_code(locale: str) -> str:
-    """`ko-KR` -> `ko`. The ledger speaks BCP-47; the corpus is keyed by Logic's .lproj names."""
-    return locale.split("-")[0] if locale != "zh-Hans" else "zh_CN"
+    """`ko-KR` -> `ko`, `zh-CN` -> `zh_CN`. The `.lproj` Logic actually ships."""
+    return _LPROJ.get(locale) or locale.split("-")[0]
 
 
 def _apple_ships(entry: dict, locale: str) -> bool:
@@ -118,7 +128,11 @@ def _apple_ships(entry: dict, locale: str) -> bool:
             try:
                 if not canon.is_absent(source, code, text):
                     return True
-            except Exception:
+            except canon.CanonError:
+                # A corpus this source does not carry for this locale. `continue` is right: the
+                # NEXT source may carry it, and the locale check above already skipped sources
+                # whose manifest does not list it. What is NOT right is swallowing every
+                # exception, which is how a mistyped locale code read as "Apple ships nothing".
                 continue
     return False
 

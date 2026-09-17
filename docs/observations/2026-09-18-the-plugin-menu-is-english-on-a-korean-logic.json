@@ -7,7 +7,9 @@
   "verdict": "works",
   "issues": [
     892,
-    904
+    904,
+    909,
+    910
   ],
   "surface": "system.accessibility",
   "host": {
