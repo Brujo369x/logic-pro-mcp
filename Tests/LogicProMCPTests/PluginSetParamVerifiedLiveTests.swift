@@ -1173,9 +1173,16 @@ private func namedEQBandParams(
 }
 
 @Test func testCompressorThresholdRefusesUnmeasuredViewSwitcherLocale() async throws {
+    // Was `Ansicht`, which German Logic actually uses -- so this case asserted a refusal that
+    // existed only because `pluginWindowViewSwitcher` had not been widened yet. #892 derived it
+    // from the row Apple keys the View control under, and `Ansicht` is one of that row's values
+    // (three of the four rows whose English is `View` agree on it, and it is also what this
+    // repository read off a running German Logic). The refusal is real for a description that is
+    // NOT one of Apple's spellings, so the fixture uses one: `Anzeigen` is the fourth row's German
+    // for `View` and is not what this control is called -- a near miss chosen to look right.
     let fixture = LiveFixture(
         controlsViewInitiallySelected: true,
-        pluginWindowViewSwitcherDescription: "Ansicht"
+        pluginWindowViewSwitcherDescription: "Anzeigen"
     )
     let result = await runLive(fixture: fixture, params: thresholdParams(value: "60"))
 
@@ -1190,6 +1197,21 @@ private func namedEQBandParams(
     #expect(reportsUnmeasuredLocale)
     #expect(noViewMenuSelection)
     #expect(noSliderWrite)
+}
+
+@Test func testCompressorThresholdAcceptsTheGermanViewSwitcherApplePublishes() async throws {
+    // The other half of the case above: a description Apple DOES ship for this control must not
+    // refuse as an unmeasured locale. Before #892 it did, because the LabelSet carried three
+    // languages and German was not one of the three the plug-in path had been given.
+    let fixture = LiveFixture(
+        controlsViewInitiallySelected: true,
+        pluginWindowViewSwitcherDescription: "Ansicht"
+    )
+    let result = await runLive(fixture: fixture, params: thresholdParams(value: "60"))
+
+    let observed = (result["what_was_observed"] as? String) ?? ""
+    #expect(!observed.contains("not measured for this locale"),
+            "a German Logic's own View spelling must not read as an unmeasured locale")
 }
 
 @Test func testCompressorControlsViewCheckboxUsesRowLabelPressAndChangedReadback() async throws {

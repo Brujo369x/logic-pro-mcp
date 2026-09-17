@@ -27,12 +27,20 @@ struct Issue524DisplayModeMenuTests {
             .contains("Event Position and Length as Time"))
     }
 
-    @Test("no locale variant is claimed for it yet")
+    @Test("no locale variant is INVENTED, which is not the same as none being claimed")
     func noInventedTranslation() {
-        // This entry has NOT been read on a non-English Logic. An English-only match fails closed,
-        // which is honest; an invented translation would match nothing and look like a Logic change.
-        // When it is measured, this expectation is what has to be updated deliberately.
-        #expect(AXLocalePolicy.eventPositionAsTimeMenuItem.labels.count == 1)
+        // This asserted `labels.count == 1` and said: the entry has not been read on a non-English
+        // Logic, an English-only match fails closed, and "when it is measured, this expectation is
+        // what has to be updated deliberately". This is that update, and the evidence is not a
+        // reading -- it is Apple's own row (#892). Every label now comes from the `(unit, key)` in
+        // `derivedFrom`, and `Scripts/check-labelsets-are-derived.py` requires, for each of the ten
+        // locales the corpus carries, that one of these strings is the value pinned there.
+        //
+        // The property this case actually defends is unchanged: nothing here was translated by
+        // hand. `derivedFrom` being present is what says so, and it is the thing to assert --
+        // counting labels only ever measured how little had been done.
+        #expect(AXLocalePolicy.eventPositionAsTimeMenuItem.derivedFrom != nil)
+        #expect(AXLocalePolicy.eventPositionAsTimeMenuItem.labels.count > 1)
     }
 
     @Test("the pane's View menu is addressed by the same policy entry as the app menu")

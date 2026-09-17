@@ -1,0 +1,140 @@
+{
+  "id": "2026-09-16-seventy-labels-read-their-own-row",
+  "date": "2026-09-16",
+  "schema": 3,
+  "subject": "Reading a LabelSet's languages off Apple's own row instead of measuring them one machine at a time",
+  "question": "Of the 159 LabelSets this product matches Logic with, how many can take their ten languages from the row Apple keys the control under, and how many of those can be applied without a judgement?",
+  "verdict": "works",
+  "issues": [
+    892,
+    904
+  ],
+  "surface": "system.bundle",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-labelsets-are-derived.py",
+    "expected": "76 of 155 LabelSets name a row, and every one of them is that row's own values in every locale the corpus carries",
+    "cost": "~10s; reads committed digests and the Swift, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+  ],
+  "method": "Intersected, for each LabelSet, the rows each of its members is a value of in that member's own locale; where the surviving rows disagreed, narrowed to the rows in the Apple key namespace the label belongs to. Then asked, separately, whether the chosen row already holds every string the label carries -- because that is what makes the edit pure addition. Applied only those, and left the rest reported.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mixer%23acc#value",
+      "value": "Mixer",
+      "used_for": "`mixerNamedElement`, and the case that shows why the check folds case: this product carries the lowercase `mixer` for containment matching, Apple's row says `Mixer`, and to everything that runs they are one label",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Inspector%23acc#value",
+      "value": "Inspector",
+      "used_for": "`mixerInspectorContext`, whose seven other languages came from this row",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "LabelSets in docs/locale/ui-labels.json",
+      "count": 159
+    },
+    {
+      "what": "of those, resolving to one row from their members alone",
+      "count": 55
+    },
+    {
+      "what": "resolving once narrowed to an Apple key namespace",
+      "count": 57
+    },
+    {
+      "what": "ambiguous between rows that disagree",
+      "count": 30
+    },
+    {
+      "what": "with no row at all",
+      "count": 17
+    },
+    {
+      "what": "with a row, where the row already holds every string the label carries",
+      "count": 78
+    },
+    {
+      "what": "with a row the label carries something beyond",
+      "count": 34
+    },
+    {
+      "what": "LabelSets rewritten in this change",
+      "count": 70
+    },
+    {
+      "what": "strings added to them",
+      "count": 426
+    },
+    {
+      "what": "variants across the whole policy before",
+      "count": 372
+    },
+    {
+      "what": "after",
+      "count": 798
+    },
+    {
+      "what": "LabelSets naming a row in derivedFrom after this change",
+      "count": 76
+    },
+    {
+      "what": "derived strings that are absent from Apple's corpus",
+      "count": 0
+    },
+    {
+      "what": "literals POLICY-LITERALS classifies, after",
+      "count": 811
+    },
+    {
+      "what": "of those, classified `nowhere`, before and after",
+      "count": 98
+    },
+    {
+      "what": "coverage gaps the ledger counted as unmeasured, closed by this change",
+      "count": 76
+    },
+    {
+      "what": "case-only duplicates the first pass created before the fold was added",
+      "count": 8
+    },
+    {
+      "what": "LabelSets with a row that can be chosen mechanically (55 by value plus 57 by namespace)",
+      "count": 112
+    },
+    {
+      "what": "literals POLICY-LITERALS classified before this change",
+      "count": 455
+    }
+  ],
+  "conclusion": "112 of 159 LabelSets have a row that can be chosen mechanically -- 55 from the members alone, and 57 more once candidates are narrowed to the Apple key namespace the label belongs to, which is a rule rather than a reading. Choosing a row is not the same as being able to apply it: for 78 the row already holds every string the label carries, so the edit is pure addition and nothing measured can be lost, while 34 carry something beyond it. Most of those are the lowercase fragments this product matches by containment and which are not values of anything, but not all: `pluginOpenOrListControl` matches `open` AND `list`, so no single row can cover it. A compound label is not one row's values and was not made to look like one. 70 were rewritten here, adding 426 strings and taking the policy from 372 variants to 798, and NOT ONE of them is absent from Apple's corpus -- `nowhere` in POLICY-LITERALS is 98 before and after while the literal count went from 455 to 811. The ledger's unmeasured-coverage gaps fell by 76. The check folds case and the corpus does not: `mixer` and `Mixer` are one label to every matcher this product has, and comparing exact digests called eight of them languages the product could not work in.",
+  "limits": [
+    "78 applied, not 112. The 34 that carry a member their row does not hold are reported and untouched; deciding whether each is tolerance, a wrong row, or a compound label is a reading, and this change does not make it.",
+    "30 LabelSets remain ambiguous between rows that disagree and 17 have no row. Fourteen of the 17 are lowercase containment fragments that were never whole labels, so they are not values of anything and cannot resolve by value.",
+    "`supported_locales` is still four, so the ledger asks coverage questions about four of the ten languages these labels now carry. Widening it is a separate change.",
+    "A derived string is a fact about Apple's .strings, not about what AX publishes. The live harness locates elements by AXDescription and is NOT required to carry derived spellings -- that distinction is now in the alias guard rather than in a comment.",
+    "The row is chosen by what its values are, not by what the control is. `used_for` on each citation is where a person says which control was meant, and nothing mechanical checks that sentence."
+  ],
+  "evidence": [
+    "evidence/2026-09-16-seventy-labels-read-their-own-row.json"
+  ],
+  "supersedes": null
+}

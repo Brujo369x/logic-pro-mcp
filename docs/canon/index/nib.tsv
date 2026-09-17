@@ -3,4 +3,5 @@
 # a digest of bytes inside Logic, and a typed one is a claim about Apple's
 # data that nothing measured.
 qhid	-	ART_03_NameField	nibs	544f0206c819
+qhid	-	ART_03_NameField	nibs#ci	c3600395619e
 qhid	-	PFS_AudioBounce_01	nibs	dbde56905b49

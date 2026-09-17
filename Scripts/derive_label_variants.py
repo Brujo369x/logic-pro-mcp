@@ -81,11 +81,22 @@ def corpus_rows(canon, app=APP):
     have no English for those tables and would reject every row in them for being incomplete.
     """
     rows: dict = {}
-    for extract in (canon.extract_strings, canon.extract_nibstrings):
+    for source, extract in (("strings", canon.extract_strings),
+                            ("nibstrings", canon.extract_nibstrings)):
         for unit, locale, key, field, value in extract(app):
             if field == "value":
                 rows.setdefault((unit, key), {})[locale] = value
+                _SOURCE_OF[(unit, key, locale)] = source
     return rows
+
+
+#: Which source holds a given (unit, key, locale). One ROW can span two of them: Apple compiles the
+#: English of 162 tables into `Base.lproj` nibs and ships the nine translations as `.strings`, so
+#: `GotoPosition.strings 5.title` is `nibstrings` in English and `strings` in every other language.
+#: A `logic-canon://` reference names ONE source, so it has to name the one that holds the locale it
+#: cites -- writing `strings` for all of them left eight references unresolvable, and unresolvable
+#: reads offline as "typed and never checked".
+_SOURCE_OF: dict = {}
 
 
 def by_value(canon, rows):
@@ -132,6 +143,27 @@ def derive(canon, rows, index, members):
     return ("ambiguous", None, None, complete)
 
 
+#: Why a LabelSet with a row may still not be applied automatically.
+SAFE = "safe"                       # the row already holds every string this label carries
+EXTRA_MEMBERS = "extra-members"     # the label carries something the row does not
+
+
+def applicability(canon, rows, row, members):
+    """(verdict, the members the row does not hold).
+
+    Derivation is pure ADDITION when the row already holds every string the label carries: nothing
+    can be lost and no judgement is involved. When it does not, the extra member is either the
+    tolerance `variants` exists for -- a lowercase fragment matched by containment, which is not the
+    value of anything -- or a sign the row is wrong, or a sign the label is compound and no single
+    row can cover it. `pluginOpenOrListControl` matches `open` AND `list`; `nonInsertButtonText`
+    carries 25 members spanning a dozen controls. Telling those three apart is a reading, so this
+    reports them instead of guessing.
+    """
+    held = {canon.normalize(rows[row][locale]) for locale in LOCALES}
+    extra = [member for member in members if canon.normalize(member) not in held]
+    return (SAFE if not extra else EXTRA_MEMBERS), extra
+
+
 def load_labels():
     with open(UI_LABELS, encoding="utf-8") as handle:
         return json.load(handle)["labels"]
@@ -155,7 +187,11 @@ def _report(canon, rows, index, labels, wanted):
             record["namespace"] = namespace
             record["values"] = {locale: rows[row][locale] for locale in LOCALES}
             record["ref"] = canon.citation_for(
-                "strings" if row in rows else "strings", row[0], "en", row[1], "value")
+                _SOURCE_OF.get((row[0], row[1], "en"), "strings"), row[0], "en", row[1], "value")
+            applied, extra = applicability(canon, rows, row, members_of(entry))
+            record["applicability"] = applied
+            if extra:
+                record["members_the_row_does_not_hold"] = extra
         out[name] = record
     return out
 

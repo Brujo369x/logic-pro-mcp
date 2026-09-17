@@ -877,6 +877,17 @@ EXTRACTORS = {
     "nibstrings": extract_nibstrings,
 }
 
+#: The field suffix under which a cited row's CASE-FOLDED digest is pinned beside its exact one.
+#:
+#: The corpus proves exactly -- "does Apple ship this string" is a question about bytes, and folding
+#: case would let `trim` claim to be `Trim`. The PRODUCT matches case-insensitively, in every
+#: `LabelSet.matches` mode. A check that spans both needs to ask the product's question against the
+#: corpus's data, and with only exact digests it cannot: `mixerNamedElement` carries the lowercase
+#: `mixer` this product matches by containment, Apple's row says `Mixer`, and the two are the same
+#: label to everything that runs. One extra digest per cited row, and only for cited rows.
+CASE_INSENSITIVE = "#ci"
+
+
 #: Sources that address the SAME (unit, key) and must be joined before asking whether Apple
 #: translates an English string. `nibstrings` is the English column of `strings` -- Apple compiles
 #: it into `Base.lproj/<table>.nib` instead of shipping `en.lproj/<table>.strings`, and measured on
@@ -1764,18 +1775,21 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
         manifest["sources"] = {}
     cited = scan_repo_citations(repo) if refresh_citations else {}
     by_source: dict[str, dict[tuple[str, str, str, str], str]] = {}
+    folded_by_source: dict[str, dict[tuple[str, str, str, str], str]] = {}
     values_by_locale_by_source: dict[str, dict[str, set]] = {}
 
     for source in sources:
         extractor = EXTRACTORS[source]
         values_by_locale: dict[str, set[str]] = {}
         rows: dict[tuple[str, str, str, str], str] = {}
+        folded_rows: dict[tuple[str, str, str, str], str] = {}
         entries = 0
         for unit, locale, key, field, value in extractor(app):
             entries += 1
             folded = normalize(value)
             values_by_locale.setdefault(locale, set()).add(folded)
             rows[(unit, locale, key, field)] = short_digest(value)
+            folded_rows[(unit, locale, key, field)] = short_digest(normalize(value).casefold())
         if source == "quickhelp" and EXPECTED_LOCALES:
             # BOTH directions. The first version compared only one way, so a Logic that ADDED a
             # locale left the corpus quietly narrower than the application -- and every absence
@@ -1813,9 +1827,14 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                 for locale, count in absence_counts.items()},
         }
         by_source[source] = rows
+        folded_by_source[source] = folded_rows
         values_by_locale_by_source[source] = values_by_locale
 
     if refresh_citations:
+        # Rows a citation in ANOTHER source pins here, because one row can span two sources.
+        # Collected across the whole loop and merged at the end, so a citation naming `strings`
+        # can pin the English that only `nibstrings` has regardless of which is visited first.
+        cross_namespace: dict[str, dict[tuple[str, str, str, str], str]] = {}
         for source in sources:
             wanted: dict[tuple[str, str, str, str], str] = {}
             unresolved = []
@@ -1851,6 +1870,31 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
                     digest = by_source[source].get(sibling)
                     if digest is not None:
                         wanted[sibling] = digest
+                        folded = folded_by_source.get(source, {}).get(sibling)
+                        if folded is not None:
+                            wanted[(unit, sibling_locale, key, field + CASE_INSENSITIVE)] = folded
+                # And across the namespace, because a single row can span two SOURCES. Apple
+                # compiles the English of 162 tables into `Base.lproj` nibs and ships the nine
+                # translations as `.strings`, so `GotoPosition.strings 5.title` is `nibstrings` in
+                # English and `strings` everywhere else. A reference names one source; the row it
+                # names does not stop there, and pinning only the cited source leaves the English
+                # of every base-internationalised table unpinned -- which reads, offline, as a
+                # reference nobody ever resolved.
+                namespace = TRANSLATION_NAMESPACE.get(source, source)
+                for other in sources:
+                    if other == source:
+                        continue
+                    if TRANSLATION_NAMESPACE.get(other, other) != namespace:
+                        continue
+                    for sibling_locale in sorted(values_by_locale_by_source.get(other) or {}):
+                        sibling = (unit, sibling_locale, key, field)
+                        digest = by_source[other].get(sibling)
+                        if digest is not None:
+                            cross_namespace.setdefault(other, {})[sibling] = digest
+                            folded = folded_by_source.get(other, {}).get(sibling)
+                            if folded is not None:
+                                cross_namespace[other][
+                                    (unit, sibling_locale, key, field + CASE_INSENSITIVE)] = folded
             # Keep rows already committed even when nothing cites them this run, so that removing
             # one citation does not silently un-pin a digest another branch is still resting on --
             # but the FRESH digest wins where both have the row. Written the other way round first,
@@ -1882,6 +1926,18 @@ def build(app: str, *, sources: list[str], refresh_citations: bool, repo: str = 
             manifest["sources"][source]["cited_rows"] = len(wanted)
             if unresolved:
                 manifest["sources"][source]["unresolved_citations"] = sorted(set(unresolved))
+
+        # Merged AFTER the loop, so a source that was visited before the citation naming its row
+        # still receives the rows that citation pins. Collected during the loop and written once.
+        for other, rows_to_pin in sorted(cross_namespace.items()):
+            if other not in sources:
+                continue
+            merged = load_index(other)
+            before = len(merged)
+            merged.update(rows_to_pin)
+            if len(merged) != before or any(merged[row] != rows_to_pin[row] for row in rows_to_pin):
+                write_index(other, merged)
+            manifest["sources"][other]["cited_rows"] = len(merged)
 
     # Which English values Apple TRANSLATES, as digests, so a guard can ask offline. CI has no
     # Logic, and "does Apple translate this label" is what decides whether matching it by literal
@@ -2027,6 +2083,20 @@ def verify_index_against_absence() -> list:
             continue
         source = os.path.basename(path)[: -len(".tsv")]
         for (unit, locale, key, field), short in load_index(source).items():
+            if field.endswith(CASE_INSENSITIVE):
+                # A `#ci` row is the CASE-FOLDED digest of the row beside it, and the absence sets
+                # preserve case on purpose -- so it cannot be found there and its absence proves
+                # nothing. The exact row it accompanies IS checked here, and tampering with either
+                # breaks the manifest digest over the whole index file. What this loop protects
+                # against is a row that was never taken from the corpus at all, and a `#ci` row is
+                # written only where its exact twin was.
+                exact = (unit, locale, key, field[: -len(CASE_INSENSITIVE)])
+                if exact not in load_index(source):
+                    problems.append(
+                        f"index/{source}.tsv pins a case-folded digest for {key!r} ({unit}, "
+                        f"{locale}) with no exact row beside it. A folded digest alone is checked "
+                        f"by nothing.")
+                continue
             try:
                 table = load_absence(source, locale)
             except CanonError as exc:
