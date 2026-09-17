@@ -7,7 +7,13 @@
   "en-US",
   "ko-KR",
   "ja-JP",
-  "de-DE"
+  "de-DE",
+  "es-ES",
+  "fr-FR",
+  "it-IT",
+  "pt-BR",
+  "zh-CN",
+  "zh-TW"
  ],
  "coverage_values": [
   "measured",
@@ -71,7 +77,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -101,7 +113,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "assignControlHelpKeyword": {
@@ -113,7 +131,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "audioPluginSlotLabel": {
@@ -151,7 +175,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-mixer-channel_strips-census"
@@ -180,7 +210,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "automationModeLatch": {
@@ -194,7 +230,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "automationModeOff": {
@@ -212,7 +254,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "automationModeRead": {
@@ -226,7 +274,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "automationModeTouch": {
@@ -240,7 +294,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "automationModeTrim": {
@@ -254,7 +314,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "automationModeWrite": {
@@ -268,7 +334,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "barSliderLabel": {
@@ -289,7 +361,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "beatSliderLabel": {
@@ -303,7 +381,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "beatsDisplayModeItem": {
@@ -325,7 +409,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "bounceMenuItem": {
@@ -379,7 +469,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -408,7 +504,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "controlBarGroupLabel": {
@@ -430,7 +532,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "createButton": {
@@ -452,7 +560,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "createMarkerMenuItem": {
@@ -509,7 +623,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -540,7 +660,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "deleteTracksPrimaryButton": {
@@ -556,7 +682,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "displayModePopupLabel": {
@@ -578,7 +710,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "editMenuBar": {
@@ -635,7 +773,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -674,7 +818,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -710,7 +860,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -750,7 +906,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -790,7 +952,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -820,7 +988,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -852,7 +1026,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -890,7 +1070,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -922,7 +1108,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "unmeasured",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -960,7 +1152,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -998,7 +1196,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -1034,7 +1238,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-08-en-US-event-list-column-titles"
@@ -1061,7 +1271,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "eventPositionAsTimeMenuItem": {
@@ -1083,7 +1299,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "exportMenuItem": {
@@ -1139,7 +1361,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1204,7 +1432,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1269,7 +1503,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1314,7 +1554,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "goToPositionMenuItem": {
@@ -1369,7 +1615,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1401,7 +1653,13 @@
     "en-US": "retired",
     "ko-KR": "retired",
     "ja-JP": "retired",
-    "de-DE": "retired"
+    "de-DE": "retired",
+    "es-ES": "retired",
+    "fr-FR": "retired",
+    "it-IT": "retired",
+    "pt-BR": "retired",
+    "zh-CN": "retired",
+    "zh-TW": "retired"
    }
   },
   "hideAllPluginWindowsMenuItem": {
@@ -1456,7 +1714,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1484,7 +1748,13 @@
     "en-US": "derived",
     "ko-KR": "unmeasured",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "importMenuItem": {
@@ -1540,7 +1810,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1580,7 +1856,13 @@
     "en-US": "unmeasured",
     "ko-KR": "measured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "inspectorChannelStripHelpPrefix": {
@@ -1620,7 +1902,13 @@
     "en-US": "unmeasured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "libraryPanelLabel": {
@@ -1641,7 +1929,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "markerContainerKeywords": {
@@ -1661,7 +1955,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "markerEditToggle": {
@@ -1683,7 +1983,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "markerListDeleteMenuItem": {
@@ -1710,7 +2016,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "markerListEditMenuButton": {
@@ -1732,7 +2044,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "markerListNumberOfItemsLabel": {
@@ -1754,7 +2072,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "midiEffectSlotHelpKeyword": {
@@ -1766,7 +2090,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "midiFileMenuItem": {
@@ -1823,7 +2153,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -1853,7 +2189,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "midiImportDeclineTempoButton": {
@@ -1872,7 +2214,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "midiImportPanelTitle": {
@@ -1893,7 +2241,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "midiImportTempoAlertText": {
@@ -1908,7 +2262,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "mixerInspectorContext": {
@@ -1928,7 +2288,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "unmeasured",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "mixerNamedElement": {
@@ -1946,7 +2312,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "moveMenuItem": {
@@ -1982,7 +2354,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "navigateMenuBar": {
@@ -2038,7 +2416,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -2069,7 +2453,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "newExternalMIDITrackMenuItem": {
@@ -2091,7 +2481,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "newProjectMenuItem": {
@@ -2148,7 +2544,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -2179,7 +2581,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "newSoftwareInstrumentTrackMenuItem": {
@@ -2201,7 +2609,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "newTrackSheetDescription": {
@@ -2223,7 +2637,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "nonInsertButtonText": {
@@ -2264,7 +2684,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "oneFilePerTrackPopupValue": {
@@ -2286,7 +2712,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "openMarkerListMenuItem": {
@@ -2342,7 +2774,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -2381,7 +2819,13 @@
     "en-US": "unmeasured",
     "ko-KR": "measured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "playheadPositionFieldLabel": {
@@ -2395,7 +2839,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "playheadPositionGroupLabel": {
@@ -2423,7 +2873,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-transport-census"
@@ -2446,7 +2902,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "pluginAutomationLabelSubstring": {
@@ -2466,7 +2928,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginBypassControl": {
@@ -2497,7 +2965,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "pluginFormatDualMono": {
@@ -2516,7 +2990,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginFormatMono": {
@@ -2533,7 +3013,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginFormatMonoToStereo": {
@@ -2552,7 +3038,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginFormatStereo": {
@@ -2571,7 +3063,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginMenuAudioUnits": {
@@ -2586,7 +3084,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginMenuUtility": {
@@ -2606,7 +3110,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "unmeasured",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginOpenOrListControl": {
@@ -2649,7 +3159,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "pluginWindowControlsViewMenuItem": {
@@ -2663,7 +3179,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "pluginWindowEditorViewMenuItem": {
@@ -2688,7 +3210,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginWindowSmartControlsControl": {
@@ -2700,7 +3228,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "pluginWindowViewSwitcher": {
@@ -2722,7 +3256,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "projectChooserCommitButton": {
@@ -2759,7 +3299,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "projectChooserEmptyProjectLabel": {
@@ -2796,7 +3342,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "projectChooserWindowTitle": {
@@ -2833,7 +3385,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "projectOrSectionMenuItem": {
@@ -2886,7 +3444,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -2911,7 +3475,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "regionHelpKeyword": {
@@ -2926,7 +3496,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "regionKindAudio": {
@@ -2944,7 +3520,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "regionKindDrummer": {
@@ -2960,7 +3542,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "regionKindMidi": {
@@ -2972,7 +3560,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "renameTrackMenuItem": {
@@ -2995,7 +3589,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "saveAsMenuItem": {
@@ -3052,7 +3652,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -3077,7 +3683,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "derived"
    }
   },
   "savePanelFolderRadio": {
@@ -3099,7 +3711,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "savePanelPackageRadio": {
@@ -3121,7 +3739,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "savePanelWindowTitle": {
@@ -3142,7 +3766,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "sendOrIOControlLabel": {
@@ -3160,7 +3790,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "setLocatorsMenuItem": {
@@ -3174,7 +3810,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "settingPopupValue": {
@@ -3190,7 +3832,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "showLibraryMenuItem": {
@@ -3212,7 +3860,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "showMixerMenuItem": {
@@ -3230,7 +3884,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "showStepInputKeyboardMenuItem": {
@@ -3285,7 +3945,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -3331,7 +3997,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "sliderPanHint": {
@@ -3364,7 +4036,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "unmeasured",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "de-DE": "2026-09-12-de-DE-arrange-menus-census"
@@ -3387,7 +4065,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "sliderVolumeHint": {
@@ -3429,7 +4113,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "sliderZoomHint": {
@@ -3443,7 +4133,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "sortTracksByAudioChannelMenuItem": {
@@ -3468,7 +4164,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3492,7 +4194,13 @@
     "en-US": "unmeasured",
     "ko-KR": "measured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3526,7 +4234,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3560,7 +4274,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3593,7 +4313,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "unmeasured",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3617,7 +4343,13 @@
     "en-US": "unmeasured",
     "ko-KR": "measured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3641,7 +4373,13 @@
     "en-US": "unmeasured",
     "ko-KR": "measured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3675,7 +4413,13 @@
     "en-US": "derived",
     "ko-KR": "measured",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "ko-KR": "2026-09-05-ko-KR-arrange-menus-census"
@@ -3705,7 +4449,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "stemExportDismissButton": {
@@ -3725,7 +4475,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "stemExportProgressWindowTitle": {
@@ -3737,7 +4493,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "stepInputKeyboardWindowTitle": {
@@ -3759,7 +4521,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "subdivisionSliderLabel": {
@@ -3780,7 +4548,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "tempoFieldLabel": {
@@ -3795,7 +4569,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "tempoListNumberOfItemsLabel": {
@@ -3817,7 +4597,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "tempoMenuItem": {
@@ -3839,7 +4625,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "de-DE": "2026-09-12-de-DE-arrange-menus-census"
@@ -3867,7 +4659,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "tempoSliderLabel": {
@@ -3887,7 +4685,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "de-DE": "2026-09-12-de-DE-arrange-menus-census"
@@ -3910,7 +4714,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "toPlayheadMenuItem": {
@@ -3947,7 +4757,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackContentExplicit": {
@@ -3987,7 +4803,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackContentGeneric": {
@@ -4005,7 +4827,13 @@
     "en-US": "measured",
     "ko-KR": "derived",
     "ja-JP": "measured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-regions-census",
@@ -4035,7 +4863,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackMenuBar": {
@@ -4091,7 +4925,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -4124,7 +4964,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackRecordButton": {
@@ -4141,7 +4987,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "derived"
    }
   },
   "trackRecordEnableCheckbox": {
@@ -4156,7 +5008,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "derived"
    }
   },
   "trackSoloButton": {
@@ -4174,7 +5032,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackTypeAudio": {
@@ -4192,7 +5056,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackTypeAux": {
@@ -4204,7 +5074,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "trackTypeBus": {
@@ -4221,7 +5097,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "trackTypeDrummer": {
@@ -4233,7 +5115,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "trackTypeExternalMIDI": {
@@ -4247,7 +5135,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "trackTypeGMDevice": {
@@ -4259,7 +5153,13 @@
     "en-US": "unmeasured",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "trackTypeInstrument": {
@@ -4274,7 +5174,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "derived",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "trackTypeMaster": {
@@ -4288,7 +5194,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportAutopunchControl": {
@@ -4303,7 +5215,13 @@
     "en-US": "derived",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "unmeasured",
+    "fr-FR": "derived",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportContainerControlKeywords": {
@@ -4333,7 +5251,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportContainerMetadata": {
@@ -4349,7 +5273,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportCountInControl": {
@@ -4371,7 +5301,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "transportCycleControl": {
@@ -4387,7 +5323,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportKeywordFalseFriends": {
@@ -4411,7 +5353,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportMetronomeControl": {
@@ -4430,7 +5378,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "derived",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportPlayControl": {
@@ -4451,7 +5405,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "transportRecordArmExclusion": {
@@ -4465,7 +5425,13 @@
     "en-US": "unmeasured",
     "ko-KR": "derived",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "transportRecordControl": {
@@ -4487,7 +5453,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "transportSliderHints": {
@@ -4506,7 +5478,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "transportTextFieldHint": {
@@ -4523,7 +5501,13 @@
     "en-US": "derived",
     "ko-KR": "derived",
     "ja-JP": "derived",
-    "de-DE": "derived"
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "undoMenuItemPrefix": {
@@ -4552,7 +5536,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "unmeasured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "unmeasured",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "de-DE": "2026-09-12-de-DE-arrange-menus-census",
@@ -4578,7 +5568,13 @@
     "en-US": "derived",
     "ko-KR": "unmeasured",
     "ja-JP": "unmeasured",
-    "de-DE": "unmeasured"
+    "de-DE": "unmeasured",
+    "es-ES": "unmeasured",
+    "fr-FR": "unmeasured",
+    "it-IT": "unmeasured",
+    "pt-BR": "unmeasured",
+    "zh-CN": "unmeasured",
+    "zh-TW": "unmeasured"
    }
   },
   "viewMenuBar": {
@@ -4635,7 +5631,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
@@ -4701,7 +5703,13 @@
     "en-US": "measured",
     "ko-KR": "measured",
     "ja-JP": "measured",
-    "de-DE": "measured"
+    "de-DE": "measured",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    },
    "coverage_records": {
     "en-US": "2026-09-05-en-US-arrange-menus-census"
