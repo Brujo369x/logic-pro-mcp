@@ -1083,12 +1083,57 @@ enum AXLocalePolicy {
         rationale: "Save As dialog commit button; file existence verifies the result."
     )
 
+    /// The channel configurations a stock plug-in can be inserted as, in the order tried.
+    ///
+    /// These were four INLINE declarations carrying two languages each -- `Stereo`/`스테레오`,
+    /// `Mono`/`모노` and so on. Inline is a shape the projection reads but cannot name, so they
+    /// appeared in the ledger as `inline:Stereo` and could never be pointed at from anywhere.
+    /// Named and derived on 2026-09-18 (#892); the order is unchanged, which is what the
+    /// `leafChoice` single-item rule depends on.
+    ///
+    /// Measured live the same day on a Korean Logic 12.3: the insert menu's format submenu answers
+    /// `스테레오 | 듀얼 모노`, which is the one step of a plug-in insert path that IS localized.
+    /// Every category above it -- `Utility`, `Dynamics`, `EQ`, `Audio Units` -- is English on that
+    /// same Korean Logic.
+    static let pluginFormatStereo = LabelSet(
+        canonical: "Stereo",
+        variants: ["스테레오", "ステレオ", "Estéreo", "Stéréo", "立体声", "立體聲"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Stereo#value"
+    )
+
+    static let pluginFormatMono = LabelSet(
+        canonical: "Mono",
+        variants: ["모노", "モノラル", "单声道", "單聲道"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mono#value"
+    )
+
+    static let pluginFormatMonoToStereo = LabelSet(
+        canonical: "Mono->Stereo",
+        variants: ["모노->스테레오", "モノラル->ステレオ", "Mono->Estéreo", "Mono->Stéréo", "单声道->立体声", "單聲道->立體聲"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mono-%3EStereo#value"
+    )
+
+    static let pluginFormatDualMono = LabelSet(
+        canonical: "Dual Mono",
+        variants: ["듀얼 모노", "デュアルモノ", "Monokanäle", "Mono dual", "双单声道", "雙單聲道"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Dual%20Mono#value"
+    )
+
     static let pluginFormatLeafPriority: [LabelSet] = [
-        LabelSet(canonical: "Stereo", variants: ["스테레오"], rationale: "Plugin format leaf after exact plugin selection."),
-        LabelSet(canonical: "Mono", variants: ["모노"], rationale: "Plugin format leaf after exact plugin selection."),
-        LabelSet(canonical: "Mono->Stereo", variants: ["모노->스테레오"], rationale: "Plugin format leaf after exact plugin selection."),
-        LabelSet(canonical: "Dual Mono", variants: ["듀얼 모노"], rationale: "Plugin format leaf after exact plugin selection."),
+        pluginFormatStereo,
+        pluginFormatMono,
+        pluginFormatMonoToStereo,
+        pluginFormatDualMono,
     ]
+
 
     // MARK: - Read-only locator labels (Phase 2, issue #60)
     //
@@ -1470,24 +1515,31 @@ enum AXLocalePolicy {
     /// (round-1 #7): a whole-string, case-insensitive, DIACRITIC-SENSITIVE match
     /// — use with `.exactStrict`. Read-only locator; the browser is otherwise
     /// selected structurally, and a wrong match only widens/narrows a fallback.
-    /// View > Show Library, the menu item that opens the Library panel.
+    /// View > Show Library — COMPOSED, because Apple does not ship this string.
     ///
-    /// Moved here on 2026-09-16 (#892) from an inline declaration inside
-    /// `AccessibilityChannel+Library.swift`. It matched the same way it does now; what changed is
-    /// that the ledger can SEE it. `docs/locale/ui-labels.json` is generated from this file alone,
-    /// so an inline declaration was invisible to the coverage census, to the variant ratchets and
-    /// to every count of how many languages this product reaches -- while the literals themselves
-    /// were being classified all along, which is how the gap stayed hidden in plain sight.
+    /// `Show Library` is in no corpus in any locale, and neither is `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC} \u{BCF4}\u{AE30}`. Apple ships
+    /// `Show %@` and `Hide %@` as TEMPLATES and Logic assembles the item at runtime. Measured on a
+    /// running Korean Logic 12.3 on 2026-09-18: the View menu answers
+    /// `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC} \u{AC00}\u{B9AC}\u{AE30}` while the panel is open, and composing the template with the
+    /// Library noun reproduces both forms exactly. Regenerate with
     ///
-    /// NOT derived, and the reason is a measurement: `Show Library` and `라이브러리 보기` are
-    /// absent from EVERY corpus in every locale. Apple ships `Show Mixer` with its verb, so the
-    /// verb is not the explanation on its own. Until somebody reads this menu on a running Logic,
-    /// these two spellings are what this product has, and the other eight languages are a counted
-    /// gap rather than an invisible one.
+    ///     Scripts/derive_label_variants.py --compose "Show %@" "Library#acc"
+    ///
+    /// Only the SHOW forms are here. The Hide forms compose just as cleanly and must NOT be in
+    /// this set: `clickLibraryMenuItem` presses whatever it matches, so carrying
+    /// `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC} \u{AC00}\u{B9AC}\u{AE30}` would CLOSE a panel the caller asked to open. The bare
+    /// `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC}` is kept as tolerance: it is the panel's own AXDescription, measured live, and a
+    /// build that dropped the verb would still be matched.
+    ///
+    /// No `derivedFrom`: this is not one row's values, it is two rows multiplied. Nothing offline
+    /// checks it — `Scripts/check-labelsets-are-derived.py` verifies a row, and a composition has
+    /// no row. That gap is #909.
     static let showLibraryMenuItem = LabelSet(
         canonical: "Show Library",
-        variants: ["라이브러리 보기", "라이브러리"],
-        rationale: "Logic exposes View menu items as localized AX titles without stable identifiers."
+        variants: ["라이브러리 보기", "ライブラリを表示", "Bibliothek einblenden", "Mostrar Biblioteca", "Afficher Bibliothèque", "Mostra libreria", "显示资源库", "顯示「資料庫」", "라이브러리"],
+        rationale: "Logic exposes View menu items as localized AX titles without stable "
+            + "identifiers. Composed from Apple's `Show %@` template and the Library noun, which is "
+            + "why it reaches ten languages while the string itself exists in none."
     )
 
     static let libraryPanelLabel = LabelSet(
@@ -2294,6 +2346,10 @@ enum AXLocalePolicy {
         deleteTracksPrimaryButton,
         saveConfirmationButton,
         transportCountInControl,
+        pluginFormatStereo,
+        pluginFormatMono,
+        pluginFormatMonoToStereo,
+        pluginFormatDualMono,
         pluginMenuAudioUnits,
         pluginMenuUtility,
         transportPlayControl,

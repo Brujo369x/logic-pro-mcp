@@ -1,0 +1,193 @@
+{
+  "id": "2026-09-18-the-plugin-menu-is-english-on-a-korean-logic",
+  "date": "2026-09-18",
+  "schema": 3,
+  "subject": "What a running Korean Logic actually shows where this product had hand-written Korean",
+  "question": "The plug-in insert paths and the Library menu item carried Korean literals nobody had checked against a running Logic. What does the application show, and can what it shows be read from Apple's bytes?",
+  "verdict": "works",
+  "issues": [
+    892,
+    904
+  ],
+  "surface": "system.accessibility",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-policy-literals-against-canon.py",
+    "expected": "934 literals: composed_value 15, nibstrings_value 4, nowhere 86, quickhelp_title 170, strings_value 659",
+    "cost": "~40s; reads the app bundle, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+Plugins.swift"
+  ],
+  "method": "Read a Logic that was already running in Korean with a project open -- nothing was launched. Enumerated the menu bar, the View menu, the window's top-level AXGroups, the control bar's LCD, and every AXGroup and AXButton description in the window by count. Pressed ONE empty audio-FX insert slot to read the insert menu and its format submenu, captured the screen, then pressed Escape twice and re-read the menu bar and window list to confirm the application was unwedged. Then searched the corpus for what had just been read.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Show%20%25%40#value",
+      "value": "Show %@",
+      "used_for": "the template Logic composes the Library View-menu item from. `Show Library` is in no corpus in any locale because it is not a string -- it is assembled, and the live menu's `\\ub77c\\uc774\\ube0c\\ub7ec\\ub9ac \\uac00\\ub9ac\\uae30` is this template's sibling with the Library noun in it",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Stereo#value",
+      "value": "Stereo",
+      "used_for": "the one step of a plug-in insert path that IS localized. The live format submenu answers `\\uc2a4\\ud14c\\ub808\\uc624 | \\ub4c0\\uc5bc \\ubaa8\\ub178` while every category above it is English",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Channels/AccessibilityChannel+Plugins.swift"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "menu-bar items read from the running Logic",
+      "count": 12,
+      "values": [
+        "Apple",
+        "Logic Pro",
+        "파일",
+        "편집",
+        "트랙",
+        "탐색",
+        "녹음",
+        "Mix",
+        "보기",
+        "윈도우",
+        "1",
+        "도움말"
+      ]
+    },
+    {
+      "what": "items in the View menu",
+      "count": 22
+    },
+    {
+      "what": "of those, the Library and Inspector toggles, which read 가리기 because both panels are open",
+      "count": 2
+    },
+    {
+      "what": "plug-in insert menu entries read from the open menu",
+      "count": 24
+    },
+    {
+      "what": "of those, entries that are NOT English on this Korean Logic",
+      "count": 1,
+      "values": [
+        "최근 사용"
+      ]
+    },
+    {
+      "what": "entries in the format submenu, which IS localized",
+      "count": 2,
+      "values": [
+        "스테레오",
+        "듀얼 모노"
+      ]
+    },
+    {
+      "what": "empty audio-FX insert slots, as AXButton descriptions",
+      "count": 58,
+      "values": [
+        "오디오 플러그인"
+      ]
+    },
+    {
+      "what": "empty MIDI-FX slots",
+      "count": 18,
+      "values": [
+        "MIDI 플러그인"
+      ]
+    },
+    {
+      "what": "occupied plug-in slots, as AXGroups named by the plug-in, all English",
+      "count": 30,
+      "values": [
+        "Compressor",
+        "Channel EQ",
+        "ChromaVerb",
+        "Drum Machine Designer"
+      ]
+    },
+    {
+      "what": "top-level AXGroup descriptions the derived LabelSets predicted exactly",
+      "count": 3,
+      "values": [
+        "컨트롤 막대",
+        "인스펙터",
+        "라이브러리"
+      ]
+    },
+    {
+      "what": "rows in the bundle carrying a single `%@` placeholder in all ten locales",
+      "count": 500
+    },
+    {
+      "what": "of those, rows whose value is bare `%@` and so would explain any string",
+      "count": 8
+    },
+    {
+      "what": "templates a classification now rests on, committed to docs/canon/TEMPLATES.json",
+      "count": 4,
+      "values": [
+        "Show %@",
+        "%@ contents",
+        "%@ header",
+        "on Track %@"
+      ]
+    },
+    {
+      "what": "literals POLICY-LITERALS classified as `nowhere` before this change",
+      "count": 98
+    },
+    {
+      "what": "after, once composition was a bucket",
+      "count": 86
+    },
+    {
+      "what": "literals now classified `composed_value`",
+      "count": 15
+    },
+    {
+      "what": "insert menu paths per stock plug-in, before",
+      "count": 4
+    },
+    {
+      "what": "after, generated from one English base and the format LabelSet",
+      "count": 7
+    },
+    {
+      "what": "CJK literals outside AXLocalePolicy.swift, before this branch",
+      "count": 60
+    },
+    {
+      "what": "after",
+      "count": 26
+    },
+    {
+      "what": "LabelSets naming a row",
+      "count": 97
+    }
+  ],
+  "conclusion": "The plug-in insert menu on a KOREAN Logic answers `Channel EQ | Gain | Compressor | ... | Dynamics | EQ | ... | Utility | Audio Units` -- every category in English, with `최근 사용` the only exception. The occupied slots are AXGroups named `Compressor` and `Channel EQ`, also English. So the four hand-written paths this product carried, half of them built around `유틸리티` and `다이내믹스`, could never have matched: those words are not in that menu. What IS localized is the format submenu, which answers `스테레오 | 듀얼 모노` -- one step, one LabelSet, and the combinatorial explosion that seemed to block ten languages was never there. It also explains why `Utility` is in no corpus: it is plug-in metadata, not Logic's interface text.\\n\\nThe Library menu item is a different shape entirely. `Show Library` is in no corpus in any locale, and neither is the Korean -- because Apple ships `Show %@` and `Hide %@` as TEMPLATES and Logic assembles the item. The live menu reads `라이브러리 가리기`, which the Hide template with the Library noun reproduces exactly, and the Traditional Chinese composes to `顯示「資料庫」` with corner brackets no hand-typed list would have. Only the Show forms belong in the LabelSet: this call site presses what it matches, so carrying the Hide form would CLOSE a panel the caller asked to open.\\n\\nComposition turned out to be a classifier gap rather than a one-off. Teaching `check-policy-literals-against-canon.py` to reverse-compose a literal against Apple's templates moved `nowhere` from 98 to 86 and explained twelve literals nobody had been able to place -- including `Spuren Titel` and `Spuren enthält`, German track labels this repository had measured live and could not cite.",
+  "limits": [
+    "One locale. Everything here was read from a Korean Logic; that the German insert menu is also English is an inference from the same plug-in metadata being locale-free, not a reading.",
+    "The composition check accepts a literal when SOME committed template explains it with a noun the corpus holds in that locale. A 32-bit collision in the absence set can only make an absent noun look present, so the direction it can be wrong in is accepting a composition that is not real -- which leaves a literal explained by the wrong template rather than refusing a true one.",
+    "`docs/canon/TEMPLATES.json` holds only the templates an answer rests on. Logic ships 500 single-placeholder templates and all ten locales of each is 278 KB, which is the size this repository already refuses for the row index.",
+    "The insert menu was opened once, on one empty slot, and closed with Escape. Whether every strip offers the same categories was not checked.",
+    "`showLibraryMenuItem` has no `derivedFrom`: it is two rows multiplied, and `check-labelsets-are-derived.py` verifies one row. Nothing offline checks the composition itself."
+  ],
+  "evidence": [
+    "evidence/2026-09-18-the-plugin-menu-is-english-on-a-korean-logic.json"
+  ],
+  "supersedes": null
+}

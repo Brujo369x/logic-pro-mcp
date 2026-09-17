@@ -229,7 +229,12 @@ struct PluginInsertLeafConfigurationTests {
     /// an arbitrary configuration — is caught here rather than live.
     @Test("every configured spec ends its paths in a channel configuration")
     func everySpecEndsInAConfiguration() throws {
-        let configurations: Set<String> = ["Stereo", "스테레오", "Mono", "모노", "Dual Mono"]
+        // Was a hand-written set of five. It covered two languages, so a path whose leaf was any
+        // of the other eight would have failed this case rather than passing it -- the guard would
+        // have refused the fix. The set is the LabelSet now, which is the same thing the paths are
+        // built from, so this asserts the SHAPE (a path ends in a configuration) rather than
+        // re-stating a vocabulary that has somewhere else to live.
+        let configurations = Set(AXLocalePolicy.pluginFormatStereo.labels)
         for name in ["Gain", "Compressor", "Channel EQ"] {
             let spec = try #require(AccessibilityChannel.pluginInsertSpec(named: name))
             #expect(!spec.menuPaths.isEmpty, "\(name)")

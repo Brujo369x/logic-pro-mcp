@@ -92,12 +92,29 @@ def _apple_ships(entry: dict, locale: str) -> bool:
         return False
     code = _locale_code(locale)
     strings = [entry.get("canonical")] + list(entry.get("variants") or [])
+    # A string Logic COMPOSES is Apple's too. `Show %@` with a noun means `Afficher Bibliothèque`
+    # is in no corpus and is exactly what a French Logic's View menu says, so asking the absence
+    # sets alone answers `unmeasured` for a label that reaches ten languages.
+    # `check-policy-literals-against-canon.py` decides this and commits the answer; this reads that
+    # decision rather than re-deriving it, because two readers of one fact drift.
+    if "composed" not in _CANON_CACHE:
+        try:
+            with open(os.path.join(REPO, "docs", "canon", "POLICY-LITERALS.json"),
+                      encoding="utf-8") as handle:
+                literals = json.load(handle).get("literals") or {}
+            _CANON_CACHE["composed"] = {text for text, where in literals.items()
+                                        if where == "composed_value"}
+        except (OSError, ValueError):
+            _CANON_CACHE["composed"] = set()
+    composed = _CANON_CACHE["composed"]
     for source, block in (_CANON_CACHE["manifest"].get("sources") or {}).items():
         if code not in (block.get("locales") or []):
             continue
         for text in strings:
             if not text:
                 continue
+            if text in composed:
+                return True
             try:
                 if not canon.is_absent(source, code, text):
                     return True

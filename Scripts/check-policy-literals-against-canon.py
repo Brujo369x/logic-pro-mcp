@@ -231,6 +231,61 @@ def all_canonicals() -> set:
     return out
 
 
+#: Templates whose composition explains a literal, and the only Apple strings this file commits
+#: in full. Written by `--reclassify`, read by the offline check, and deliberately NOT the whole
+#: template table: Logic ships 500 single-placeholder templates and committing all ten locales of
+#: each is 278 KB of artefact nobody would read. This holds the ones a classification RESTS on,
+#: which is the same rule `docs/canon/index/` follows for rows.
+TEMPLATES = os.path.join(REPO, "docs", "canon", "TEMPLATES.json")
+
+#: A template contributes nothing if it is bare. Logic ships 8 rows whose value in some locale is
+#: exactly `%@`, and reverse-composing against one of those would explain EVERY string as composed.
+MIN_TEMPLATE_TEXT = 2
+
+
+def _template_rows(app, canon):
+    """Every row that is a single-placeholder template in every locale it carries."""
+    out = {}
+    for unit, locale, key, field, value in canon.extract_strings(app):
+        if field != "value" or "%@" not in value or value.count("%@") != 1:
+            continue
+        out.setdefault((unit, key), {})[locale] = value
+    return out
+
+
+def _decompose(literal, template_value):
+    """The noun a literal would have to carry to BE this template, or None.
+
+    `Afficher Bibliothèque` against `Afficher %@` yields `Bibliothèque`. A template with fewer than
+    `MIN_TEMPLATE_TEXT` characters of its own explains nothing and is refused here rather than
+    producing an explanation that fits everything.
+    """
+    prefix, suffix = template_value.split("%@", 1)
+    if len(prefix) + len(suffix) < MIN_TEMPLATE_TEXT:
+        return None
+    if not literal.startswith(prefix) or not literal.endswith(suffix):
+        return None
+    middle = literal[len(prefix):len(literal) - len(suffix)] if suffix else literal[len(prefix):]
+    return middle or None
+
+
+def _composed_by(literal, templates, values_by_locale, canon):
+    """(unit, key, locale) of a template that explains this literal, or None.
+
+    Logic BUILDS some labels rather than shipping them: `Show %@` with a noun. `Show Library` is in
+    no corpus in any locale and the View menu says it, which is not a contradiction once the
+    composition is visible. Answering `nowhere` for such a string is the classifier being unable to
+    ask the right question, not Apple failing to ship it.
+    """
+    folded = canon.normalize(literal)
+    for (unit, key), per_locale in templates.items():
+        for locale, template_value in per_locale.items():
+            noun = _decompose(folded, canon.normalize(template_value))
+            if noun and noun in values_by_locale.get(locale, ()):
+                return (unit, key, locale)
+    return None
+
+
 def classify(app: str, literals: set) -> dict:
     """Where each literal is answered. Needs Logic; the committed map is what CI reads.
 
@@ -259,10 +314,32 @@ def classify(app: str, literals: set) -> dict:
     # English was sent to prove the uncitable. Four of this repo's own literals were in that state.
     nib_values = {canon.normalize(value)
                   for _u, _l, _k, _f, value in canon.extract_nibstrings(app)}
-    return {literal: ("quickhelp_title" if literal in titles
-                      else "strings_value" if literal in values
-                      else "nibstrings_value" if literal in nib_values else "nowhere")
-            for literal in sorted(literals)}
+    # Per-locale value sets, for the composition check below. A noun has to be a value in the SAME
+    # locale as the template that would carry it; `Bibliothek` explains a German label and nothing
+    # about a French one.
+    values_by_locale = {}
+    for _unit, locale, _key, field, value in canon.extract_strings(app):
+        if field == "value":
+            values_by_locale.setdefault(locale, set()).add(canon.normalize(value))
+    templates = _template_rows(app, canon)
+
+    out, used = {}, {}
+    for literal in sorted(literals):
+        if literal in titles:
+            out[literal] = "quickhelp_title"
+        elif literal in values:
+            out[literal] = "strings_value"
+        elif literal in nib_values:
+            out[literal] = "nibstrings_value"
+        else:
+            hit = _composed_by(literal, templates, values_by_locale, canon)
+            if hit:
+                out[literal] = "composed_value"
+                used[(hit[0], hit[1])] = templates[(hit[0], hit[1])]
+            else:
+                out[literal] = "nowhere"
+    classify.templates_used = used
+    return out
 
 
 def verify_buckets_offline(committed: dict) -> list:
@@ -303,7 +380,41 @@ def verify_buckets_offline(committed: dict) -> list:
         elif where == "nibstrings_value" and "nibstrings" not in present:
             problems.append(f"{literal!r} is classified `nibstrings_value` and no Base.lproj nib "
                             f"holds it. The classification is false.")
+        elif where == "composed_value" and not _composed_offline(literal):
+            problems.append(
+                f"{literal!r} is classified `composed_value` and no committed template composes "
+                f"it from a string Apple ships. The classification is false.")
     return problems
+
+
+def _composed_offline(literal: str) -> bool:
+    """Re-derive a `composed_value` classification with no Logic, from the committed templates.
+
+    The noun is checked against the ABSENCE sets rather than against a value list, because that is
+    what CI has. A 32-bit collision can only make an absent noun look present, so the direction
+    this can be wrong in is accepting a composition that is not real -- which leaves the literal
+    unexplained rather than refusing a true one, and the tree still has to name where it came from.
+    """
+    try:
+        with open(TEMPLATES, encoding="utf-8") as handle:
+            templates = json.load(handle).get("templates") or {}
+    except (OSError, ValueError):
+        return False
+    folded = canon.normalize(literal)
+    for entry in templates.values():
+        unit = entry.get("unit") or ""
+        for locale, template_value in (entry.get("values") or {}).items():
+            noun = _decompose(folded, canon.normalize(template_value))
+            if not noun:
+                continue
+            for source in ("strings", "nibstrings"):
+                try:
+                    if not canon.is_absent(source, locale, noun):
+                        return True
+                except canon.CanonError:
+                    continue
+    del unit
+    return False
 
 
 def near_miss_canonicals(manifest: dict) -> list:
@@ -416,6 +527,18 @@ def reclassify() -> int:
         print("--reclassify needs Logic installed", file=sys.stderr)
         return 2
     mapping = classify(APP, all_policy_literals())
+    used = getattr(classify, "templates_used", {}) or {}
+    with open(TEMPLATES, "w", encoding="utf-8") as handle:
+        json.dump({"note": "Apple's `%@` templates that a `composed_value` classification rests "
+                           "on, written by --reclassify. Logic BUILDS some labels rather than "
+                           "shipping them -- `Show %@` with a noun -- so a string can be absent "
+                           "from every corpus and still be what the menu says. Only the templates "
+                           "an answer depends on are here; the bundle carries 500 of them and all "
+                           "ten locales of each is 278 KB nobody would read.",
+                   "templates": {key: {"unit": unit, "values": values}
+                                 for (unit, key), values in sorted(used.items())}},
+                  handle, ensure_ascii=False, indent=2, sort_keys=True)
+        handle.write("\n")
     with open(CLASSIFICATION, "w", encoding="utf-8") as handle:
         json.dump({"note": "Where each string a LabelSet matches Logic with is answered. Written "
                            "by Scripts/check-policy-literals-against-canon.py --reclassify on a "
