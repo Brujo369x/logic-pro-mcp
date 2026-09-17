@@ -1533,7 +1533,7 @@ enum AXLocalePolicy {
     ///
     /// No `derivedFrom`: this is not one row's values, it is two rows multiplied. Nothing offline
     /// checks it — `Scripts/check-labelsets-are-derived.py` verifies a row, and a composition has
-    /// no row. That gap is #909.
+    /// no row. That gap is #910.
     static let showLibraryMenuItem = LabelSet(
         canonical: "Show Library",
         variants: ["라이브러리 보기", "ライブラリを表示", "Bibliothek einblenden", "Mostrar Biblioteca", "Afficher Bibliothèque", "Mostra libreria", "显示资源库", "顯示「資料庫」", "라이브러리"],
