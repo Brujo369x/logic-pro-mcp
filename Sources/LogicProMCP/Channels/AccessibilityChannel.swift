@@ -569,12 +569,12 @@ actor AccessibilityChannel: Channel {
             // sub-option in the dialog that follows.
             //
             // The Logic 11 fallback that used to sit under this one was removed on 2026-09-16
-            // (#907). It tried `New Drummer Track` and a Korean spelling of it, which is two of
+            // in #907. It tried `New Drummer Track` and a Korean spelling of it, which is two of
             // the ten languages Logic ships, and neither string is in ANY locale of the pinned
             // 12.3 corpus -- Apple stopped shipping them when the item was renamed. So it was a
             // guess about an application this repository cannot read, cite or test, in two
             // languages, and widening it to ten was impossible for the same reason. Restoring it
-            // needs a reading taken on a running Logic 11, which is what #907 asks for.
+            // needs a reading taken on a running Logic 11, which is what #908 asks for.
             return await AccessibilityChannel.createTrackViaMenu(
                 item: AXLocalePolicy.newSessionPlayerTrackMenuItem,
                 expectedTrackType: .drummer,
@@ -629,7 +629,8 @@ actor AccessibilityChannel: Channel {
             // v3.1.8), an `AXRuler` scan of the arrange window, and an `AXGroup` keyword match.
             // Apple took markers out of the arrange subtree in 12.2, so the last two answered
             // empty on every build this repository pins, and an empty answer here is read as
-            // "no markers" rather than "not found". Removed 2026-09-16, #907.
+            // "no markers" rather than "not found". Removed 2026-09-16 in #907; whether Logic 11 is
+            // supported at all is #908.
             return runtime.markers()
         case "nav.open_marker_list":
             return await runtime.openMarkerList()
