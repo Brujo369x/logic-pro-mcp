@@ -50,7 +50,15 @@ import Testing
     #expect(workflow.contains("git diff --exit-code Package.resolved"))
     let build = try #require(workflow.range(of: "name: Build"))
     let lockfileGate = try #require(workflow.range(of: "git diff --exit-code Package.resolved"))
-    let coverage = try #require(workflow.range(of: "name: Coverage report"))
+    // The step was `Coverage report` until 2026-09-18, when running the tests and deciding on the
+    // numbers became two steps and the decision moved to `Scripts/ci-coverage-gate.sh`. Searching
+    // for the old name failed this case loudly, which is right -- a step this test orders against
+    // must be a step that exists. The claim is unchanged: the lockfile gate runs after the build
+    // and before anything measures coverage.
+    let coverage = try #require(workflow.range(of: "name: Run the tests and collect coverage"))
+    let coverageGate = try #require(workflow.range(of: "name: Coverage gate"))
     #expect(build.lowerBound < lockfileGate.lowerBound)
     #expect(lockfileGate.lowerBound < coverage.lowerBound)
+    #expect(coverage.lowerBound < coverageGate.lowerBound,
+            "the tests must run before the gate reads the profile they produced")
 }
