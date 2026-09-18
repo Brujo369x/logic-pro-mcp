@@ -1263,6 +1263,69 @@ enum AXLocalePolicy {
         rationale: "Identifies Logic 12.3's Playhead Position AXGroup before resolving its bar/beat component sliders."
     )
 
+    /// Logic's region AXDescription, as the TEMPLATE Apple ships rather than as four regexes.
+    ///
+    /// `parseRegionBars` carried one hand-written pattern per language and had four of the ten:
+    /// Korean, English, Japanese, German. Each was added the day somebody hit its absence -- the
+    /// Japanese one on 2026-09-06, when recognising a region and failing to read its bars returned
+    /// `startBar: -1, endBar: -1` for the only region in the campaign project.
+    ///
+    /// They are not four sentences. They are one row, and the row has ten values:
+    ///
+    ///     en  Region starts at %@ and ends at %@
+    ///     ko  리전은 %@에서 시작하여 %@에서 끝납니다.
+    ///     ja  リージョンの開始位置は%@、終了位置は%@です
+    ///     de  Region beginnt bei %@ und endet bei %@
+    ///
+    /// `%@` expands to a number AND a unit -- `128 bars`, `1 마디 `, `2 小節 `, and in German a
+    /// unit INFLECTED by the number (`1 Takt ` beside `2 Takte `). So a pattern built from this
+    /// template anchors on the literal text around the placeholders and lets the unit fall inside
+    /// `.*?`, which is exactly what the four hand-written patterns each worked out separately.
+    ///
+    /// Verified before the change, against the four sentences this product has actually seen: all
+    /// four parse, the three tolerances the English pattern carried (a doubled space, lowercase,
+    /// no unit at all) survive, and the `Chord group starts at %@ and ends at %@` sentence -- a
+    /// near-twin with its own row -- is refused by all ten patterns.
+    static let regionBarsSentence = LabelSet(
+        canonical: "Region starts at %@ and ends at %@",
+        variants: ["리전은 %@에서 시작하여 %@에서 끝납니다.", "リージョンの開始位置は%@、終了位置は%@です", "Region beginnt bei %@ und endet bei %@", "El pasaje comienza en %@ y termina en %@", "La région commence à %@ et se termine à %@", "Inizio regione: %@; fine regione: %@", "A região começa em %@ e termina em %@", "片段开始于 %@，结束于 %@", "區段起始於 %@，並結束於 %@"],
+        rationale: "The sentence Logic renders as a region's AXDescription, in every locale it ships. `AXLocalePolicy.regionBarsPatterns()` turns each into the regex that reads the two bar numbers out of it; the four hand-written patterns this replaces covered four languages. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Region%20starts%20at%20%25%40%20and%20ends%20at%20%25%40#value"
+    )
+
+    /// One regex per locale, built from `regionBarsSentence`.
+    ///
+    /// The transform: split the template on `%@`, escape each literal chunk, let every run of
+    /// whitespace inside a chunk match one-or-more, and put `\s*(\d+)` where each placeholder was
+    /// with a lazy `.*?` between them for the unit. The whitespace rule is what keeps the English
+    /// tolerance the hand-written pattern had; on Korean, Japanese and Chinese it is inert.
+    ///
+    /// A template without exactly two placeholders yields nothing rather than a half-pattern, and
+    /// `Issue778RegionBarsLocaleTests` asserts the count comes back equal to the number of labels
+    /// -- silence here would otherwise be a language quietly dropping out.
+    static func regionBarsPatterns() -> [String] {
+        regionBarsSentence.labels.compactMap { template in
+            let parts = template.components(separatedBy: "%@")
+            guard parts.count == 3 else { return nil }
+            func chunk(_ literal: String) -> String {
+                literal.split(whereSeparator: { $0.isWhitespace })
+                    .map { NSRegularExpression.escapedPattern(for: String($0)) }
+                    .joined(separator: "\\s+")
+            }
+            // `(?:[^\\d\\s]+\\s+)?` is the unit BEFORE the number. Logic writes it on both sides of
+            // the placeholder -- `Region starts at 1 bar` and `Region starts at bar 1` are both
+            // strings this product has had to read -- and the hand-written English pattern carried
+            // an optional `bar ` prefix for exactly that. Deriving the pattern without it narrowed
+            // English, and CI caught it: `testAccessibilityChannelAXBackedRegionReadAcceptsPlural
+            // TracksContentsLabel` reads `at bar 1` and went to (-1, -1).
+            //
+            // One token, anchored immediately after the literal, so it cannot run off into the
+            // rest of the sentence.
+            let number = "\\s*(?:[^\\d\\s]+\\s+)?(\\d+)"
+            return "(?i)" + chunk(parts[0]) + number + ".*?" + chunk(parts[1]) + number
+        }
+    }
+
     // --- Cycle-locator text fields (read-only, `.contains` on AXDescription) ---
     //
     // `setCycle`'s AX path scans the transport bar for two text fields whose descriptions name
@@ -2497,6 +2560,7 @@ enum AXLocalePolicy {
         cycleRangeLabel,
         cycleRangeStart,
         cycleRangeEnd,
+        regionBarsSentence,
         pluginWindowSmartControlsControl,
         pluginAutomationLabelExact,
         pluginAutomationLabelSubstring,
