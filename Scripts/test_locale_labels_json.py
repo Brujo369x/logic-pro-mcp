@@ -1167,6 +1167,51 @@ def main():
     proc = subprocess.run([sys.executable, str(HERE / "check-locale-labels-json.py")], capture_output=True, text=True)
     case("repository is clean", proc.returncode == 0, proc.stdout.strip()[:200])
 
+    # The ledger speaks BCP-47 and the corpus is keyed by Logic's `.lproj`. Seven of the ten agree
+    # by accident; Chinese does not. Splitting on the hyphen gives `zh`, which is not a corpus
+    # Logic has, and `is_absent` REFUSES an absence claim over one nobody built -- a refusal
+    # `_apple_ships` used to swallow with a bare `except` and read as "Apple ships nothing". Every
+    # Chinese label answered unmeasured, and widening `supported_locales` to ten would have written
+    # 334 gaps that are not there.
+    case("zh-CN maps to the lproj Logic ships", labels._locale_code("zh-CN") == "zh_CN",
+         f"got {labels._locale_code('zh-CN')!r}")
+    case("zh-TW maps to the lproj Logic ships", labels._locale_code("zh-TW") == "zh_TW",
+         f"got {labels._locale_code('zh-TW')!r}")
+    case("the script subtags map the same way",
+         (labels._locale_code("zh-Hans"), labels._locale_code("zh-Hant")) == ("zh_CN", "zh_TW"),
+         "zh-Hans/zh-Hant did not map to the Chinese lproj names")
+    case("every other locale is still its language subtag",
+         all(labels._locale_code(i) == e for i, e in
+             (("en-US", "en"), ("ko-KR", "ko"), ("ja-JP", "ja"), ("de-DE", "de"),
+              ("es-ES", "es"), ("fr-FR", "fr"), ("it-IT", "it"), ("pt-BR", "pt"))),
+         "a non-Chinese identifier stopped being its language subtag")
+    _chinese = {"canonical": "File", "variants": ["\u6587\u4ef6", "\u6a94\u6848"]}
+    case("a label whose Chinese Apple ships reads as derived, not unmeasured",
+         labels._apple_ships(_chinese, "zh-CN") and labels._apple_ships(_chinese, "zh-TW"),
+         "Chinese read as unmeasured for a string Apple ships")
+    # `xx-XX` answers False either way, so asserting that proves nothing about the handler. The
+    # property is narrower: a MISSING CORPUS is tolerated and a programming error is not. A bare
+    # `except` cannot tell those apart, which is how a mistyped locale code came to read as "Apple
+    # ships nothing" instead of stopping.
+    labels._apple_ships(_chinese, "zh-CN")          # prime the module cache
+    _canon = labels._CANON_CACHE.get("canon")
+    if _canon is None:
+        case("the canon module loads so the handler can be driven", False, "no canon module")
+    else:
+        _real = _canon.is_absent
+        def _boom(*_args, **_kwargs):
+            raise TypeError("not a corpus problem")
+        _canon.is_absent = _boom
+        try:
+            labels._apple_ships(_chinese, "zh-CN")
+            swallowed = True
+        except TypeError:
+            swallowed = False
+        finally:
+            _canon.is_absent = _real
+        case("a programming error is not read as Apple shipping nothing", not swallowed,
+             "a bare except swallowed a TypeError and answered False")
+
     if failures:
         for f in failures:
             print(f"FAIL {f}")

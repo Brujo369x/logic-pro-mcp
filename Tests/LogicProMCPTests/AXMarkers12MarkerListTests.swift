@@ -390,9 +390,16 @@ func enumerateMarkers_childValueSurvivesAbsentDescription() async {
 }
 
 @Test
-func enumerateMarkers_listWindow_closed_fallsThroughToRulerStrategy() async {
-    // No marker list window — only arrange window with the legacy AXRuler
-    // ruler (Logic 11.x compat). The fallback strategy should still find it.
+func enumerateMarkers_listWindowClosed_answersEmptyRatherThanReadingTheArrangeRuler() async {
+    // This case used to assert the opposite: that with no Marker List window open, the enumeration
+    // fell through to an `AXRuler` inside the arrange area and returned its static texts. That
+    // path was removed in #907 because Logic 12.2 took markers out of the arrange-window subtree,
+    // so on every build this repository pins it found nothing -- and "found nothing" arrives at
+    // the caller as "this project has no markers", which is a different claim.
+    //
+    // The fixture is kept EXACTLY as it was, ruler and all, so this is a real negative control: a
+    // tree the old strategy answered `2` for must now answer `0`. Deleting the ruler would have
+    // made the case pass for the wrong reason.
     let builder = FakeAXRuntimeBuilder()
     let app = builder.element(7200)
     let arrange = builder.element(7201)
@@ -418,12 +425,7 @@ func enumerateMarkers_listWindow_closed_fallsThroughToRulerStrategy() async {
 
     let runtime = builder.makeLogicRuntime(appElement: app)
     let markers = AXLogicProElements.enumerateMarkers(in: arrange, runtime: runtime)
-    #expect(markers.count == 2)
-    #expect(markers[0].name == "Section A")
-    #expect(markers[1].name == "Section B")
-    // ruler walker 의 fixture 는 position 속성을 노출하지 않음 → caller fallback.
-    #expect(markers[0].positionSource == .fallback)
-    #expect(markers[1].positionSource == .fallback)
+    #expect(markers.isEmpty, "the arrange-window ruler fallback was removed in #907")
 }
 
 // v3.1.11 (Issue #9): parameterized 매트릭스로 통합. 기존 _validInputs / _invalidInputs는

@@ -227,8 +227,18 @@ import Testing
 
 /// WS3 AC3 — the track-type LabelSet migration (round-1 #6, 오디오/악기 hoisted
 /// into AXLocalePolicy) must preserve DIACRITIC sensitivity: a plain "Audio"
-/// header classifies as `.audio`, but an accented-Latin "áudio" header must NOT
+/// header classifies as `.audio`, but an accented-Latin header that is nobody's label must NOT
 /// (folding accents would widen matching in non-EN/KO locales, the #60 hazard).
+///
+/// The fixture was `áudio` until 2026-09-18, when it stopped being a negative control: extending
+/// `trackTypeAudio` to the ten locales Logic ships added Apple's Portuguese `Áudio`, so the
+/// classifier answered `.audio` and was RIGHT to. A diacritic variant that some locale actually
+/// ships tests widening in the direction where widening is correct.
+///
+/// So the rule for choosing this string, since this is the second fixture on this branch to turn
+/// into a real label: it must accent-strip to the English word AND be the value of no LabelSet.
+/// `àudio` (grave) was checked against all 954 strings in `docs/locale/ui-labels.json` and is in
+/// none of them.
 @Test func testExtractTrackStateTrackTypeClassificationIsDiacriticSensitive() {
     let builder = FakeAXRuntimeBuilder()
 
@@ -246,7 +256,7 @@ import Testing
     }
 
     let plain = strip(1, signal: "Audio Channel Strip")
-    let accented = strip(2, signal: "áudio Channel Strip")
+    let accented = strip(2, signal: "àudio Channel Strip")
     let runtime = builder.makeAXRuntime()
 
     #expect(AXValueExtractors.extractTrackState(from: plain, index: 0, runtime: runtime).type == .audio)

@@ -110,6 +110,49 @@ struct AppleScriptMenuResolutionGeneratorTests {
 
 @Suite("#519 Navigate menu-drive sites route through AXLocalePolicy")
 struct Issue519NavigateMenuDriveSiteTests {
+    @Test("buttonWithDescription matches a button by description, not by name")
+    func buttonWithDescriptionUsesTheRightSpecifier() {
+        let script = AppleScriptMenuResolution.buttonWithDescription(
+            AXLocalePolicy.markerListEditMenuButton,
+            of: "markerGroup",
+            variableName: "editButton",
+            notFoundError: "MARKER_EDIT_BUTTON_NOT_FOUND"
+        )
+        // The whole point. `exists button candidate of markerGroup` is a BY-NAME reference, and
+        // measured on a running Logic 12.3 on 2026-09-18, 412 of 439 buttons report `name` as
+        // `missing value` -- a Logic toolbar button's label is its AXDescription. Asked of one
+        // container both ways for the same button: by name false, by description true.
+        #expect(script.contains("first button of markerGroup whose description is candidate"))
+        #expect(!script.contains("exists button candidate"))
+
+        // `whose description is` RAISES -1719 when nothing matches, so a locale that does not
+        // match must not abort the script.
+        #expect(script.contains("try"))
+        #expect(script.contains("end try"))
+
+        // Every label reachable, and a refusal when none is.
+        for label in AXLocalePolicy.markerListEditMenuButton.labels {
+            #expect(script.contains("\"\(label)\""), "missing \(label)")
+        }
+        #expect(script.contains("if editButton is missing value then error \"MARKER_EDIT_BUTTON_NOT_FOUND\""))
+    }
+
+    @Test("buttonWithDescription escapes a quote or backslash inside its candidate list")
+    func buttonWithDescriptionEscapesSafely() {
+        let hostile = AXLocalePolicy.LabelSet(
+            canonical: "plain",
+            variants: ["has \"quote\"", "has \\ backslash"],
+            rationale: "test fixture"
+        )
+        let script = AppleScriptMenuResolution.buttonWithDescription(
+            hostile, of: "someGroup", variableName: "b", notFoundError: "NOPE"
+        )
+        for label in hostile.labels {
+            #expect(script.contains(AppleScriptSafety.escapeForScript(label)))
+        }
+        #expect(!script.contains("{\"has \"quote\""))
+    }
+
     @Test("Open Marker List script resolves the Navigate bar/item from LabelSets and keeps the Escape-on-error path")
     func markerOpenListScript() {
         let script = AccessibilityChannel.markerMenuActuationScript(.openList)

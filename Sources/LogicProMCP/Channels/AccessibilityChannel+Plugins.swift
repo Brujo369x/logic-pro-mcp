@@ -4,6 +4,24 @@ import Foundation
 
 /// Plugin insert surface (plugin.insert): name to spec resolution and live AX/CGEvent insert via the target slot popup menu.
 extension AccessibilityChannel {
+    /// Every stock insert path, as the categories Logic actually shows plus one localized leaf.
+    ///
+    /// The category and plug-in steps are ENGLISH and stay English. Read off a running Korean
+    /// Logic 12.3 on 2026-09-18, the insert menu answers `Channel EQ | Gain | Compressor | ... |
+    /// Dynamics | EQ | ... | Utility | Audio Units` -- every one of them in English, with only
+    /// `최근 사용` localized. So the `["유틸리티", "Gain", "스테레오"]` paths this function used to
+    /// carry could never match: `유틸리티` is not in that menu. What IS localized is the format
+    /// submenu, which answers `스테레오 | 듀얼 모노`, and that is the only step a LabelSet is
+    /// needed for.
+    ///
+    /// Four hand-written paths covered two languages and would have needed 2^n for ten. These
+    /// cover all ten with one base each, and the leaf comes from Apple's own row.
+    private static func insertPaths(_ bases: [[String]]) -> [[String]] {
+        bases.flatMap { base in
+            AXLocalePolicy.pluginFormatStereo.labels.map { base + [$0] }
+        }
+    }
+
     static func pluginInsertSpec(named rawName: String) -> PluginInsertSpec? {
         let normalized = rawName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch normalized {
@@ -11,34 +29,19 @@ extension AccessibilityChannel {
             return PluginInsertSpec(
                 canonicalName: "Gain",
                 aliases: ["Gain"],
-                menuPaths: [
-                    ["Utility", "Gain", "스테레오"],
-                    ["Utility", "Gain", "Stereo"],
-                    ["유틸리티", "Gain", "스테레오"],
-                    ["유틸리티", "Gain", "Stereo"],
-                ]
+                menuPaths: insertPaths([["Utility", "Gain"]])
             )
         case "compressor":
             return PluginInsertSpec(
                 canonicalName: "Compressor",
                 aliases: ["Compressor"],
-                menuPaths: [
-                    ["Dynamics", "Compressor", "스테레오"],
-                    ["Dynamics", "Compressor", "Stereo"],
-                    ["다이내믹스", "Compressor", "스테레오"],
-                    ["다이내믹스", "Compressor", "Stereo"],
-                ]
+                menuPaths: insertPaths([["Dynamics", "Compressor"]])
             )
         case "channel eq", "channeleq":
             return PluginInsertSpec(
                 canonicalName: "Channel EQ",
                 aliases: ["Channel EQ"],
-                menuPaths: [
-                    ["Channel EQ", "스테레오"],
-                    ["Channel EQ", "Stereo"],
-                    ["EQ", "Channel EQ", "스테레오"],
-                    ["EQ", "Channel EQ", "Stereo"],
-                ]
+                menuPaths: insertPaths([["Channel EQ"], ["EQ", "Channel EQ"]])
             )
         default:
             return nil

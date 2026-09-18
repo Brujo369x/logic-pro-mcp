@@ -223,5 +223,43 @@ class Ratchet(unittest.TestCase):
         self.assertIn("outlived its reason", result.stderr)
 
 
+class ComposedLiteralsAreNotNowhere(unittest.TestCase):
+    """Logic BUILDS some labels. Answering `nowhere` for one is the classifier unable to ask.
+
+    `Show Library` is in no corpus in any locale, and a running Korean Logic's View menu says the
+    Korean form of it. Apple ships `Show %@` and the Library noun; the label is assembled. These
+    cases drive the reverse-composition that closed that gap, and the one that matters most is the
+    LAST: a template with no text of its own would explain every string ever written.
+    """
+
+    def test_a_template_decomposes_a_literal_it_explains(self):
+        self.assertEqual(guard._decompose("Afficher Bibliothèque", "Afficher %@"), "Bibliothèque")
+
+    def test_a_literal_the_template_does_not_fit_is_refused(self):
+        self.assertIsNone(guard._decompose("Masquer Bibliothèque", "Afficher %@"))
+
+    def test_a_suffix_template_decomposes_from_the_other_end(self):
+        self.assertEqual(guard._decompose("라이브러리 보기", "%@ 보기"), "라이브러리")
+
+    def test_a_bare_placeholder_explains_nothing(self):
+        """Logic ships 8 rows whose value is exactly `%@`; one of those would fit any string."""
+        self.assertIsNone(guard._decompose("anything at all", "%@"))
+
+    def test_a_template_with_one_character_of_its_own_explains_nothing(self):
+        self.assertIsNone(guard._decompose("xLibrary", "x%@"))
+
+    def test_an_empty_noun_is_not_a_composition(self):
+        self.assertIsNone(guard._decompose("Show ", "Show %@"))
+
+    def test_the_committed_classification_agrees_with_the_offline_check(self):
+        """Every `composed_value` in the tree must be re-derivable from the committed templates."""
+        with open(guard.CLASSIFICATION, encoding="utf-8") as handle:
+            committed = json.load(handle)["literals"]
+        composed = [text for text, where in committed.items() if where == "composed_value"]
+        self.assertTrue(composed, "no literal is classified composed, so this case checks nothing")
+        unexplained = [text for text in composed if not guard._composed_offline(text)]
+        self.assertEqual(unexplained, [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -840,6 +840,118 @@ enum AXLocalePolicy {
     )
 
     /// The Marker List toolbar's own Edit menu button, not the application menu bar.
+    /// The marker-list Edit TOGGLE, whose AXDescription is the whole phrase rather than the verb.
+    ///
+    /// Added 2026-09-16 (#892). `markerTextAreaToggle` compared against `edit marker` and
+    /// `마커 편집` inline -- two of the ten languages Logic ships, so the toggle was unfindable in
+    /// the other eight and the rename path had no way to say why. Every string here is a value
+    /// Apple ships at the row named below; nothing was translated by hand.
+    /// Track > New Software Instrument Track — the software-instrument leaf.
+    ///
+    /// Added 2026-09-16 (#892). `createTrackViaMenu` took `(korean:, english:)` and tried the
+    /// Korean spelling first, so track creation worked in exactly two of the ten languages Logic
+    /// ships and reported `Cannot find menu item` in the other eight. That is the report in #883.
+    /// Every string here is a value Apple ships at the row below; the German carries a non-breaking
+    /// space and the Traditional Chinese a U+22EF midline ellipsis, neither of which survives being
+    /// typed.
+    static let newSoftwareInstrumentTrackMenuItem = LabelSet(
+        canonical: "New Software Instrument Track",
+        variants: ["새로운 소프트웨어 악기 트랙", "新規ソフトウェア音源トラック", "Neue Spur für Software-Instrument", "Nueva pista de instrumento de software", "Nouvelle piste d’instrument logiciel", "Nuova traccia di strumento software", "Nova Pista de Instrumento de Software", "新建软件乐器轨道", "新增軟體樂器音軌"],
+        rationale: "Track menu leaf for this track type, derived from the row Apple keys it under "
+            + "so every language Logic ships is covered. Checked offline by "
+            + "Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/New%20Software%20Instrument%20Track#value"
+    )
+
+    /// Track > New Audio Track — the audio leaf.
+    ///
+    /// Added 2026-09-16 (#892). `createTrackViaMenu` took `(korean:, english:)` and tried the
+    /// Korean spelling first, so track creation worked in exactly two of the ten languages Logic
+    /// ships and reported `Cannot find menu item` in the other eight. That is the report in #883.
+    /// Every string here is a value Apple ships at the row below; the German carries a non-breaking
+    /// space and the Traditional Chinese a U+22EF midline ellipsis, neither of which survives being
+    /// typed.
+    static let newAudioTrackMenuItem = LabelSet(
+        canonical: "New Audio Track",
+        variants: ["새로운 오디오 트랙", "新規オーディオトラック", "Neue Audiospur", "Nueva pista de audio", "Nouvelle piste audio", "Nuova traccia audio", "Nova Pista de Áudio", "新音频轨道", "新增音訊音軌"],
+        rationale: "Track menu leaf for this track type, derived from the row Apple keys it under "
+            + "so every language Logic ships is covered. Checked offline by "
+            + "Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/New%20Audio%20Track#value"
+    )
+
+    /// Track > New Session Player SI Track… — the Session Player / Drummer leaf.
+    ///
+    /// Added 2026-09-16 (#892). `createTrackViaMenu` took `(korean:, english:)` and tried the
+    /// Korean spelling first, so track creation worked in exactly two of the ten languages Logic
+    /// ships and reported `Cannot find menu item` in the other eight. That is the report in #883.
+    /// Every string here is a value Apple ships at the row below; the German carries a non-breaking
+    /// space and the Traditional Chinese a U+22EF midline ellipsis, neither of which survives being
+    /// typed.
+    static let newSessionPlayerTrackMenuItem = LabelSet(
+        canonical: "New Session Player SI Track…",
+        variants: ["새로운 Session Player SI 트랙…", "新規Session Playerソフトウェア音源トラック…", "Neue Session Player SI-Spur …", "Nueva pista SI de Session Player…", "Nouvelle piste SI Session Player…", "Nuova traccia SI Session Player…", "Nova Pista de IS de Session Player…", "新建伴奏乐手 SI 轨道…", "新增 Session Player SI 音軌⋯"],
+        rationale: "Track menu leaf for this track type, derived from the row Apple keys it under "
+            + "so every language Logic ships is covered. Checked offline by "
+            + "Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/New%20Session%20Player%20SI%20Track%E2%80%A6#value"
+    )
+
+    /// Track > New External MIDI Track — the external MIDI leaf.
+    ///
+    /// Added 2026-09-16 (#892). `createTrackViaMenu` took `(korean:, english:)` and tried the
+    /// Korean spelling first, so track creation worked in exactly two of the ten languages Logic
+    /// ships and reported `Cannot find menu item` in the other eight. That is the report in #883.
+    /// Every string here is a value Apple ships at the row below; the German carries a non-breaking
+    /// space and the Traditional Chinese a U+22EF midline ellipsis, neither of which survives being
+    /// typed.
+    static let newExternalMIDITrackMenuItem = LabelSet(
+        canonical: "New External MIDI Track",
+        variants: ["새로운 외부 MIDI 트랙", "新規外部MIDIトラック", "Neue externe MIDI-Spur", "Nueva pista MIDI externa", "Nouvelle piste MIDI externe", "Nuova traccia MIDI esterno", "Nova Pista de MIDI Externa", "新外部 MIDI 轨道", "新增外部 MIDI 音軌"],
+        rationale: "Track menu leaf for this track type, derived from the row Apple keys it under "
+            + "so every language Logic ships is covered. Checked offline by "
+            + "Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/New%20External%20MIDI%20Track#value"
+    )
+
+    /// Track > Rename Track, in every language Logic ships.
+    ///
+    /// Added 2026-09-16 (#892). The call site carried a three-element literal array -- English and
+    /// two Korean spellings -- so the operation reached two of ten languages. `이름 변경` was
+    /// carried beside the full phrase as a shorter Korean spelling; it is not one of this row's
+    /// values and has been kept.
+    static let renameTrackMenuItem = LabelSet(
+        canonical: "Rename Track",
+        variants: ["트랙 이름 변경", "トラック名を変更", "Spur umbenennen", "Renombrar pista", "Renommer la piste", "Rinomina traccia", "Renomear Pista", "给轨道重新命名", "重新命名音軌", "이름 변경"],
+        rationale: "Track-menu leaf, derived from the row Apple keys it under so every language "
+            + "Logic ships is covered. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Rename%20Track#value"
+    )
+
+    /// Track > Delete Track, in every language Logic ships.
+    ///
+    /// Added 2026-09-16 (#892). The call site carried a three-element literal array -- English,
+    /// Korean and in one case Japanese -- so the operation reached three of ten languages. EXACT matching stays load-bearing: the same menu carries Delete Unused Tracks, whose
+    /// Japanese ENDS WITH this one's, so containment would reach a different destructive command.
+    static let deleteTrackMenuItem = LabelSet(
+        canonical: "Delete Track",
+        variants: ["트랙 삭제", "トラックを削除", "Spur löschen", "Eliminar pista", "Supprimer la piste", "Elimina traccia", "Apagar Pista", "删除轨道", "刪除音軌"],
+        rationale: "Track-menu leaf, derived from the row Apple keys it under so every language "
+            + "Logic ships is covered. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Delete%20Track#value"
+    )
+
+    static let markerEditToggle = LabelSet(
+        canonical: "Edit Marker",
+        variants: ["마커 편집", "マーカーを編集", "Marker bearbeiten", "edición de marcador",
+                   "Modifier le marqueur", "Modifica marcatore", "Editar Marcador",
+                   "编辑标记", "剪輯標記"],
+        rationale: "The marker-list text-area toggle, read by AXDescription. Derived on 2026-09-16 "
+            + "from the row Apple keys this control under, so every language Logic ships is "
+            + "covered. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Edit%20Marker%23und#value"
+    )
+
     static let markerListEditMenuButton = LabelSet(
         canonical: "Edit",
         variants: ["編集", "편집", "Bearbeiten", "Edición", "Édition", "Modifica", "Editar", "编辑", "編輯"],
@@ -971,12 +1083,57 @@ enum AXLocalePolicy {
         rationale: "Save As dialog commit button; file existence verifies the result."
     )
 
+    /// The channel configurations a stock plug-in can be inserted as, in the order tried.
+    ///
+    /// These were four INLINE declarations carrying two languages each -- `Stereo`/`스테레오`,
+    /// `Mono`/`모노` and so on. Inline is a shape the projection reads but cannot name, so they
+    /// appeared in the ledger as `inline:Stereo` and could never be pointed at from anywhere.
+    /// Named and derived on 2026-09-18 (#892); the order is unchanged, which is what the
+    /// `leafChoice` single-item rule depends on.
+    ///
+    /// Measured live the same day on a Korean Logic 12.3: the insert menu's format submenu answers
+    /// `스테레오 | 듀얼 모노`, which is the one step of a plug-in insert path that IS localized.
+    /// Every category above it -- `Utility`, `Dynamics`, `EQ`, `Audio Units` -- is English on that
+    /// same Korean Logic.
+    static let pluginFormatStereo = LabelSet(
+        canonical: "Stereo",
+        variants: ["스테레오", "ステレオ", "Estéreo", "Stéréo", "立体声", "立體聲"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Stereo#value"
+    )
+
+    static let pluginFormatMono = LabelSet(
+        canonical: "Mono",
+        variants: ["모노", "モノラル", "单声道", "單聲道"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mono#value"
+    )
+
+    static let pluginFormatMonoToStereo = LabelSet(
+        canonical: "Mono->Stereo",
+        variants: ["모노->스테레오", "モノラル->ステレオ", "Mono->Estéreo", "Mono->Stéréo", "单声道->立体声", "單聲道->立體聲"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Mono-%3EStereo#value"
+    )
+
+    static let pluginFormatDualMono = LabelSet(
+        canonical: "Dual Mono",
+        variants: ["듀얼 모노", "デュアルモノ", "Monokanäle", "Mono dual", "双单声道", "雙單聲道"],
+        rationale: "Plugin format leaf after exact plugin selection. Derived from the row Apple "
+            + "keys it under so every language Logic ships is covered.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Dual%20Mono#value"
+    )
+
     static let pluginFormatLeafPriority: [LabelSet] = [
-        LabelSet(canonical: "Stereo", variants: ["스테레오"], rationale: "Plugin format leaf after exact plugin selection."),
-        LabelSet(canonical: "Mono", variants: ["모노"], rationale: "Plugin format leaf after exact plugin selection."),
-        LabelSet(canonical: "Mono->Stereo", variants: ["모노->스테레오"], rationale: "Plugin format leaf after exact plugin selection."),
-        LabelSet(canonical: "Dual Mono", variants: ["듀얼 모노"], rationale: "Plugin format leaf after exact plugin selection."),
+        pluginFormatStereo,
+        pluginFormatMono,
+        pluginFormatMonoToStereo,
+        pluginFormatDualMono,
     ]
+
 
     // MARK: - Read-only locator labels (Phase 2, issue #60)
     //
@@ -1045,8 +1202,10 @@ enum AXLocalePolicy {
     /// a `||` chain.
     static let pluginMenuUtility = LabelSet(
         canonical: "Utility",
-        variants: ["유틸리티"],
+        variants: ["유틸리티", "ユーティリティ", "UTILIDADES", "UTILITAIRE", "UTILITÁRIO", "实用工具", "實用"],
         rationale: "Absent from every canonical corpus, so measured rather than derived. Korean read off a live plug-in menu; the remaining locales are unmeasured. Carried as a LabelSet so the gap is countable instead of living in a hard-coded `||`."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAMixer.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/UTILITY#value"
     )
 
     static let transportCountInControl = LabelSet(
@@ -1108,8 +1267,10 @@ enum AXLocalePolicy {
 
     static let controlBarGroupLabel = LabelSet(
         canonical: "control bar",
-        variants: ["컨트롤 막대", "コントロールバー", "Steuerungsleiste"],
+        variants: ["컨트롤 막대", "コントロールバー", "Steuerungsleiste", "Barra de controles", "Barre des commandes", "Barra di controllo", "Barra de Controle", "控制条", "控制列"],
         rationale: "Identifies the control-bar AXGroup by description; read-only locator. German read 2026-09-12 off the de-DE navigation-free census (#876): two AXGroups carry `Steuerungsleiste` as their AXDescription, the same count as the en-US `Control Bar` rows."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Control%20Bar%23acc#value"
     )
 
     static let barSliderLabel = LabelSet(
@@ -1144,8 +1305,10 @@ enum AXLocalePolicy {
     /// four position components. Read-only locator plus the item title a caller would pick.
     static let displayModePopupLabel = LabelSet(
         canonical: "display mode",
-        variants: ["표시 모드"],
+        variants: ["표시 모드", "表示モード", "Anzeigemodus", "Modo de visualización", "Mode d’affichage", "Modalità di visualizzazione", "Modo de visualização", "显示模式", "顯示模式"],
         rationale: "Identifies the control bar's display-mode AXPopUpButton by description. Read live 2026-09-14 on a Korean Logic 12.3; it is the control that decides how many position components the Playhead Position group exposes."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Display%20Mode#value"
     )
 
     static let beatsDisplayModeItem = LabelSet(
@@ -1169,8 +1332,10 @@ enum AXLocalePolicy {
     /// (NOT `bpm`). Kept distinct from `tempoSliderLabel` to preserve behavior.
     static let tempoSliderContainsLabel = LabelSet(
         canonical: "tempo",
-        variants: ["템포"],
+        variants: ["템포", "テンポ", "Ritmo", "Andamento", "速度", "拍速"],
         rationale: "Identifies the tempo slider in TransportState extraction; substring match without bpm; read-only."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#mti` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Tempo%23mti#value"
     )
 
     /// #109: arrange Horizontal-Zoom slider (writable AXValue). EN canonical +
@@ -1262,6 +1427,8 @@ enum AXLocalePolicy {
         canonical: "latch",
         variants: ["래치"],
         rationale: "Classifies the track-header automation mode as Latch; read-only classifier."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAllTracksToWriteMode.strings/en/31.title#value"
     )
     static let automationModeRead = LabelSet(
         canonical: "read",
@@ -1294,8 +1461,10 @@ enum AXLocalePolicy {
     /// Marker ruler keyword fallback (oldest locator path).
     static let markerContainerKeywords = LabelSet(
         canonical: "marker",
-        variants: ["마커"],
+        variants: ["마커", "マーカー", "Marcador", "Marqueur", "Marcatore", "标记", "標記"],
         rationale: "Last-resort marker-ruler container classifier; read-only keyword scan."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `StrTabBtnLabel` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/StrTabBtnLabel%7C%7C%7CMarker#value"
     )
 
     /// Title-suffix patterns for the Logic Marker List window across the
@@ -1346,10 +1515,39 @@ enum AXLocalePolicy {
     /// (round-1 #7): a whole-string, case-insensitive, DIACRITIC-SENSITIVE match
     /// — use with `.exactStrict`. Read-only locator; the browser is otherwise
     /// selected structurally, and a wrong match only widens/narrows a fallback.
+    /// View > Show Library — COMPOSED, because Apple does not ship this string.
+    ///
+    /// `Show Library` is in no corpus in any locale, and neither is `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC} \u{BCF4}\u{AE30}`. Apple ships
+    /// `Show %@` and `Hide %@` as TEMPLATES and Logic assembles the item at runtime. Measured on a
+    /// running Korean Logic 12.3 on 2026-09-18: the View menu answers
+    /// `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC} \u{AC00}\u{B9AC}\u{AE30}` while the panel is open, and composing the template with the
+    /// Library noun reproduces both forms exactly. Regenerate with
+    ///
+    ///     Scripts/derive_label_variants.py --compose "Show %@" "Library#acc"
+    ///
+    /// Only the SHOW forms are here. The Hide forms compose just as cleanly and must NOT be in
+    /// this set: `clickLibraryMenuItem` presses whatever it matches, so carrying
+    /// `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC} \u{AC00}\u{B9AC}\u{AE30}` would CLOSE a panel the caller asked to open. The bare
+    /// `\u{B77C}\u{C774}\u{BE0C}\u{B7EC}\u{B9AC}` is kept as tolerance: it is the panel's own AXDescription, measured live, and a
+    /// build that dropped the verb would still be matched.
+    ///
+    /// No `derivedFrom`: this is not one row's values, it is two rows multiplied. Nothing offline
+    /// checks it — `Scripts/check-labelsets-are-derived.py` verifies a row, and a composition has
+    /// no row. That gap is #910.
+    static let showLibraryMenuItem = LabelSet(
+        canonical: "Show Library",
+        variants: ["라이브러리 보기", "ライブラリを表示", "Bibliothek einblenden", "Mostrar Biblioteca", "Afficher Bibliothèque", "Mostra libreria", "显示资源库", "顯示「資料庫」", "라이브러리"],
+        rationale: "Logic exposes View menu items as localized AX titles without stable "
+            + "identifiers. Composed from Apple's `Show %@` template and the Library noun, which is "
+            + "why it reaches ten languages while the string itself exists in none."
+    )
+
     static let libraryPanelLabel = LabelSet(
         canonical: "library",
-        variants: ["라이브러리"],
+        variants: ["라이브러리", "ライブラリ", "Bibliothek", "Biblioteca", "Bibliothèque", "libreria", "资源库", "資料庫"],
         rationale: "Identifies the Library panel/browser by whole-string description; read-only locator (structural fallback exists)."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `#acc` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Library%23acc#value"
     )
 
     /// Control-bar / transport container metadata tokens (id/title/desc scan).
@@ -1588,8 +1786,10 @@ enum AXLocalePolicy {
     )
     static let trackTypeAudio = LabelSet(
         canonical: "audio",
-        variants: ["오디오"],
+        variants: ["오디오", "オーディオ", "Áudio", "音频", "音訊"],
         rationale: "Classifies an audio track by header aggregate; read-only classifier."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAdvancedSearch.strings/en/34.title#value"
     )
     static let trackTypeInstrument = LabelSet(
         canonical: "instrument",
@@ -1658,8 +1858,10 @@ enum AXLocalePolicy {
     /// `이벤트`, `마커`, `템포`, `조표 및 박자표`.
     static let eventListTab = LabelSet(
         canonical: "event",
-        variants: ["이벤트", "イベント"],
+        variants: ["이벤트", "イベント", "Evento", "Évènement", "事件"],
         rationale: "Identifies the Event tab of the List Editors pane; the collector presses it."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control, keyed `StrTabBtnLabel` in Apple's own namespace; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/StrTabBtnLabel%7C%7C%7CEvent#value"
     )
 
     /// Choose-Project picker window title markers.
@@ -1717,8 +1919,10 @@ enum AXLocalePolicy {
     )
     static let regionKindAudio = LabelSet(
         canonical: "audio",
-        variants: ["오디오"],
+        variants: ["오디오", "オーディオ", "Áudio", "音频", "音訊"],
         rationale: "Classifies a region as audio content; read-only."
+            + " Extended on 2026-09-16 to every locale Logic ships by reading the row Apple keys this control; the strings this label already carried are each one of that row's own values, so nothing measured was dropped and nothing was typed. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://nibstrings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FAdvancedSearch.strings/en/34.title#value"
     )
 
     /// Region detection by AXHelp keyword.
@@ -2119,6 +2323,14 @@ enum AXLocalePolicy {
         goToPositionMenuItem,
         openMarkerListMenuItem,
         createMarkerMenuItem,
+        newSoftwareInstrumentTrackMenuItem,
+        newAudioTrackMenuItem,
+        newSessionPlayerTrackMenuItem,
+        newExternalMIDITrackMenuItem,
+        renameTrackMenuItem,
+        renameTrackMenuItem,
+        deleteTrackMenuItem,
+        markerEditToggle,
         markerListEditMenuButton,
         markerListNumberOfItemsLabel,
         markerListDeleteMenuItem,
@@ -2134,6 +2346,10 @@ enum AXLocalePolicy {
         deleteTracksPrimaryButton,
         saveConfirmationButton,
         transportCountInControl,
+        pluginFormatStereo,
+        pluginFormatMono,
+        pluginFormatMonoToStereo,
+        pluginFormatDualMono,
         pluginMenuAudioUnits,
         pluginMenuUtility,
         transportPlayControl,
@@ -2169,6 +2385,7 @@ enum AXLocalePolicy {
         automationModeOff,
         settingPopupValue,
         markerContainerKeywords,
+        showLibraryMenuItem,
         libraryPanelLabel,
         transportContainerMetadata,
         transportContainerControlKeywords,

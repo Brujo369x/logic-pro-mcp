@@ -215,15 +215,12 @@
       "regionKindDrummer→드러머",
       "regionKindDrummer→세션 플레이어",
       "setLocatorsMenuItem→로케이터 설정…",
-      "trackContentExplicit→Spuren enthält",
       "trackContentExplicit→track content",
       "trackContentExplicit→track contents",
       "trackContentExplicit→tracks content",
       "trackContentGeneric→content",
       "trackContentGeneric→contents",
-      "trackHeadersDescription→Spuren Titel",
       "trackHeadersDescription→track header",
-      "trackHeadersDescription→tracks header",
       "trackHeadersDescription→tracks headers",
       "trackRecordButton→Rec",
       "trackRecordButton→레코드 활성화",
@@ -263,13 +260,10 @@
         "automationModeWrite",
         "beatSliderLabel",
         "deleteTracksPrimaryButton",
-        "displayModePopupLabel",
         "eventListTab",
         "horizontalZoomSlider",
-        "inline:Dual Mono",
         "inputSlotHelpKeyword",
         "inspectorChannelStripHelpPrefix",
-        "libraryPanelLabel",
         "markerContainerKeywords",
         "midiEffectSlotHelpKeyword",
         "midiImportTempoAlertText",
@@ -297,9 +291,7 @@
         "sortTracksByTrackNameMenuItem",
         "tempoSliderContainsLabel",
         "tickSliderLabel",
-        "trackContentExplicit",
         "trackContentGeneric",
-        "trackHeadersDescription",
         "trackRecordEnableCheckbox",
         "trackTypeAudio",
         "trackTypeAux",
@@ -351,7 +343,6 @@
         "sortTracksByOutputChannelMenuItem",
         "sortTracksByTrackNameMenuItem",
         "tempoSliderContainsLabel",
-        "trackHeadersDescription",
         "trackTypeAudio",
         "trackTypeAux",
         "trackTypeDrummer",
@@ -368,25 +359,16 @@
         "automationModeTouch",
         "automationModeTrim",
         "automationModeWrite",
-        "displayModePopupLabel",
         "eventListColumnName",
         "eventListColumnPosition",
-        "inline:Dual Mono",
-        "inline:Mono",
-        "inline:Mono->Stereo",
-        "inline:Stereo",
         "inputSlotHelpKeyword",
-        "libraryPanelLabel",
-        "markerContainerKeywords",
         "midiEffectSlotHelpKeyword",
         "midiImportTempoAlertText",
         "outputSlotHelpKeyword",
         "playheadPositionFieldLabel",
         "pluginAutomationLabelExact",
-        "pluginMenuUtility",
         "pluginWindowSmartControlsControl",
         "projectPickerWindow",
-        "regionKindAudio",
         "regionKindDrummer",
         "regionKindMidi",
         "setLocatorsMenuItem",
@@ -397,11 +379,8 @@
         "sortTracksByCreationDateMenuItem",
         "sortTracksByOutputChannelMenuItem",
         "sortTracksByTrackNameMenuItem",
-        "tempoSliderContainsLabel",
-        "trackHeadersDescription",
         "trackRecordButton",
         "trackRecordEnableCheckbox",
-        "trackTypeAudio",
         "trackTypeAux",
         "trackTypeDrummer",
         "trackTypeExternalMIDI",
@@ -423,7 +402,6 @@
         "regionKindDrummer",
         "regionKindMidi",
         "setLocatorsMenuItem",
-        "trackContentExplicit",
         "trackTypeAux",
         "trackTypeDrummer",
         "trackTypeExternalMIDI",
@@ -434,29 +412,7 @@
     }
   },
   "note": "What the ledger does not know, as SETS of identities. A member may leave; a new member fails CI. Sets rather than counts because a count is defeated by a swap — add one undocumented variant, document a different one, and the total is unchanged while the ledger knows strictly less about a new string. The guard also compares against the MERGE BASE, so raising the file in the same commit as the regression does not help. Raising requires a dated reason under `raised`. ADR-019 D8. Live: observations-status.py --unproven",
-  "raised": {
-    "unmeasured_coverage.de-DE": {
-      "date": "2026-09-16",
-      "members": [
-        "pluginMenuUtility"
-      ],
-      "reason": "#892: the plug-in menu's Utility category is absent from every canonical corpus -- no .strings table and no QuickHelp key holds it -- so it cannot be derived and has to be measured. The Korean was read off a live menu; the other locales are unmeasured, and that is now COUNTABLE. Before this change the same gap sat inside a hard-coded two-language check in AccessibilityChannel+Plugins.swift, where no ledger could see it. Moving it into a LabelSet is what made the ceiling rise, and the rise is the gap becoming visible rather than a new gap appearing."
-    },
-    "unmeasured_coverage.en-US": {
-      "date": "2026-09-16",
-      "members": [
-        "pluginMenuUtility"
-      ],
-      "reason": "#892: the plug-in menu's Utility category is absent from every canonical corpus -- no .strings table and no QuickHelp key holds it -- so it cannot be derived and has to be measured. The Korean was read off a live menu; the other locales are unmeasured, and that is now COUNTABLE. Before this change the same gap sat inside a hard-coded two-language check in AccessibilityChannel+Plugins.swift, where no ledger could see it. Moving it into a LabelSet is what made the ceiling rise, and the rise is the gap becoming visible rather than a new gap appearing."
-    },
-    "unmeasured_coverage.ja-JP": {
-      "date": "2026-09-16",
-      "members": [
-        "pluginMenuUtility"
-      ],
-      "reason": "#892: the plug-in menu's Utility category is absent from every canonical corpus -- no .strings table and no QuickHelp key holds it -- so it cannot be derived and has to be measured. The Korean was read off a live menu; the other locales are unmeasured, and that is now COUNTABLE. Before this change the same gap sat inside a hard-coded two-language check in AccessibilityChannel+Plugins.swift, where no ledger could see it. Moving it into a LabelSet is what made the ceiling rise, and the rise is the gap becoming visible rather than a new gap appearing."
-    }
-  },
+  "raised": {},
   "schema": 2,
   "seeded": "2026-09-05"
 }

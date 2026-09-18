@@ -63,7 +63,10 @@ struct Issue60LocalePhase4Tests {
             ("trackContentGeneric", AXLocalePolicy.trackContentGeneric.labels, ["콘텐츠", "content", "contents"]),
             ("regionKindDrummer", AXLocalePolicy.regionKindDrummer.labels, ["drummer", "session player", "드러머", "세션 플레이어"]),
             ("regionKindMidi", AXLocalePolicy.regionKindMidi.labels, ["midi"]),
-            ("regionKindAudio", AXLocalePolicy.regionKindAudio.labels, ["audio", "오디오"]),
+            // Extended 2026-09-16 (#892) from the row this LabelSet names in `derivedFrom`.
+            // German, Spanish, French and Italian keep the English word, so ten locales yield six
+            // distinct strings -- the set is what the product can match, not one entry per language.
+            ("regionKindAudio", AXLocalePolicy.regionKindAudio.labels, ["audio", "오디오", "オーディオ", "Áudio", "音频", "音訊"]),
             // `リージョン` added 2026-09-06, measured from the ja-JP arrange-regions census. Not
             // drift: without it `AccessibilityChannel+Regions.swift:244` classified every Japanese
             // region as NOT a region, so `get_regions` returned an empty enumeration with no error

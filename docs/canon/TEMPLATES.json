@@ -1,0 +1,65 @@
+{
+  "note": "Apple's `%@` templates that a `composed_value` classification rests on, written by --reclassify. Logic BUILDS some labels rather than shipping them -- `Show %@` with a noun -- so a string can be absent from every corpus and still be what the menu says. Only the templates an answer depends on are here; the bundle carries 500 of them and all ten locales of each is 278 KB nobody would read.",
+  "templates": {
+    "%@ contents": {
+      "unit": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Localizable.strings",
+      "values": {
+        "de": "%@ enthält",
+        "en": "%@ contents",
+        "es": "Contenido de %@",
+        "fr": "%@ contenus",
+        "it": "Contenuto di %@",
+        "ja": "%@コンテンツ",
+        "ko": "%@ 콘텐츠",
+        "pt": "Conteúdos de %@",
+        "zh_CN": "“%@”内容",
+        "zh_TW": "%@ 內容"
+      }
+    },
+    "%@ header": {
+      "unit": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Localizable.strings",
+      "values": {
+        "de": "%@ Titel",
+        "en": "%@ header",
+        "es": "Cabecera de %@",
+        "fr": "En-tête %@",
+        "it": "Intestazione di %@",
+        "ja": "%@ヘッダ",
+        "ko": "%@ 헤더",
+        "pt": "Cabeçalho de %@",
+        "zh_CN": "%@ 标头",
+        "zh_TW": "%@ 標題"
+      }
+    },
+    "Show %@": {
+      "unit": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Localizable.strings",
+      "values": {
+        "de": "%@ einblenden",
+        "en": "Show %@",
+        "es": "Mostrar %@",
+        "fr": "Afficher %@",
+        "it": "Mostra %@",
+        "ja": "%@を表示",
+        "ko": "%@ 보기",
+        "pt": "Mostrar %@",
+        "zh_CN": "显示%@",
+        "zh_TW": "顯示「%@」"
+      }
+    },
+    "on Track %@": {
+      "unit": "Contents/Frameworks/Logic.framework/Versions/A/Resources/Localizable.strings",
+      "values": {
+        "de": "auf Spur %@",
+        "en": "on Track %@",
+        "es": "en la pista %@",
+        "fr": "sur la piste %@",
+        "it": "sulla traccia %@",
+        "ja": "トラック%@",
+        "ko": "트랙: %@",
+        "pt": "na pista %@",
+        "zh_CN": "在轨道“%@”上",
+        "zh_TW": "在音軌「%@」上"
+      }
+    }
+  }
+}

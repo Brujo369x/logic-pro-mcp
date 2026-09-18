@@ -217,6 +217,30 @@ import Testing
     #expect(!workflow.contains("lets transient instrumentation flakes"))
 }
 
+/// The marker rename's Edit button must be resolved by DESCRIPTION.
+///
+/// This is a source contract rather than a behavioural one because the script is built inside
+/// `renameSelectedMarker`, which takes a live `AXUIElement` and offers no seam to capture it. The
+/// generator itself is tested in `Issue519MenuLocaleGeneratorTests`; what this pins is that the
+/// call site uses the right generator.
+///
+/// It exists because the wrong one was used and nothing noticed: `candidateResolution(
+/// elementKeyword: "button", ...)` emits a BY-NAME reference, which is correct for a dialog's
+/// Cancel and wrong for a Logic toolbar button whose AXTitle is empty. Measured on a running Logic
+/// 12.3 on 2026-09-18 through System Events: 412 of 439 buttons report `name` as `missing value`,
+/// none of the 27 that have a name carries an Edit-family label, and asked of one container both
+/// ways for the same button, by-name is false where by-description is true. The rename would have
+/// returned MARKER_EDIT_BUTTON_NOT_FOUND in every locale, including the two that worked before.
+@Test func testMarkerRenameResolvesItsEditButtonByDescription() throws {
+    let source = try scriptContents("Sources/LogicProMCP/Channels/AccessibilityChannel+MarkerNaming.swift")
+
+    #expect(source.contains("AppleScriptMenuResolution.buttonWithDescription("))
+    #expect(!source.contains("elementKeyword: \"button\""),
+            "a by-name reference cannot find a button whose label is its AXDescription")
+    // The group beside it has always been resolved this way; the two must not drift apart again.
+    #expect(source.contains("AppleScriptMenuResolution.groupWithDescription("))
+}
+
 @Test func testLiveE2EHarnessRoutesCoverageProfilesToWritableTempDir() throws {
     let python = try scriptContents("Scripts/live-e2e-test.py")
     let shell = try scriptContents("Scripts/live-e2e-test.sh")

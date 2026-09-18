@@ -1,0 +1,153 @@
+{
+  "logic": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674"
+  },
+  "host_locale": "ko-KR",
+  "read_at": "2026-09-18T07:07:00+09:00",
+  "project": "lpm-locale-campaign",
+  "menu_bar_items": [
+    "Apple",
+    "Logic Pro",
+    "파일",
+    "편집",
+    "트랙",
+    "탐색",
+    "녹음",
+    "Mix",
+    "보기",
+    "윈도우",
+    "1",
+    "도움말"
+  ],
+  "view_menu_items": [
+    "라이브러리 가리기",
+    "인스펙터 가리기",
+    "믹서 보기",
+    "Smart Controls 보기",
+    "편집기 보기",
+    "목록 편집기 보기",
+    "메모장 보기",
+    "루프 브라우저 보기",
+    "브라우저 보기",
+    "컨트롤 막대 보기",
+    "컨트롤 막대 및 디스플레이 사용자화…",
+    "도구 막대 보기",
+    "도구 막대 사용자화…",
+    "동영상 윈도우 보기",
+    "색상 보기",
+    "전체 화면 시작"
+  ],
+  "view_menu_note": "the Library and Inspector items read 가리기 (Hide) because both panels are open; the item is a TOGGLE whose label changes with state",
+  "top_level_group_descriptions": [
+    "컨트롤 막대",
+    "인스펙터",
+    "라이브러리",
+    "그룹",
+    "그룹"
+  ],
+  "control_bar_lcd": [
+    {
+      "role": "AXPopUpButton",
+      "description": "팝업 버튼",
+      "value": "비트 및 프로젝트"
+    },
+    {
+      "role": "AXGroup",
+      "description": "재생헤드 위치"
+    },
+    {
+      "role": "AXSlider",
+      "description": "템포",
+      "value": "120.0"
+    },
+    {
+      "role": "AXPopUpButton",
+      "description": "박자표",
+      "value": "4/4"
+    },
+    {
+      "role": "AXPopUpButton",
+      "description": "조표",
+      "value": "C 메이저"
+    }
+  ],
+  "group_descriptions_by_count": {
+    "읽기, 오토메이션이 활성화됨": 22,
+    "Compressor": 11,
+    "Channel EQ": 10,
+    "ChromaVerb": 9,
+    "E-Piano": 9,
+    "Piano": 9,
+    "트랙": 3,
+    "믹서": 2,
+    "컨트롤 막대": 2,
+    "라이브러리": 2,
+    "Drum Machine Designer": 1,
+    "트랙 콘텐츠": 1,
+    "트랙 범례": 1,
+    "트랙 헤더": 1,
+    "인스펙터": 1,
+    "재생헤드 위치": 1
+  },
+  "button_descriptions_by_count": {
+    "목록": 71,
+    "오디오 플러그인": 58,
+    "열기": 49,
+    "마디 삽입": 30,
+    "음소거": 23,
+    "솔로": 22,
+    "피크 레벨 측정기": 22,
+    "EQ": 22,
+    "게인 축소 측정기": 22,
+    "보내기 버튼": 20,
+    "Stereo Output": 20,
+    "MIDI 플러그인": 18,
+    "Studio Grand": 9,
+    "Deluxe Classic": 9,
+    "설정": 3,
+    "채널 모드": 3,
+    "바운스": 2,
+    "Mastering Assistant": 2,
+    "폴더 나가기": 2
+  },
+  "menu_button_descriptions": {
+    "편집": 2,
+    "보기": 2
+  },
+  "plugin_insert_menu_items": [
+    "최근 사용",
+    "Channel EQ",
+    "Gain",
+    "Compressor",
+    "Raum",
+    "Tremolo",
+    "",
+    "Amps and Pedals",
+    "Delay",
+    "Distortion",
+    "Dynamics",
+    "EQ",
+    "Filter",
+    "Imaging",
+    "Metering",
+    "Modulation",
+    "Multi Effects",
+    "Pitch",
+    "Reverb",
+    "Specialized",
+    "Utility",
+    "",
+    "Audio Units",
+    ""
+  ],
+  "plugin_format_submenu_items": [
+    "스테레오",
+    "듀얼 모노"
+  ],
+  "screenshots": [
+    "shots/now.png",
+    "shots/insertmenu.png"
+  ]
+}
