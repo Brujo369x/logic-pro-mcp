@@ -8,6 +8,7 @@ came to scan `Sources/` while the defect lived in `Scripts/livekit`.
 import importlib.util
 import json
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -83,12 +84,32 @@ class Refusals(unittest.TestCase):
         """
         self.policy = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
                                                   encoding="utf-8")
-        json.dump({"not_required": {"build": "it IS the gate"}, "required_commands": []},
+        # A workflow DIRECTORY of its own too, for the same reason as the policy: `check_workflows`
+        # reads every file in it, and pointing a fixture case at the repository's real directory
+        # mixed the repository's answers into the fixture's.
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        with open(os.path.join(self.dir, "ci.yml"), "w", encoding="utf-8") as handle:
+            handle.write(FLOW)
+        json.dump({"not_required": {"build": "it IS the gate"}, "required_commands": [],
+                   "workflows": {"ci.yml": {"gates_merges": True, "why": "the audited one",
+                                            "required_commands": []}}},
                   self.policy)
         self.policy.close()
         self.addCleanup(os.remove, self.policy.name)
         self.saved, guard.POLICY_PATH = guard.POLICY_PATH, self.policy.name
         self.addCleanup(lambda: setattr(guard, "POLICY_PATH", self.saved))
+        self.saved_dir, guard.WORKFLOW_DIR = guard.WORKFLOW_DIR, self.dir
+        self.addCleanup(lambda: setattr(guard, "WORKFLOW_DIR", self.saved_dir))
+
+    def _policy(self, **overrides):
+        """Rewrite the fixture policy, so a case can change one key and keep the rest."""
+        body = {"not_required": {"build": "it IS the gate"}, "required_commands": [],
+                "workflows": {"ci.yml": {"gates_merges": True, "why": "the audited one",
+                                         "required_commands": []}}}
+        body.update(overrides)
+        with open(self.policy.name, "w", encoding="utf-8") as handle:
+            json.dump(body, handle)
 
     def _check(self, text):
         handle = tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False, encoding="utf-8")
@@ -121,17 +142,26 @@ class Refusals(unittest.TestCase):
         self.assertTrue(any("no `build` job" in p for p in problems), problems)
 
     def test_a_waiver_for_a_job_that_is_gone_fails(self):
-        with open(self.policy.name, "w", encoding="utf-8") as handle:
-            json.dump({"not_required": {"build": "x", "ghost": "reason"},
-                       "required_commands": []}, handle)
+        self._policy(not_required={"build": "x", "ghost": "reason"})
         problems = self._check(FLOW)
         self.assertTrue(any("outlived its reason" in p for p in problems), problems)
 
+    def test_check_actually_calls_the_workflow_rules(self):
+        """Through `check()`, not by calling `check_workflows` directly.
+
+        The class below drives `check_workflows` on its own, which proves the rules work and
+        proves nothing about whether anything runs them: deleting the one call site left every
+        case in that class green. A named site and an enforcement site being different things is
+        this guard's entire subject, and its own suite had the defect.
+        """
+        with open(os.path.join(self.dir, "undeclared.yml"), "w", encoding="utf-8") as handle:
+            handle.write("name: x\n")
+        problems = self._check(FLOW)
+        self.assertTrue(any("undeclared.yml" in p for p in problems), problems)
+
     def test_a_required_command_that_no_step_runs_fails(self):
         """A required JOB says nothing about its STEPS; deleting a step leaves the job green."""
-        with open(self.policy.name, "w", encoding="utf-8") as handle:
-            json.dump({"not_required": {"build": "x"},
-                       "required_commands": ["python3 Scripts/nothing-runs-this.py"]}, handle)
+        self._policy(required_commands=["python3 Scripts/nothing-runs-this.py"])
         problems = self._check(FLOW)
         self.assertTrue(any("no step runs" in p for p in problems), problems)
 
@@ -201,6 +231,87 @@ class AgainstTheRealWorkflow(unittest.TestCase):
         names, needs = guard.jobs_and_needs(open(guard.WORKFLOW, encoding="utf-8").read())
         self.assertIn("canon-citations-in-the-pull-request", names)
         self.assertIn("canon-citations-in-the-pull-request", needs)
+
+    def test_the_guards_run_once_and_are_required(self):
+        """The whole point of splitting them out: one job runs them, and `build` looks at it."""
+        text = open(guard.WORKFLOW, encoding="utf-8").read()
+        self.assertEqual(text.count("python3 Scripts/run-repo-guards.py"), 1,
+                         "the runner is what used to be duplicated across compile and test")
+        names, needs = guard.jobs_and_needs(text)
+        self.assertIn("guards", names)
+        self.assertIn("guards", needs)
+
+    def test_every_workflow_file_is_declared(self):
+        rules = guard.policy()
+        on_disk = {n for n in os.listdir(guard.WORKFLOW_DIR) if n.endswith((".yml", ".yaml"))}
+        self.assertEqual(on_disk - set(rules["workflows"]), set())
+
+    def test_the_moved_roadmap_commands_are_in_the_workflow_that_now_owns_them(self):
+        """The command follows the workflow, or the check was lost in the move."""
+        declared = guard.policy()["workflows"]["maintenance.yml"]["required_commands"]
+        self.assertIn("python3 Scripts/roadmap-table-matches-github.py", declared)
+        body = open(os.path.join(guard.WORKFLOW_DIR, "maintenance.yml"), encoding="utf-8").read()
+        for command in declared:
+            self.assertIn(command, body)
+        ci = open(guard.WORKFLOW, encoding="utf-8").read()
+        self.assertNotIn("roadmap-table-matches-github.py", ci,
+                         "it moved; a copy left behind is the duplicate run this split removes")
+
+
+class WorkflowDeclarations(unittest.TestCase):
+    """The file-level half: a workflow nobody declared is a gate nobody wired up."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        self.saved_dir, guard.WORKFLOW_DIR = guard.WORKFLOW_DIR, self.dir
+        self.addCleanup(lambda: setattr(guard, "WORKFLOW_DIR", self.saved_dir))
+
+    def _write(self, name, body=""):
+        with open(os.path.join(self.dir, name), "w", encoding="utf-8") as handle:
+            handle.write(body)
+
+    def _run(self, workflows):
+        problems = []
+        guard.check_workflows({"workflows": workflows}, problems)
+        return problems
+
+    def test_an_undeclared_workflow_fails(self):
+        self._write("surprise.yml")
+        problems = self._run({})
+        self.assertTrue(any("surprise.yml" in p and "no entry" in p for p in problems), problems)
+
+    def test_a_declaration_with_no_reason_fails(self):
+        self._write("thing.yml")
+        problems = self._run({"thing.yml": {"gates_merges": False, "why": "  "}})
+        self.assertTrue(any("needs `gates_merges` and a `why`" in p for p in problems), problems)
+
+    def test_a_declaration_with_no_gates_merges_fails(self):
+        self._write("thing.yml")
+        problems = self._run({"thing.yml": {"why": "because"}})
+        self.assertTrue(any("needs `gates_merges` and a `why`" in p for p in problems), problems)
+
+    def test_a_second_workflow_claiming_to_gate_fails(self):
+        """Only `ci.yml` is audited, so another file saying it gates is a claim nobody checks."""
+        self._write("other.yml")
+        problems = self._run({"other.yml": {"gates_merges": True, "why": "claims to"}})
+        self.assertTrue(any("only audits ci.yml" in p for p in problems), problems)
+
+    def test_a_declared_command_that_no_step_runs_fails(self):
+        self._write("thing.yml", "jobs:\n  a:\n    steps: []\n")
+        problems = self._run({"thing.yml": {"gates_merges": False, "why": "because",
+                                            "required_commands": ["python3 Scripts/moved.py"]}})
+        self.assertTrue(any("no step runs" in p for p in problems), problems)
+
+    def test_a_declaration_for_a_file_that_is_gone_fails(self):
+        problems = self._run({"deleted.yml": {"gates_merges": False, "why": "because"}})
+        self.assertTrue(any("deleted.yml" in p and "not a file" in p for p in problems), problems)
+
+    def test_a_declared_workflow_carrying_its_command_passes(self):
+        self._write("thing.yml", "run: python3 Scripts/moved.py\n")
+        self.assertEqual(self._run({"thing.yml": {"gates_merges": False, "why": "because",
+                                                  "required_commands": ["python3 Scripts/moved.py"]}}),
+                         [])
 
 
 if __name__ == "__main__":

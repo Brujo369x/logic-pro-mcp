@@ -18,11 +18,20 @@ what a comment can and cannot do.
 So: every job in the workflow is in `build.needs`, or is named here with a reason. The waiver list
 may only shrink.
 
-Scope, stated rather than assumed: this audits `ci.yml` alone -- the workflow that carries the
-required gate. `canon-issue.yml` runs on `issues`, has no merge to block and no `build` job, so a
-`needs` rule would be meaningless there; it comments instead of failing, and that is its whole
-contract. A future workflow that DOES gate a merge needs its own entry here or this guard will not
-see it.
+Scope is now DECLARED rather than assumed. `ci.yml` carries the required gate and is the workflow
+whose jobs are audited against `build.needs`. Every other workflow file must be named in
+`docs/canon/CI-GATE.json` under `workflows`, with `gates_merges` and a reason -- and a file nobody
+named is a failure.
+
+That last rule is the same rule as the first one, moved up a level. The three defects above are all
+"a thing that can fail exists, and the required context does not look at it", and a WORKFLOW is a
+thing that can fail. Splitting the roadmap check into `maintenance.yml` on 2026-09-18 created the
+first file this guard would otherwise have had no opinion about, and the next one could just as
+easily be a gate nobody wired up.
+
+`required_commands` is per-workflow for the same reason. Moving a command out of `ci.yml` and
+leaving its string in this guard's list would have kept a test looking in the wrong file; moving it
+out and checking nothing would have lost the step silently. The command follows the workflow.
 """
 import json
 import os
@@ -44,13 +53,56 @@ GATE = "build"
 POLICY_PATH = os.path.join(REPO, "docs", "canon", "CI-GATE.json")
 
 
+WORKFLOW_DIR = os.path.join(REPO, ".github", "workflows")
+AUDITED = "ci.yml"
+
+
 def policy() -> dict:
     with open(POLICY_PATH, "r", encoding="utf-8") as handle:
         loaded = json.load(handle)
-    for key in ("not_required", "required_commands"):
+    for key in ("not_required", "required_commands", "workflows"):
         if key not in loaded:
             raise SystemExit(f"{POLICY_PATH}: no `{key}`")
     return loaded
+
+
+def check_workflows(rules: dict, problems: list) -> None:
+    """Every workflow file is declared, and every declaration is of a file that exists."""
+    declared = rules["workflows"]
+    on_disk = sorted(name for name in os.listdir(WORKFLOW_DIR)
+                     if name.endswith((".yml", ".yaml")))
+    for name in on_disk:
+        entry = declared.get(name)
+        if entry is None:
+            problems.append(
+                f".github/workflows/{name}: no entry in {os.path.relpath(POLICY_PATH, REPO)}. "
+                f"Say whether it gates a merge and why. A workflow nobody declared is a thing that "
+                f"can fail while the required context does not look at it -- which is the defect "
+                f"this whole guard is about, one level up.")
+            continue
+        if "gates_merges" not in entry or not str(entry.get("why") or "").strip():
+            problems.append(
+                f".github/workflows/{name}: its entry needs `gates_merges` and a `why` with "
+                f"something in it. A waiver with no reason is a list.")
+            continue
+        if entry["gates_merges"] and name != AUDITED:
+            problems.append(
+                f".github/workflows/{name}: declares that it gates merges, and this guard only "
+                f"audits {AUDITED}. Either audit it here or say it does not gate.")
+        path = os.path.join(WORKFLOW_DIR, name)
+        with open(path, "r", encoding="utf-8") as handle:
+            body = handle.read()
+        for command in entry.get("required_commands") or []:
+            if command not in body:
+                problems.append(
+                    f".github/workflows/{name}: no step runs `{command}`. It is declared as this "
+                    f"workflow's, so moving it elsewhere means moving the declaration too -- and "
+                    f"deleting it means deleting the check.")
+    for name in sorted(set(declared) - set(on_disk)):
+        problems.append(
+            f"{os.path.relpath(POLICY_PATH, REPO)}: `workflows` names `{name}`, which is not a "
+            f"file in .github/workflows. A declaration for something that does not exist is "
+            f"bookkeeping that outlived its reason.")
 
 
 def jobs_and_needs(text: str):
@@ -137,6 +189,8 @@ def check(path: str = WORKFLOW):
                 f"reopened, so the body could be rewritten after the gate went green and nothing "
                 f"would re-read it.")
 
+    check_workflows(rules, problems)
+
     for command in rules["required_commands"]:
         if command not in text:
             problems.append(
@@ -154,9 +208,11 @@ def main() -> int:
         return 1
     names, needs = jobs_and_needs(open(WORKFLOW, encoding="utf-8").read())
     rules = policy()
+    gating = [n for n, e in rules["workflows"].items() if e.get("gates_merges")]
     print(f"every one of {len(names)} CI job(s) is required by `{GATE}` or waived with a reason "
           f"({len(needs)} required, {len(rules['not_required'])} waived); "
-          f"{len(rules['required_commands'])} required command(s) present")
+          f"{len(rules['required_commands'])} required command(s) present; "
+          f"{len(rules['workflows'])} workflow(s) declared, {len(gating)} gating merges")
     return 0
 
 

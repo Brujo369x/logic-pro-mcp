@@ -1,0 +1,103 @@
+name: PR policy
+
+# The pull request BODY, checked on its own schedule.
+#
+# WHY IT IS A SEPARATE WORKFLOW
+# -----------------------------
+# The body gate needs `edited`, because the defect it exists for is: open a compliant pull request,
+# let it go green, then edit the citations out. `edited` is not in the default event set, so
+# `ci.yml` lists it -- and `build` refuses a dependency whose result is `skipped`, so narrowing it
+# with an `if:` on compile and test would turn the only required context red on every edit. The
+# result is that changing a pull request's DESCRIPTION restarts a 23-minute macOS test job and
+# cancels the one already running, because the two share a concurrency group.
+#
+# So the body check gets its own workflow, its own concurrency group, and its own required
+# context. Editing a description then re-runs this and nothing else.
+#
+# THIS IS ADDITIVE TODAY
+# ----------------------
+# `ci.yml` still carries the same check and `edited` is still in its trigger, so the two overlap
+# on purpose. The order matters and it is the whole reason the overlap exists: the branch ruleset
+# requires `build`, `compile` and `test`, and `pr-policy` is required by nothing until somebody
+# with repository administration adds it. Removing the `ci.yml` job first would delete the merge
+# block and leave a green check that stops nothing.
+#
+# The remaining step, to be run by an administrator and then verified by re-reading the ruleset:
+#
+#   gh api -X PUT repos/MongLong0214/logic-pro-mcp/rulesets/19060230 ...
+#     adding {"context": "pr-policy"} to required_status_checks, keeping build/compile/test
+#     and strict_required_status_checks_policy: true
+#
+# Only after that context is observed required does the `canon-citations-in-the-pull-request` job
+# come out of `ci.yml`, and `edited` with it.
+
+on:
+  pull_request:
+    branches: [main]
+    # `edited` fires on a body or title change AND on a base change. The second is not cosmetic --
+    # retargeting a pull request changes what it merges into -- which is why the code CI keeps its
+    # own trigger rather than this workflow standing in for it.
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  # NOT `ci.yml`'s group. Sharing it is what made editing a description cancel a running build.
+  group: pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pr-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # `check-canon-citations.py` compares its waiver lists against `git merge-base`, and
+          # fails outright under CI when it cannot read one.
+          fetch-depth: 0
+
+      - name: Read the body and the complete list of changed files
+        # REST with `--paginate`, not `gh pr view --json files`. That form returns the first page
+        # and says nothing about the rest, so a pull request over the page size would have had its
+        # file list SILENTLY TRUNCATED -- and the truncation makes the citation opt-out look
+        # applicable to a change that touches Logic-facing paths further down the list.
+        #
+        # Both values go to FILES. Interpolating a pull request body into a shell string is how a
+        # description becomes a command.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" -q .body > pr-body.md
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" -q '.[].path' > pr-changed.txt
+          # A pull request that changes nothing does not exist, so an empty list is a failed query
+          # rather than an answer -- and an empty list used to reopen the opt-out.
+          test -s pr-changed.txt
+          # The API reports the total; if the paginated read is short of it, this did not see the
+          # whole change and must not judge it. (REST caps this endpoint at 3000 files, which is
+          # itself a refusal rather than a truncation.)
+          EXPECTED=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" -q .changed_files)
+          ACTUAL=$(grep -c . pr-changed.txt)
+          echo "changed files: read $ACTUAL of $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::read $ACTUAL of $EXPECTED changed files. An incomplete list cannot decide"
+            echo "::error::whether this change may opt out of citing Logic."
+            exit 1
+          fi
+
+      - name: Citations in the tree bind to files this change touches
+        run: python3 Scripts/check-canon-citations.py --changed pr-changed.txt
+
+      - name: The pull request body cites Logic, or says it states no fact about Logic
+        # Whether this change may opt out is derived from what it TOUCHES, not from what its
+        # description says about itself. Without the file list the opt-out is one sentence anybody
+        # can type, and review walked through it three ways.
+        run: python3 Scripts/check-canon-citations.py --text pr-body.md --changed pr-changed.txt
