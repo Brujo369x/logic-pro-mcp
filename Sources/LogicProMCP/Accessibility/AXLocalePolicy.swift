@@ -1263,6 +1263,51 @@ enum AXLocalePolicy {
         rationale: "Identifies Logic 12.3's Playhead Position AXGroup before resolving its bar/beat component sliders."
     )
 
+    // --- Cycle-locator text fields (read-only, `.contains` on AXDescription) ---
+    //
+    // `setCycle`'s AX path scans the transport bar for two text fields whose descriptions name
+    // the cycle and a side. The six literals that stood here -- `cycle`/`사이클`, `start`/`시작`,
+    // `end`/`끝` -- were a two-language guess, and one of them is a value of nothing: `끝` is
+    // carried by no row in Apple's ten-locale corpus (Apple's `End` is `종료`). Measured on
+    // 2026-09-18 by walking all 1334 elements a running Logic 12.3 ko-KR exposes: exactly two
+    // name the cycle, the control-bar AXCheckBox `사이클` and the ruler's AXLayoutItem
+    // `사이클 리전`, and NEITHER is a text field -- with the LCD in `비트 및 프로젝트` this AX
+    // path cannot resolve at all and the osascript fallback carries the operation. So these sets
+    // widen a path this repository has never seen resolve; `끝` is kept rather than corrected so
+    // that the change can only add.
+    //
+    // The four English direction words the literals carried -- `in`, `left`, `out`, `right` --
+    // are NOT carried forward. They are values of no row Apple ships, the ledger's list of
+    // literals answered nowhere in Logic may only shrink, and `in` is two letters that sit
+    // inside Spanish `Fin`, Italian `Fine` and Portuguese `Fim`, so carrying it beside ten
+    // locales would have made a Latin-locale cycle-END field answer the START test. This
+    // narrows the matcher on a path that, as measured above, resolves to nothing.
+    //
+    // The call site still tests END before START. Neither side's labels are a substring of the
+    // other's, so the order does not decide anything today; it is fixed so that a description
+    // naming both sides classifies the same way every run rather than by field order.
+
+    static let cycleRangeLabel = LabelSet(
+        canonical: "Cycle",
+        variants: ["사이클", "サイクル", "Ciclo", "Repetição", "循环", "循環"],
+        rationale: "Names the cycle in a transport-bar text field description; read-only locator, ANDed with a side. Derived from Apple's own row, checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Cycle#value"
+    )
+
+    static let cycleRangeStart = LabelSet(
+        canonical: "Start",
+        variants: ["시작", "開始", "Inicio", "Départ", "Inizio", "Iniciar", "开始"],
+        rationale: "Names the START side of the cycle range; read-only locator, ANDed with `cycleRangeLabel` and tested only after the end side has been ruled out. The shipped literal also carried `in` and `left`; both are dropped, because neither is a value of any row Apple ships and `in` is a two-letter containment fragment that sits inside Spanish `Fin`, Italian `Fine` and Portuguese `Fim`. Derived from Apple's own row, checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Start#value"
+    )
+
+    static let cycleRangeEnd = LabelSet(
+        canonical: "End",
+        variants: ["종료", "終了", "Ende", "Fin", "Fine", "Fim", "结束", "結束", "끝"],
+        rationale: "Names the END side of the cycle range; read-only locator, ANDed with `cycleRangeLabel` and tested BEFORE the start side. `끝` is the shipped Korean literal and is the value of no row in Apple's ten-locale corpus -- kept rather than replaced by `종료` so this change cannot narrow a Korean match somebody may have relied on. The shipped `out` and `right` are dropped for the same reason `in` and `left` are: Apple ships neither as this control's value, and the ledger's list of literals answered nowhere in Logic may only shrink. Derived from Apple's own row, checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/End#value"
+    )
+
     // --- Control-bar slider locators (read-only, verbatim `.exactStrict`) ---
 
     static let controlBarGroupLabel = LabelSet(
@@ -1673,6 +1718,53 @@ enum AXLocalePolicy {
         canonical: "open",
         variants: ["열기", "list", "목록", "開く"],
         rationale: "Locates a plugin-slot open/list control by label; read-only locator (structural fallback exists). Japanese added 2026-09-07 by aligning the en-US and ja-JP navigation-free censuses of 2026-09-05 (#795): 1005 of 1031 rows align as matching blocks, and this label's element was read at an insert slot's open button."
+    )
+
+    /// The insert slot's OPEN control, ranked ahead of its list control.
+    ///
+    /// Measured 2026-09-18 on a running Logic 12.3 ko-KR: the occupied ChromaVerb insert slot
+    /// exposes `AXButton` with AXDescription `열기`, and its sibling `목록` carries the
+    /// menu-opening action instead. The row named here is MAGUI's lowercase `open`, not either
+    /// `Open` row, because its Japanese is `開く` -- the string #795's ja-JP census read at an
+    /// insert slot's open button -- while the `Open` rows carry `オープン`.
+    static let pluginSlotOpenControl = LabelSet(
+        canonical: "open",
+        variants: ["열기", "開く", "geöffnet", "abrir", "ouvrir", "apri", "打开", "打開"],
+        rationale: "Ranks an insert slot's open control first. Korean read live 2026-09-18 at an occupied insert slot; the other nine are the same row's values. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAGUI.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/open#value"
+    )
+
+    /// The insert slot's LIST control, ranked behind the open control.
+    ///
+    /// Not observed at an insert slot on 2026-09-18: the `목록` buttons that Korean Logic exposes
+    /// under each plugin AXGroup all carry the menu-opening action and are filtered out before
+    /// ranking, and the only other `목록` button sits under the automation group. The row is
+    /// named anyway -- the string the product matches is one of its values -- but this is a
+    /// derivation, not a reading.
+    static let pluginSlotListControl = LabelSet(
+        canonical: "list",
+        variants: ["목록", "リスト", "Liste", "lista", "elenco", "列表"],
+        rationale: "Ranks an insert slot's list control behind its open control. Derived from Apple's own row; no live reading at an insert slot exists. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAGUI.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/list#value"
+    )
+
+    /// The word for a menu, as it appears INSIDE an AX action name.
+    ///
+    /// Logic localizes its custom action names. Measured 2026-09-18 on Logic 12.3 ko-KR: every
+    /// plugin-slot list button and every `오디오 플러그인` insert button carries the action
+    /// `Name:Legacy 플러그인으로 플러그인 메뉴 열기`, which is character-for-character the ko value
+    /// of `Open plug-in menu with legacy plug-ins` in MAMixer -- 136 buttons carried it. The check
+    /// this set replaces looked for `menu` or `메뉴`, which reached five locales rather than two,
+    /// because the French, Italian and Portuguese renderings of that sentence happen to contain a
+    /// lowercase `menu`. It reached NOTHING in ja, de, es, zh-CN or zh-TW, where a menu-opening
+    /// button was not recognized as one and was ranked as an editor control. Every one of the
+    /// sentence's ten values contains its own locale's value of this row, so matching here
+    /// recognizes the action in every language Logic ships.
+    static let menuActionNameFragment = LabelSet(
+        canonical: "Menu",
+        variants: ["메뉴", "メニュー", "Menü", "Menú", "菜单", "選單"],
+        rationale: "Recognizes a menu-opening AX action name. Korean read live 2026-09-18; the other nine are the same row's values, each of which is a substring of that locale's `Open plug-in menu with legacy plug-ins`. Checked offline by Scripts/check-labelsets-are-derived.py.",
+        derivedFrom: "logic-canon://strings/Contents%2FFrameworks%2FMAWorkspace.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Menu#value"
     )
 
     /// Controls/editor switching is deliberately keyed from AXDescription:
@@ -2399,6 +2491,12 @@ enum AXLocalePolicy {
         sliderPanHint,
         pluginBypassControl,
         pluginOpenOrListControl,
+        pluginSlotOpenControl,
+        pluginSlotListControl,
+        menuActionNameFragment,
+        cycleRangeLabel,
+        cycleRangeStart,
+        cycleRangeEnd,
         pluginWindowSmartControlsControl,
         pluginAutomationLabelExact,
         pluginAutomationLabelSubstring,

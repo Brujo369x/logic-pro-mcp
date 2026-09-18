@@ -1,0 +1,157 @@
+{
+  "logic": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674"
+  },
+  "host_locale": "ko-KR",
+  "read_at": "2026-09-18T09:28:18+09:00",
+  "project": "lpm-locale-campaign",
+  "method_note": "Read-only AX walks of a Logic that was already running with a project open. Nothing was launched, no menu was opened, no element was pressed. Four probes: a whole-window walk filtered by description, a control-bar subtree dump, a text-field/static-text dump, and an action-name census over every button.",
+  "whole_window_walk": {
+    "elements_scanned": 1334,
+    "elements_naming_the_cycle": 2,
+    "hits": [
+      {
+        "role": "AXCheckBox",
+        "description": "사이클",
+        "path": "window(lpm-locale-campaign - 트랙) > AXWindow(lpm-locale-campaign - 트랙) > AXGroup(컨트롤 막대) > AXCheckBox(사이클)"
+      },
+      {
+        "role": "AXLayoutItem",
+        "description": "사이클 리전",
+        "path": "window(lpm-locale-campaign - 트랙) > AXWindow(lpm-locale-campaign - 트랙) > AXGroup(트랙) > AXGroup(트랙) > AXSplitGroup() > AXSplitGroup() > AXScrollArea() > AXLayoutArea(트랙 시간 눈금자) > AXLayoutItem(사이클 리전)"
+      }
+    ],
+    "cycle_locator_text_fields": 0
+  },
+  "control_bar": {
+    "rows_dumped": 32,
+    "lcd_display_mode": "비트 및 프로젝트",
+    "lcd_children": [
+      "표시 모드",
+      "재생헤드 위치",
+      "템포",
+      "",
+      "박자표",
+      "조표"
+    ],
+    "note": "with the LCD in this mode the transport bar exposes bar/beat sliders, tempo, time signature and key signature -- and no cycle locator field."
+  },
+  "text_fields": {
+    "text_and_static_text_elements": 169,
+    "distinct_descriptions": [
+      "Absolute Zero",
+      "Audio 1",
+      "Deluxe Classic",
+      "MIDI Region",
+      "Studio Grand",
+      "knob readout",
+      "볼륨 페이더 레벨",
+      "이름"
+    ]
+  },
+  "action_names": {
+    "buttons_censused": 492,
+    "distinct_action_names": [
+      "AXPress",
+      "AXShowMenu",
+      "AXZoomWindow",
+      "Name:Legacy 플러그인으로 플러그인 메뉴 열기\nTarget:0x0\nSelector:(null)"
+    ],
+    "buttons_carrying_a_localized_name_action": 136,
+    "by_button_description": {
+      "오디오 플러그인": 58,
+      "마디 삽입": 30,
+      "목록": 48
+    }
+  },
+  "the_localized_action_name": {
+    "live_ko": "Name:Legacy 플러그인으로 플러그인 메뉴 열기\nTarget:0x0\nSelector:(null)",
+    "corpus_row": "logic-canon://strings/Contents%2FFrameworks%2FMAMixer.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Open%20plug-in%20menu%20with%20legacy%20plug-ins#value",
+    "values": {
+      "en": "Open plug-in menu with legacy plug-ins",
+      "ko": "Legacy 플러그인으로 플러그인 메뉴 열기",
+      "ja": "プラグインメニューをレガシーのプラグインで開く",
+      "de": "Plug-in-Menü mit veralteten Plug-ins öffnen",
+      "es": "Abrir el menú de módulos con módulos antiguos",
+      "fr": "Ouvrir le menu des modules avec les anciens modules",
+      "it": "Apri il menu dei plugin con plugin obsoleti",
+      "pt": "Abra o menu de plug-ins com plug-ins antigos",
+      "zh_CN": "打开含旧有插件的插件菜单",
+      "zh_TW": "打開包含舊版外掛模組的外掛模組選單"
+    },
+    "menu_word_row": "logic-canon://strings/Contents%2FFrameworks%2FMAWorkspace.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Menu#value",
+    "menu_word_values": {
+      "en": "Menu",
+      "ko": "메뉴",
+      "ja": "メニュー",
+      "de": "Menü",
+      "es": "Menú",
+      "fr": "Menu",
+      "it": "Menu",
+      "pt": "Menu",
+      "zh_CN": "菜单",
+      "zh_TW": "選單"
+    },
+    "menu_word_is_a_substring_of_the_sentence": {
+      "en": true,
+      "ko": true,
+      "ja": true,
+      "de": true,
+      "es": true,
+      "fr": true,
+      "it": true,
+      "pt": true,
+      "zh_CN": true,
+      "zh_TW": true
+    },
+    "old_check_saw": [
+      "menu",
+      "메뉴"
+    ],
+    "locales_the_old_check_missed": [
+      "ja",
+      "de",
+      "es",
+      "zh_CN",
+      "zh_TW"
+    ]
+  },
+  "slot_controls_read_live": [
+    {
+      "role": "AXButton",
+      "description": "열기",
+      "parent": "AXGroup(ChromaVerb)",
+      "meaning": "opens the plug-in editor"
+    },
+    {
+      "role": "AXButton",
+      "description": "목록",
+      "parent": "AXGroup(ChromaVerb)",
+      "meaning": "carries the menu action; filtered out before ranking"
+    },
+    {
+      "role": "AXButton",
+      "description": "바운스",
+      "parent": "AXLayoutItem(Stereo Out)",
+      "meaning": "the mixer's bounce switch"
+    }
+  ],
+  "corpus_absence": {
+    "끝": "carried by no row in the ten-locale corpus; Apple's `End` is `종료`",
+    "in": "classified strings_value, but not as a value of any cycle control",
+    "left": "carried by no row",
+    "out": "carried by no row",
+    "right": "carried by no row"
+  },
+  "cjk_string_literals_outside_the_policy": {
+    "before": 26,
+    "after": 17,
+    "remaining": [
+      "AXLogicProElements+Menu.swift: the derived ten-locale locale-detection table",
+      "AccessibilityChannel+Regions.swift: the region bar-position regexes (#909)",
+      "AccessibilityChannel+Transport.swift: a comment inside an AppleScript string"
+    ]
+  }
+}

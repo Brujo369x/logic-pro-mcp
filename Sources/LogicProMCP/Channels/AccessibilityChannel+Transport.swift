@@ -632,15 +632,18 @@ extension AccessibilityChannel {
             var startField: AXUIElement?
             var endField: AXUIElement?
             for field in texts {
-                let desc = (AXHelpers.getDescription(field, runtime: runtime.ax) ?? "").lowercased()
-                // Match on description fragments present in both Korean and English Logic builds.
-                if startField == nil && (desc.contains("cycle") || desc.contains("사이클"))
-                    && (desc.contains("start") || desc.contains("시작") || desc.contains("in") || desc.contains("left")) {
-                    startField = field
-                }
-                if endField == nil && (desc.contains("cycle") || desc.contains("사이클"))
-                    && (desc.contains("end") || desc.contains("끝") || desc.contains("out") || desc.contains("right")) {
+                let desc = AXHelpers.getDescription(field, runtime: runtime.ax) ?? ""
+                // END is tested first and wins the field: neither side's labels are a
+                // substring of the other's, so this decides nothing today, but it makes a
+                // description that names both sides classify the same way every run.
+                // See `AXLocalePolicy.cycleRangeEnd` for what the literals dropped.
+                guard AXLocalePolicy.cycleRangeLabel.containsAny(in: desc) else { continue }
+                if endField == nil && AXLocalePolicy.cycleRangeEnd.containsAny(in: desc) {
                     endField = field
+                    continue
+                }
+                if startField == nil && AXLocalePolicy.cycleRangeStart.containsAny(in: desc) {
+                    startField = field
                 }
             }
             if let s = startField, let e = endField {

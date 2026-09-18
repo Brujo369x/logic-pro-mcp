@@ -240,6 +240,57 @@ struct Issue519FileMenuDriveSiteTests {
         #expect(probe.script.contains("BOUNCE_MENU_ITEM_NOT_FOUND"))
     }
 
+    @Test("the Bounce dialog poll tests the title against every label, not against an EN/KO pair")
+    func bounceDialogPollCoversVariants() async {
+        let probe = MenuScriptProbe()
+        _ = await AccessibilityChannel.openBounceDialogViaMenu(
+            systemEventsAuthorized: { true },
+            executeScript: { script in
+                probe.capture(script)
+                return .success(#"{"result":"BOUNCE_MENU_ITEM_NOT_FOUND"}"#)
+            }
+        )
+        // Asserting that the labels appear ANYWHERE in the script would pass even if the poll
+        // were reverted to `contains "Bounce" or contains "바운스"`, because the same labels are
+        // already in the menu-item resolution further up. So this reads the poll's own block and
+        // nothing else: from where `bounceSeen` is initialised to the `end repeat` that closes it.
+        let start = probe.script.range(of: "set bounceSeen to false")
+        #expect(start != nil, "the dialog poll must be generated, not hand-written")
+        guard let start else { return }
+        let rest = probe.script[start.lowerBound...]
+        guard let end = rest.range(of: "end repeat") else {
+            #expect(Bool(false), "the generated poll must close its repeat")
+            return
+        }
+        let block = String(rest[..<end.upperBound])
+        for label in AXLocalePolicy.bounceMenuItem.labels {
+            #expect(block.contains("\"\(label)\""), "poll is missing \(label)")
+        }
+        #expect(block.contains("bounceName contains (candidate as text)"))
+        // The branch must read the boolean the block sets, or the block is decoration.
+        #expect(probe.script.contains("if bounceSeen then"))
+        #expect(!probe.script.contains("bounceName contains \"Bounce\""))
+    }
+
+    @Test("textContainsAny escapes a quote or backslash inside its candidate list")
+    func textContainsAnyEscapesSafely() {
+        let hostile = AXLocalePolicy.LabelSet(
+            canonical: "plain",
+            variants: ["has \"quote\"", "has \\ backslash"],
+            rationale: "test fixture"
+        )
+        let script = AppleScriptMenuResolution.textContainsAny(
+            hostile, of: "someName", variableName: "seen"
+        )
+        #expect(script.contains("set seen to false"))
+        #expect(script.contains("if someName contains (candidate as text) then"))
+        for label in hostile.labels {
+            #expect(script.contains(AppleScriptSafety.escapeForScript(label)))
+        }
+        // The escaped forms must not re-introduce a bare quote that closes the list literal early.
+        #expect(!script.contains("{\"has \"quote\""))
+    }
+
     @Test("File > Import > MIDI File… script resolves File/Import/MIDI File from LabelSets, reaching the Japanese File variant")
     func midiImportScriptCoversVariants() async {
         let path = NSTemporaryDirectory() + "issue519-\(UUID().uuidString).mid"

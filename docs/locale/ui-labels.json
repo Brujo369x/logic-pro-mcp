@@ -641,6 +641,85 @@
     "en-US": "title"
    }
   },
+  "cycleRangeEnd": {
+   "canonical": "End",
+   "variants": [
+    "종료",
+    "終了",
+    "Ende",
+    "Fin",
+    "Fine",
+    "Fim",
+    "结束",
+    "結束",
+    "끝"
+   ],
+   "rationale": "Names the END side of the cycle range; read-only locator, ANDed with `cycleRangeLabel` and tested BEFORE the start side. `끝` is the shipped Korean literal and is the value of no row in Apple's ten-locale corpus -- kept rather than replaced by `종료` so this change cannot narrow a Korean match somebody may have relied on. The shipped `out` and `right` are dropped for the same reason `in` and `left` are: Apple ships neither as this control's value, and the ledger's list of literals answered nowhere in Logic may only shrink. Derived from Apple's own row, checked offline by Scripts/check-labelsets-are-derived.py.",
+   "match": "contains",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
+   }
+  },
+  "cycleRangeLabel": {
+   "canonical": "Cycle",
+   "variants": [
+    "사이클",
+    "サイクル",
+    "Ciclo",
+    "Repetição",
+    "循环",
+    "循環"
+   ],
+   "rationale": "Names the cycle in a transport-bar text field description; read-only locator, ANDed with a side. Derived from Apple's own row, checked offline by Scripts/check-labelsets-are-derived.py.",
+   "match": "contains",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
+   }
+  },
+  "cycleRangeStart": {
+   "canonical": "Start",
+   "variants": [
+    "시작",
+    "開始",
+    "Inicio",
+    "Départ",
+    "Inizio",
+    "Iniciar",
+    "开始"
+   ],
+   "rationale": "Names the START side of the cycle range; read-only locator, ANDed with `cycleRangeLabel` and tested only after the end side has been ruled out. The shipped literal also carried `in` and `left`; both are dropped, because neither is a value of any row Apple ships and `in` is a two-letter containment fragment that sits inside Spanish `Fin`, Italian `Fine` and Portuguese `Fim`. Derived from Apple's own row, checked offline by Scripts/check-labelsets-are-derived.py.",
+   "match": "contains",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
+   }
+  },
   "deleteTrackMenuItem": {
    "canonical": "Delete Track",
    "variants": [
@@ -2081,6 +2160,31 @@
     "zh-TW": "derived"
    }
   },
+  "menuActionNameFragment": {
+   "canonical": "Menu",
+   "variants": [
+    "메뉴",
+    "メニュー",
+    "Menü",
+    "Menú",
+    "菜单",
+    "選單"
+   ],
+   "rationale": "Recognizes a menu-opening AX action name. Korean read live 2026-09-18; the other nine are the same row's values, each of which is a substring of that locale's `Open plug-in menu with legacy plug-ins`. Checked offline by Scripts/check-labelsets-are-derived.py.",
+   "match": "contains",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
+   }
+  },
   "midiEffectSlotHelpKeyword": {
    "canonical": "midi effect slot",
    "variants": [],
@@ -3166,6 +3270,58 @@
     "pt-BR": "unmeasured",
     "zh-CN": "unmeasured",
     "zh-TW": "unmeasured"
+   }
+  },
+  "pluginSlotListControl": {
+   "canonical": "list",
+   "variants": [
+    "목록",
+    "リスト",
+    "Liste",
+    "lista",
+    "elenco",
+    "列表"
+   ],
+   "rationale": "Ranks an insert slot's list control behind its open control. Derived from Apple's own row; no live reading at an insert slot exists. Checked offline by Scripts/check-labelsets-are-derived.py.",
+   "match": "contains",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "unmeasured",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
+   }
+  },
+  "pluginSlotOpenControl": {
+   "canonical": "open",
+   "variants": [
+    "열기",
+    "開く",
+    "geöffnet",
+    "abrir",
+    "ouvrir",
+    "apri",
+    "打开",
+    "打開"
+   ],
+   "rationale": "Ranks an insert slot's open control first. Korean read live 2026-09-18 at an occupied insert slot; the other nine are the same row's values. Checked offline by Scripts/check-labelsets-are-derived.py.",
+   "match": "contains",
+   "coverage": {
+    "en-US": "derived",
+    "ko-KR": "derived",
+    "ja-JP": "derived",
+    "de-DE": "derived",
+    "es-ES": "derived",
+    "fr-FR": "derived",
+    "it-IT": "derived",
+    "pt-BR": "derived",
+    "zh-CN": "derived",
+    "zh-TW": "derived"
    }
   },
   "pluginWindowControlsViewMenuItem": {

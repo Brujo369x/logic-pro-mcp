@@ -1327,6 +1327,15 @@ extension AccessibilityChannel {
             variableName: "barName",
             notFoundError: "BOUNCE_MENU_ITEM_NOT_FOUND"
         )
+        // The dialog Logic opens is titled in Logic's language. `contains "Bounce" or contains
+        // "바운스"` saw two of the ten, so on a German or Japanese Logic this poll ran out and
+        // reported BOUNCE_DIALOG_NOT_FOUND about a dialog that was on screen. The names come from
+        // the same LabelSet that drove the menu click.
+        let bounceDialogSeen = AppleScriptMenuResolution.textContainsAny(
+            AXLocalePolicy.bounceMenuItem,
+            of: "bounceName",
+            variableName: "bounceSeen"
+        )
         let itemResolution = AppleScriptMenuResolution.menuItem(
             AXLocalePolicy.bounceMenuItem,
             under: "menu bar item barName of menu bar 1",
@@ -1372,7 +1381,8 @@ extension AccessibilityChannel {
                     try
                         set bounceName to bounceName & " " & name of sheet 1 of front window
                     end try
-                    if bounceName contains "Bounce" or bounceName contains "바운스" then
+                    \(bounceDialogSeen)
+                    if bounceSeen then
                         return "BOUNCE_DIALOG_OPENED"
                     end if
                     delay 0.2
