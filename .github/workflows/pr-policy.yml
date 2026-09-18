@@ -77,9 +77,15 @@ jobs:
         run: |
           set -euo pipefail
           gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" -q .body > pr-body.md
-          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" -q '.[].path' > pr-changed.txt
+          # `.filename`, not `.path`. The REST endpoint spells it `filename`; `gh pr view --json
+          # files` -- the GraphQL form this replaces -- spells it `path`, and reading one field
+          # name off the other API is how the first run of this workflow produced an EMPTY list.
+          # It failed closed on `test -s` below, which is the only reason that was a red check
+          # rather than a change that had opted out of citing Logic without saying so.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" -q '.[].filename' > pr-changed.txt
           # A pull request that changes nothing does not exist, so an empty list is a failed query
-          # rather than an answer -- and an empty list used to reopen the opt-out.
+          # rather than an answer -- and an empty list used to reopen the opt-out. This caught the
+          # wrong field name above on this workflow's very first run.
           test -s pr-changed.txt
           # The API reports the total; if the paginated read is short of it, this did not see the
           # whole change and must not judge it. (REST caps this endpoint at 3000 files, which is
