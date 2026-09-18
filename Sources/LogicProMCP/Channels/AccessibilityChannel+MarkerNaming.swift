@@ -106,11 +106,16 @@ extension AccessibilityChannel {
             variableName: "markerGroup",
             notFoundError: "MARKER_GROUP_NOT_FOUND"
         )
-        let editButtonResolution = AppleScriptMenuResolution.candidateResolution(
-            elementKeyword: "button",
-            labelSet: AXLocalePolicy.markerListEditMenuButton,
-            existsSuffix: " of markerGroup",
-            variableName: "editButtonName",
+        // By DESCRIPTION, like the group above it. `candidateResolution` emits a by-NAME reference,
+        // which is right for a dialog's Cancel and wrong here: this button's label is its
+        // AXDescription and its AXTitle is empty. Measured 2026-09-18 on a running Logic -- 412 of
+        // 439 buttons report no name at all -- and the first version of this change used the
+        // by-name form, which would have returned MARKER_EDIT_BUTTON_NOT_FOUND in every locale
+        // including the two that worked before.
+        let editButtonResolution = AppleScriptMenuResolution.buttonWithDescription(
+            AXLocalePolicy.markerListEditMenuButton,
+            of: "markerGroup",
+            variableName: "editButton",
             notFoundError: "MARKER_EDIT_BUTTON_NOT_FOUND"
         )
         let script = """
@@ -119,7 +124,6 @@ extension AccessibilityChannel {
                 set markerWindow to first window whose name is "\(escapedWindowTitle)"
                 \(markerGroupResolution)
                 \(editButtonResolution)
-                set editButton to button editButtonName of markerGroup
                 set editor to first text area of first scroll area of markerGroup
                 if focused of editor is false then error "marker editor is not focused"
                 keystroke "a" using command down

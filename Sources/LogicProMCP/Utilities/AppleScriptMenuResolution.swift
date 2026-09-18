@@ -142,6 +142,49 @@ enum AppleScriptMenuResolution {
         """
     }
 
+    /// Resolves a BUTTON by its localized `description`, in the order the LabelSet lists.
+    ///
+    /// The sibling of `groupWithDescription`, and it exists because the button beside that group
+    /// was resolved the other way and could not be found at all.
+    ///
+    /// `candidateResolution(elementKeyword: "button", ...)` emits `exists button <name> of
+    /// <container>`, which is a BY-NAME reference. That is right for a dialog's Cancel, whose
+    /// title is the label -- it is what the go-to-position cleanup has always used and what works
+    /// live. It is wrong for a Logic toolbar button, whose label is its AXDescription and whose
+    /// AXTitle is empty.
+    ///
+    /// Measured on a running Logic 12.3 on 2026-09-18, through System Events: of 439 buttons in
+    /// the arrange window, 412 report `name` as `missing value`, and none of the 27 that have a
+    /// name carries an Edit-family label. Asked of one container both ways for the same button:
+    ///
+    ///     desc=바운스   exists button "바운스" of container            -> false
+    ///                  exists (first button whose description is …)  -> true
+    ///
+    /// So the marker rename's Edit button must be found the way the marker GROUP above it is.
+    /// Each attempt is wrapped in its own `try` for the same reason: `whose description is` raises
+    /// -1719 when nothing matches, and without the `try` the first locale that does not match
+    /// aborts the script instead of moving to the next.
+    static func buttonWithDescription(
+        _ labelSet: AXLocalePolicy.LabelSet,
+        of container: String,
+        variableName: String,
+        notFoundError: String
+    ) -> String {
+        let literals = labelSet.labels
+            .map { "\"\(AppleScriptSafety.escapeForScript($0))\"" }
+            .joined(separator: ", ")
+        return """
+        set \(variableName) to missing value
+        repeat with candidate in {\(literals)}
+            try
+                set \(variableName) to first button of \(container) whose description is candidate
+                exit repeat
+            end try
+        end repeat
+        if \(variableName) is missing value then error "\(notFoundError)"
+        """
+    }
+
     /// Convenience for a top-level menu-bar item: `menu bar item <name> of menu bar 1`.
     static func menuBarItem(
         _ labelSet: AXLocalePolicy.LabelSet,
