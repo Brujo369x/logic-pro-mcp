@@ -325,9 +325,51 @@ RATCHETS = (
      "cases guards are allowed to SKIP under CI", _skip_members),
     ("docs/canon/MANIFEST.json", "sources", "grow",
      "the (source, locale) corpora every absence proof searches", _corpus_members),
-    ("docs/canon/LABELSETS-WITHOUT-A-ROW.json", "labelsets", "shrink",
-     "LabelSets waived from naming the row they are Apple's values of",
-     _labelset_waiver_members),
+    #: `LABELSETS-WITHOUT-A-ROW.json` WAS HERE as a `shrink` list, and that made the repository's
+    #: own documented path unreachable. `check-new-labelsets-name-a-row.py` offers a new LabelSet
+    #: two answers -- name a row in `derivedFrom`, or carry a waiver with a proof -- and rule 7
+    #: refused the second in the same run that accepted it. An outside review found the pair and
+    #: the code had already recorded this exact contradiction once, for LOGIC-FACING.json.
+    #:
+    #: What makes this list different from every other waiver here is that its entries are not
+    #: taken on trust for a moment. `check-new-labelsets-name-a-row.py:225` re-proves EVERY entry
+    #: on EVERY run -- `prove_absent` searches all 23 corpora in all ten locales, and
+    #: `prove_composition` verifies each factor against the row's committed digest per locale -- and
+    #: that guard is discovered by `run-repo-guards.py`, run by the `guards` job, which `build`
+    #: needs and the ruleset requires. So the bar an added entry must clear is a proof against
+    #: Apple's own data, not a sentence. A monotonic ratchet on top of that adds no protection and
+    #: costs the only path a genuinely composed label has.
+    #:
+    #: The ratchet stays on every other waiver list, where the entries ARE taken on trust.
+    #: `not_required` was NOT here, and `check-every-ci-job-is-required.py`'s own comment says the
+    #: list was moved into a file "so the merge-base ratchet can see it". Only `required_commands`
+    #: was listed, so it could not: a change could add a CI job that always fails, waive it in
+    #: `not_required` in the same commit, and both guards passed. A waiver for "this job does not
+    #: have to be required" is the most load-bearing waiver in the repository, because what it
+    #: waives is the gate itself.
+    ("docs/canon/CI-GATE.json", "not_required", "shrink",
+     "CI jobs that are allowed not to gate a merge", _key_members),
+    #: This file DOES NOT EXIST at the time of writing, and that was the hole: the guard reads it
+    #: (`check-ax-comparisons-use-labelsets.py`) and skips whatever it names, so anyone could
+    #: create it in the same change as the comparison it excuses and nothing compared it to
+    #: anything. A ratchet entry on an absent file is not a mistake -- `_members` returns an empty
+    #: set for a missing file, so the first version of it is measured against nothing and every
+    #: entry in it is a growth that rule 7 refuses.
+    #: The key is `literals` because that is what `check-ax-comparisons-use-labelsets.py::waived`
+    #: reads. A ratchet aimed at a key the consumer does not use guards a list nothing obeys, and
+    #: the shape check would report it as a renamed key rather than as the mismatch it is.
+    ("docs/canon/AX-COMPARISON-WAIVERS.json", "literals", "shrink",
+     "AX comparisons waived from using a LabelSet", _key_members),
+    #: Was a Python set literal in the guard that reads it, so "may only shrink" was a comment and
+    #: a change could add a guard with no test and waive it in the same diff.
+    ("docs/canon/GUARDS-WITHOUT-A-TEST.json", "guards", "shrink",
+     "guards with no test that drives them", _key_members),
+    #: Measured by `Scripts/mutation-sweep-guard-tests.py`, not declared. A guard leaves this list
+    #: by gaining a case that drives its entry point at an input that must fail, and the sweep
+    #: re-measures; a guard cannot be added to it to excuse a test that was never written, because
+    #: rule 7 refuses the growth.
+    ("docs/canon/GUARD-TESTS-BLIND-TO-THEIR-GUARD.json", "guards", "shrink",
+     "guards whose test does not notice the gate being removed", _key_members),
 )
 
 
@@ -355,7 +397,80 @@ def check_waivers_only_shrink(failures: list) -> None:
         members = entry[4] if len(entry) > 4 else _ratchet_members
         before = _at_base(base, path)
         if before is None:
-            continue
+            # A list no ancestor carries is unratcheted on the branch that introduces it. For a
+            # `grow` list that is necessary -- rule 14 refuses a Logic-facing directory that is not
+            # in LOGIC-FACING.json, so the commit adding the directory must be able to add the
+            # prefix, and refusing it would make the first such change unmergeable.
+            #
+            # For a `shrink` list it is the abuse itself. A waiver list may only shrink, and a NEW
+            # waiver list arriving pre-populated is a growth from nothing that nobody is asked
+            # about. `docs/canon/AX-COMPARISON-WAIVERS.json` was exactly this: the AX-comparison
+            # guard already read it and skipped whatever it named, the file did not exist, and it
+            # was in no ratchet -- so creating it in the same change as the comparison it excuses
+            # cost nothing. An empty base is the honest comparison for a waiver: every entry in the
+            # first version is new, because before it there was no permission at all.
+            if direction != "shrink":
+                continue
+            if not os.path.exists(os.path.join(REPO, path)):
+                # Absent on both sides. A waiver list that does not exist is the good state, and
+                # the shape check below would otherwise read "one side does not have the key" as a
+                # renamed key. The comparison begins the moment somebody creates the file.
+                continue
+            # A list that MOVED is not a list that appeared. `KNOWN_BARE` lived as a Python set in
+            # the guard that read it, where "may only shrink" was a comment and nothing compared
+            # it; moving it into a file is what makes the ratchet possible, and refusing the move
+            # would keep every such list in code forever.
+            #
+            # `migrated_from` is checked, not believed: the named path is read AT THE MERGE BASE
+            # and every member of the new list must appear there as a quoted string. A member the
+            # predecessor did not carry is still a growth from nothing. That is the difference
+            # between a decision and a sentence -- the file cannot authorise itself.
+            #
+            # And before that, the distinction the first version of this rule missed: a `shrink`
+            # list is either a set of PERMISSIONS or a CENSUS of measured debt, and only the first
+            # can excuse anything. What separates them is not what the file says about itself --
+            # it is whether any guard READS it to skip something. `AX-COMPARISON-WAIVERS.json` is
+            # read by `check-ax-comparisons-use-labelsets.py`, which skips whatever it names, so a
+            # new entry silences a real finding and its first version must be empty.
+            # `GUARD-TESTS-BLIND-TO-THEIR-GUARD.json` is read by no guard at all: it records what
+            # `mutation-sweep-guard-tests.py` measured, and its first version is that measurement.
+            # Refusing a census is refusing somebody for writing down what is already true.
+            #
+            # Checked by looking, not by asking the file.
+            readers = sorted(
+                os.path.basename(g) for g in glob.glob(os.path.join(REPO, "Scripts", "check-*.py"))
+                if os.path.basename(g) != os.path.basename(__file__)
+                and os.path.basename(path) in open(g, encoding="utf-8", errors="replace").read())
+            if not readers and os.path.exists(os.path.join(REPO, path)):
+                _note(f"{path} is new and no guard reads it to exempt anything, so it is a census "
+                      f"rather than a set of permissions. Its first version is the measurement; "
+                      f"the ratchet holds it to shrinking from the next branch on.")
+                continue
+            now_doc = _json(os.path.join(REPO, path), {})
+            origin = now_doc.get("migrated_from")
+            if origin:
+                was_text = _git("show", f"{base}:{origin}") or ""
+                if not was_text:
+                    failures.append(
+                        f"{path}: `migrated_from` names {origin!r}, which the merge base does not "
+                        f"carry. A move has a place it moved FROM, and this one cannot be checked.")
+                    continue
+                strays = sorted(m for m in members(now_doc, key)
+                                if f'"{m}"' not in was_text and f"'{m}'" not in was_text)
+                if strays:
+                    failures.append(
+                        f"{path}: {len(strays)} member(s) are not in {origin} at the merge base, so "
+                        f"they were not moved, they were added: {', '.join(strays[:6])}. A new "
+                        f"exemption lands as a growth however the file it lands in was created.")
+                    continue
+                _note(f"{path} was migrated from {origin}; every member is one that file already "
+                      f"carried at {base[:8]}, so the move is not a growth. The ratchet compares "
+                      f"against this file from the next branch on.")
+                continue
+            before = {key: []}
+            _note(f"{path} is carried by no ancestor of {base[:8]}. It is a waiver list, so its "
+                  f"first version is compared against an EMPTY set: a new list of exemptions is a "
+                  f"growth from nothing, not a bootstrap.")
         now = _json(os.path.join(REPO, path), {})
         if not isinstance(before.get(key), (list, dict)) or not isinstance(now.get(key), (list, dict)):
             failures.append(
@@ -632,6 +747,17 @@ def check_not_applicable(rel: str, record: dict, manifest: dict, failures: list)
                         f"{text[:60]!r}, which resolves in {source}/{locale}. A citation was "
                         f"available, so the declaration is false.")
                     return
+                if canon.differs_only_by_decoration(source, locale, text):
+                    # Same reason as the `canon_absent` rule below: exact absence is not absence
+                    # when a shipped label folds to the reading. A declaration that the axis does
+                    # not apply is strongest exactly where the reading is a near miss of a real
+                    # label, because that is where the author typed rather than read.
+                    failures.append(
+                        f"{rel}: declares the canon axis does not apply, and its readings contain "
+                        f"{text[:60]!r}, which is absent from {source}/{locale} only as BYTES -- a "
+                        f"string Logic ships folds to it. Quote it the way the corpus holds it; "
+                        f"the declaration is false for a label that differs by a colon or a case.")
+                    return
             except canon.CanonError:
                 continue
 
@@ -883,7 +1009,13 @@ def check_record(path: str, failures: list, without_canon: set, manifest: dict,
                 f"of them, so proving it in all of them is what the claim means -- and deriving "
                 f"the set from `host.locale` only moved the author's choice, it did not remove it.")
 
+        #: The values this record cites, folded the way a near miss is folded. A `canon_absent`
+        #: entry whose folded form is among them has already named the spelling Logic ships.
+        cited_folded = {canon.fold_for_near_miss(c["value"])
+                        for c in citations if c.get("value")}
+
         for text in strings:
+            folded_is_cited = canon.fold_for_near_miss(text) in cited_folded
             # Absent from ALL of them, not from ANY of them. `any` let a claim stand on the one
             # corpus that happened not to hold the string.
             for source, corpus_locale in sorted(searched):
@@ -892,6 +1024,30 @@ def check_record(path: str, failures: list, without_canon: set, manifest: dict,
                         failures.append(
                             f"{where}: {text!r} is PRESENT in {source}/{corpus_locale}. It can be "
                             f"cited, so it must be, and a measurement is not the only route to it.")
+                    elif (canon.differs_only_by_decoration(source, corpus_locale, text)
+                          and not folded_is_cited):
+                        # Absent AS BYTES, and a shipped label folds to it -- a colon, an ellipsis,
+                        # a capital, a space. `is_absent` is exact and this rule used to ask
+                        # nothing else, so a truncated or decorated reading proved "uncitable" for
+                        # a label Logic ships. `Input Port:`, `Output Port:` and `Model:` were each
+                        # proved absent from all 23 corpora while Logic ships them without the
+                        # colon, and none had been read off a screen. The CLI has answered NOT
+                        # PROVEN for this since it was written; the rule that gates a RECORD did
+                        # not ask, which is two definitions of "in the corpus" in one system.
+                        #
+                        # `folded_is_cited` is what keeps the rule from refusing the honest case.
+                        # Sometimes the decoration IS the finding -- `Set Locators…` is absent
+                        # everywhere and Apple ships `Set Locators`, and saying so is the point of
+                        # the record. A record that has read the shipped spelling can CITE it, and
+                        # one that has not is guessing. So the near miss is allowed exactly when
+                        # the record also carries a citation whose value folds to the same thing.
+                        failures.append(
+                            f"{where}: {text!r} is absent from {source}/{corpus_locale} as bytes, "
+                            f"but a string Logic ships folds to it -- they differ only by case or "
+                            f"decoration, and this record cites no value that folds to it. Either "
+                            f"the reading was typed rather than read, or the shipped spelling is "
+                            f"the finding; if it is the finding, cite it in `canon` so the record "
+                            f"says which spelling Logic actually has.")
                 except canon.CanonError as exc:
                     failures.append(f"{where}: {exc}")
 
