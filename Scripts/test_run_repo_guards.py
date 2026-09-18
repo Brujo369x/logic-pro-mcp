@@ -7,11 +7,16 @@ code. It now decides what counts as having RUN, and that decision is what let tw
 `ok` having asserted nothing -- so it needs cases of its own.
 
 The helpers are driven directly against text rather than by spawning 48 children, so these cases
-are fast and say exactly which rule they are about.
+are fast and say exactly which rule they are about. The cases for `main` are the exception: what
+they are about IS the child process -- that a hang is killed, that a killed child's own children go
+with it, that the temporary tree is deleted -- and none of that is observable without one.
 """
 import importlib.util
 import os
+import subprocess
 import sys
+import tempfile
+import time
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -80,6 +85,158 @@ class TheSkipBudget(unittest.TestCase):
             runner.REPO = saved
         self.assertEqual(budget, 0)
         self.assertIn("nothing is allowed to skip", why)
+
+
+class TheDeadline(unittest.TestCase):
+    def test_a_hanging_child_is_killed_and_reported_as_a_failure(self):
+        """Not a wait. Before this, a blocked guard spent the JOB's 60 minutes and named nobody."""
+        with tempfile.TemporaryDirectory() as tmp:
+            script = os.path.join(tmp, "hangs.py")
+            with open(script, "w", encoding="utf-8") as handle:
+                handle.write("import time\nprint('starting', flush=True)\ntime.sleep(600)\n")
+            started = time.monotonic()
+            code, out, seconds, timed_out = runner._run(script, dict(os.environ), 2)
+            elapsed = time.monotonic() - started
+        self.assertTrue(timed_out)
+        self.assertIsNone(code)
+        self.assertLess(elapsed, 30, "it must not have waited for the child's own sleep")
+        self.assertGreaterEqual(seconds, 2)
+
+    def test_a_grandchild_is_killed_with_its_parent(self):
+        """`start_new_session` + `killpg`, or the grandchild holds the pipe after the kill."""
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = os.path.join(tmp, "still-alive")
+            script = os.path.join(tmp, "spawns.py")
+            body = (
+                "import subprocess, sys, time\n"
+                "subprocess.Popen([sys.executable, '-c',\n"
+                "    \"import time; time.sleep(8); open(%r,'w').write('x')\"])\n"
+                "print('spawned', flush=True)\n"
+                "time.sleep(600)\n" % marker)
+            with open(script, "w", encoding="utf-8") as handle:
+                handle.write(body)
+            started = time.monotonic()
+            _, _, _, timed_out = runner._run(script, dict(os.environ), 2)
+            self.assertTrue(timed_out)
+            self.assertLess(time.monotonic() - started, 30)
+            time.sleep(10)
+            self.assertFalse(os.path.exists(marker),
+                             "the grandchild outlived the kill, so killpg did not reach it")
+
+    def test_a_child_that_finishes_is_not_reported_as_timed_out(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            script = os.path.join(tmp, "quick.py")
+            with open(script, "w", encoding="utf-8") as handle:
+                handle.write("print('done')\n")
+            code, out, seconds, timed_out = runner._run(script, dict(os.environ), 30)
+        self.assertFalse(timed_out)
+        self.assertEqual(code, 0)
+        self.assertIn("done", out)
+
+    def test_the_deadline_is_read_from_the_environment_and_refuses_nonsense(self):
+        saved = os.environ.get("LPM_GUARD_TIMEOUT")
+        try:
+            os.environ.pop("LPM_GUARD_TIMEOUT", None)
+            self.assertEqual(runner._timeout(), runner.DEFAULT_TIMEOUT)
+            os.environ["LPM_GUARD_TIMEOUT"] = "45"
+            self.assertEqual(runner._timeout(), 45)
+            for bad in ("0", "-1", "soon"):
+                os.environ["LPM_GUARD_TIMEOUT"] = bad
+                with self.assertRaises(SystemExit):
+                    runner._timeout()
+        finally:
+            os.environ.pop("LPM_GUARD_TIMEOUT", None)
+            if saved is not None:
+                os.environ["LPM_GUARD_TIMEOUT"] = saved
+
+
+def _main_over(bodies, env=None):
+    """Run the runner's `main` over scripts written for this case, in a child process.
+
+    Discovery is monkeypatched in the CHILD: `main` is about the whole loop, and the loop's
+    effects -- the temporary tree, the killed children, the exit code -- are not observable from
+    inside the process running the case.
+    """
+    tmp = tempfile.mkdtemp(prefix="runner-case-")
+    paths = []
+    for index, body in enumerate(bodies):
+        path = os.path.join(tmp, "check-case%d.py" % index)
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(body)
+        paths.append(path)
+    driver = os.path.join(tmp, "driver.py")
+    runner_path = os.path.join(REPO, "Scripts", "run-repo-guards.py")
+    with open(driver, "w", encoding="utf-8") as handle:
+        handle.write(
+            "import importlib.util, sys\n"
+            "spec = importlib.util.spec_from_file_location('r', %r)\n"
+            "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
+            "m.discovered = lambda: %r\n"
+            "sys.exit(m.main())\n" % (runner_path, paths))
+    return subprocess.run([sys.executable, driver], capture_output=True, text=True,
+                          env=dict(os.environ, **(env or {})))
+
+
+class TheTemporaryTree(unittest.TestCase):
+    def test_each_child_gets_its_own_bytecode_prefix(self):
+        """Sharing one would undo the isolation that caught a guard running stale bytecode."""
+        with tempfile.TemporaryDirectory() as root:
+            first = runner._isolated_env(root, 0)["PYTHONPYCACHEPREFIX"]
+            second = runner._isolated_env(root, 1)["PYTHONPYCACHEPREFIX"]
+            self.assertNotEqual(first, second)
+            self.assertTrue(first.startswith(root) and second.startswith(root))
+
+    def test_a_whole_run_leaves_nothing_behind(self):
+        """mkdtemp per child leaked one directory per guard, per run, for the life of the box."""
+        before = set(os.listdir(tempfile.gettempdir()))
+        proc = _main_over(["print('ok')\n"])
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        leaked = [n for n in set(os.listdir(tempfile.gettempdir())) - before
+                  if n.startswith(("lpm-guards-", "lpm-pyc-"))]
+        self.assertEqual(leaked, [])
+
+
+class TheLoop(unittest.TestCase):
+    def test_a_failing_child_fails_the_run_and_its_output_survives(self):
+        proc = _main_over(["import sys\nprint('the reason', file=sys.stderr)\nsys.exit(1)\n"])
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("the reason", proc.stdout)
+        self.assertIn("1 of 1 failed", proc.stdout)
+
+    def test_a_silent_child_is_not_a_pass(self):
+        proc = _main_over(["pass\n"])
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("produced no output", proc.stdout)
+
+    def test_a_hanging_child_names_itself_rather_than_the_job(self):
+        proc = _main_over(["import time\nprint('x', flush=True)\ntime.sleep(600)\n"],
+                          env={"LPM_GUARD_TIMEOUT": "2"})
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("did not finish within 2s", proc.stdout)
+        self.assertIn("check-case0.py", proc.stdout)
+
+    def test_every_child_runs_even_after_one_fails(self):
+        """"which guards are broken" is more useful than "the first one"."""
+        proc = _main_over(["import sys\nprint('first failed')\nsys.exit(1)\n",
+                           "print('second ran')\n"])
+        self.assertEqual(proc.returncode, 1)
+        # The second one's OWN output is in its log file rather than the console -- that is the
+        # point of the per-run log directory. What the console must show is that it ran at all.
+        self.assertRegex(proc.stdout, r"ok\s+\S*check-case1\.py")
+        self.assertIn("1 of 2 failed", proc.stdout)
+        self.assertIn("first failed", proc.stdout, "a FAILING child's output is still printed")
+
+    def test_each_child_reports_its_own_wall_time(self):
+        proc = _main_over(["print('a')\n", "print('b')\n"])
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("s total; slowest:", proc.stdout)
+        self.assertEqual(proc.stdout.count("check-case"), 6,
+                         "two announcements, two results, two in the slowest list")
+
+    def test_discovering_nothing_is_not_a_pass(self):
+        proc = _main_over([])
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("that is not a pass", proc.stdout)
 
 
 if __name__ == "__main__":

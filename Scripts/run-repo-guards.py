@@ -37,14 +37,35 @@ So a child must now show that it ran something. `Ran 0 tests` is a failure, no o
 failure, and skips are counted and printed rather than swallowed. Under CI a skip must be declared
 in `docs/canon/CI-SKIPS.json` with a reason and a number -- CI has no Logic, and the four cases that
 need it are the only honest skip in the tree.
+
+A HUNG GUARD IS A FAILURE, NOT A WAIT
+-------------------------------------
+Every child ran with no deadline. One that blocks -- a network read nobody bounded, a `communicate`
+on a pipe nothing closes -- consumed the whole job's 60-minute budget and ended as a timeout on the
+JOB, which names no script. Each child now gets `LPM_GUARD_TIMEOUT` seconds (default below, chosen
+from measured times rather than from a round number), is started in its own session, and is killed
+by process GROUP on expiry so a child's own children go with it. The timeout is a FAILURE with the
+script's name on it.
+
+WHERE THE TIME GOES
+-------------------
+Measured on the 2026-09-17 main run: this runner was 13.3 minutes of `compile` and 11.7 of `test`,
+which is most of both, and it printed nothing until a script finished. Each one now announces itself
+before it runs and reports its own wall time after, the summary names the slowest, and each child's
+output is kept in a per-run temporary directory instead of being interleaved into the log. Being
+able to say WHICH guard is slow is the whole point; a total with no breakdown is what made this
+invisible for as long as it was.
 """
 import glob
 import json
 import os
 import re
+import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -58,7 +79,26 @@ def discovered():
     return [p for p in out if os.path.basename(p) != os.path.basename(__file__)]
 
 
-def _isolated_env():
+#: Seconds any one guard may take. 600 is ~24x the slowest measured today, which is the right
+#: shape for a deadline that exists to catch a HANG and not to police a slow check: a guard that
+#: doubles in cost should be seen in the timing column, not killed by the runner.
+DEFAULT_TIMEOUT = 600
+
+
+def _timeout() -> int:
+    raw = os.environ.get("LPM_GUARD_TIMEOUT")
+    if raw is None:
+        return DEFAULT_TIMEOUT
+    try:
+        value = int(raw)
+    except ValueError:
+        raise SystemExit(f"LPM_GUARD_TIMEOUT={raw!r} is not an integer number of seconds")
+    if value <= 0:
+        raise SystemExit("LPM_GUARD_TIMEOUT must be positive; a deadline of zero kills every guard")
+    return value
+
+
+def _isolated_env(cache_root, index):
     """A child environment whose bytecode cache is empty and per-run.
 
     Every guard here loads the module it checks with `spec_from_file_location`, which goes through
@@ -71,10 +111,39 @@ def _isolated_env():
     escape as unblocked while the shipped source blocked it. Copying the identical bytes to a new
     filename passed. A cache that can serve a different body than the file being reviewed defeats
     every claim these guards make, so each run gets its own empty prefix.
+
+    Each child keeps its OWN prefix -- sharing one would undo the isolation the paragraph above is
+    about -- but they now live under a directory this run deletes, instead of `mkdtemp` leaking one
+    per guard into the system temp for the life of the machine.
     """
     env = dict(os.environ)
-    env["PYTHONPYCACHEPREFIX"] = tempfile.mkdtemp(prefix="lpm-pyc-")
+    prefix = os.path.join(cache_root, f"pyc-{index:03d}")
+    os.makedirs(prefix, exist_ok=True)
+    env["PYTHONPYCACHEPREFIX"] = prefix
     return env
+
+
+def _run(path, env, deadline):
+    """(returncode, output, seconds, timed_out), killing the child's whole process group on expiry.
+
+    `start_new_session` puts the child in its own process group so `killpg` reaches ITS children
+    too. A guard that spawned a subprocess and hung would otherwise leave that grandchild holding
+    the pipe open, and `communicate()` after the kill would block on exactly the thing being
+    cleaned up.
+    """
+    started = time.monotonic()
+    proc = subprocess.Popen([sys.executable, path], cwd=REPO, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, env=env, start_new_session=True)
+    try:
+        out, _ = proc.communicate(timeout=deadline)
+        return proc.returncode, out, time.monotonic() - started, False
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
+        out, _ = proc.communicate()
+        return None, out or "", time.monotonic() - started, True
 
 
 RAN = re.compile(r"^Ran (\d+) tests? in ", re.M)
@@ -108,26 +177,49 @@ def allowed_skips(rel: str) -> tuple:
     return int(row.get("skips") or 0), row.get("why") or ""
 
 
+#: How many of the slowest guards the summary names. Enough to see where a regression landed,
+#: short enough that the interesting lines are not buried under 48 of them.
+SLOWEST = 8
+
+
 def main():
     files = discovered()
     if not files:
         print("no guards or drives discovered — that is not a pass")
         return 1
-    print(f"discovered {len(files)} guard(s) and drive(s)\n")
-    failures = []
-    for path in files:
-        rel = os.path.relpath(path, REPO)
-        proc = subprocess.run([sys.executable, path], cwd=REPO,
-                              capture_output=True, text=True, env=_isolated_env())
-        text = proc.stdout + proc.stderr
-        skips, vacuous = evidence_of_work(text)
-        budget, why = allowed_skips(rel)
-        over_budget = (os.environ.get("CI") == "true" and skips > budget)
-        broken = proc.returncode != 0 or vacuous is not None or over_budget
-        note = f" ({skips} skipped)" if skips else ""
-        print(f"{'FAIL' if broken else 'ok  '} {rel}{note}")
-        if broken:
+    deadline = _timeout()
+    print(f"discovered {len(files)} guard(s) and drive(s); {deadline}s each\n", flush=True)
+    workdir = tempfile.mkdtemp(prefix="lpm-guards-")
+    failures, timings = [], []
+    try:
+        logs = os.path.join(workdir, "logs")
+        os.makedirs(logs, exist_ok=True)
+        for index, path in enumerate(files):
+            rel = os.path.relpath(path, REPO)
+            # Before, not after, and on its own line. A runner that prints only on completion
+            # says nothing at all while the guard that is hanging is the one still running, and
+            # `\r` to overwrite it is not an option: GitHub's log viewer renders the carriage
+            # return literally, so the "tidier" version is the unreadable one.
+            print(f"→   {rel}", flush=True)
+            code, text, seconds, timed_out = _run(path, _isolated_env(workdir, index), deadline)
+            timings.append((seconds, rel))
+            log = os.path.join(logs, f"{index:03d}-{rel.replace(os.sep, '_')}.log")
+            with open(log, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            skips, vacuous = evidence_of_work(text)
+            budget, why = allowed_skips(rel)
+            over_budget = (os.environ.get("CI") == "true" and skips > budget)
+            broken = timed_out or code != 0 or vacuous is not None or over_budget
+            note = f" ({skips} skipped)" if skips else ""
+            print(f"{'FAIL' if broken else 'ok  '} {rel}{note}  {seconds:.1f}s", flush=True)
+            if not broken:
+                continue
             failures.append(rel)
+            if timed_out:
+                print(f"       it did not finish within {deadline}s and its process group was "
+                      f"killed. A guard with no deadline spends the JOB's budget instead, and a "
+                      f"job timeout names no script. Raise LPM_GUARD_TIMEOUT only if this one is "
+                      f"genuinely that slow.")
             if vacuous is not None:
                 print(f"       it exited 0 and {vacuous}. An exit code is not evidence that a "
                       f"check ran; a guard that asserts nothing reports the same as one that "
@@ -136,15 +228,23 @@ def main():
                 print(f"       it skipped {skips} under CI and docs/canon/CI-SKIPS.json allows "
                       f"{budget}{' (' + why + ')' if why else ''}. Declare the skip with a reason "
                       f"or remove it -- a skip exits 0.")
-            if proc.returncode != 0:
-                for line in text.splitlines():
-                    print(f"       {line}")
-    print()
-    if failures:
-        print(f"{len(failures)} of {len(files)} failed: {', '.join(failures)}")
-        return 1
-    print(f"all {len(files)} passed")
-    return 0
+            for line in text.splitlines():
+                print(f"       {line}")
+        print()
+        total = sum(seconds for seconds, _ in timings)
+        print(f"{total:.1f}s total; slowest:")
+        for seconds, rel in sorted(timings, reverse=True)[:SLOWEST]:
+            print(f"  {seconds:7.1f}s  {rel}")
+        print()
+        if failures:
+            print(f"{len(failures)} of {len(files)} failed: {', '.join(failures)}")
+            return 1
+        print(f"all {len(files)} passed")
+        return 0
+    finally:
+        # `mkdtemp` per child leaked one directory per guard, per run, for the life of the machine.
+        # One root, deleted here, whether this returned or raised.
+        shutil.rmtree(workdir, ignore_errors=True)
 
 
 if __name__ == "__main__":
