@@ -185,6 +185,36 @@ enum AppleScriptMenuResolution {
         """
     }
 
+    /// Tests an ALREADY-READ AppleScript text value against every label in a set.
+    ///
+    /// `if <text> contains "Bounce" or <text> contains "바운스"` is the shape this replaces, and
+    /// it is the same two-language shape `windowWithTitleSuffix` and `groupWithDescription` were
+    /// written for: a dialog that Logic opens under a localized title is invisible to a pair of
+    /// literals in every other language Logic ships, and the operation reports the dialog missing
+    /// rather than the language.
+    ///
+    /// Unlike the resolvers above this raises nothing and needs no `try`: `contains` on a text
+    /// value cannot error, and the caller branches on the boolean.
+    static func textContainsAny(
+        _ labelSet: AXLocalePolicy.LabelSet,
+        of textVariable: String,
+        variableName: String
+    ) -> String {
+        let literals = labelSet.labels
+            .map { "\"\(AppleScriptSafety.escapeForScript($0))\"" }
+            .joined(separator: ", ")
+        return """
+        set \(variableName) to false
+        repeat with candidate in {\(literals)}
+            if \(textVariable) contains (candidate as text) then
+                set \(variableName) to true
+                exit repeat
+            end if
+        end repeat
+        """
+    }
+
+
     /// Convenience for a top-level menu-bar item: `menu bar item <name> of menu bar 1`.
     static func menuBarItem(
         _ labelSet: AXLocalePolicy.LabelSet,

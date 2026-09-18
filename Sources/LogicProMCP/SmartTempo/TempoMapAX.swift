@@ -18,8 +18,8 @@ enum TempoMapAX {
         let smpte: String
     }
 
-    /// A stable Tempo List reading. `reportedEventCount` comes from the `Number of Items` /
-    /// `항목 수` AXStaticText, while `events` comes from the table's AXRows. Construction is private
+    /// A stable Tempo List reading. `reportedEventCount` comes from the AXStaticText that
+    /// `AXLocalePolicy.tempoListNumberOfItemsLabel` names in every locale Logic ships, while `events` comes from the table's AXRows. Construction is private
     /// to `read`: it requires those two witnesses to agree in each of two consecutive passes.
     /// That corroborates stable agreement at those instants; it does not prove a globally complete
     /// AX table while Logic is still rendering it.
@@ -79,7 +79,13 @@ enum TempoMapAX {
             case let .invalidTempo(row, description):
                 return "Tempo List row \(row) has an invalid tempo description '\(description)'."
             case .itemCountMissing:
-                return "Tempo List Number of Items / 항목 수 text is unavailable."
+                // The message named two of the ten languages the reader actually searches for.
+                // It now names the policy that carries all ten, so the diagnostic cannot drift
+                // from the labels while a translation is added.
+                return "Tempo List "
+                    + AXLocalePolicy.tempoListNumberOfItemsLabel.canonical
+                    + " text is unavailable (searched "
+                    + "\(AXLocalePolicy.tempoListNumberOfItemsLabel.labels.count) localized labels)."
             case let .invalidItemCount(value):
                 return "Tempo List item-count value '\(value)' has no leading count."
             case let .incompleteRead(reportedEventCount, observedRowCount):

@@ -217,11 +217,22 @@ def localised_canonicals(doc=None):
     return out
 
 
-# de-DE joined on 2026-09-12 (#876, an external report that the product did not work on a German
-# Logic — it did not, and the report's premise that Chinese worked was also wrong: zh appeared in
-# exactly two arrays and in no LabelSet variant). Adding a locale here widens every label's coverage
-# map by one column, so every label starts `unmeasured` in it and the campaign fills them in.
-SUPPORTED_LOCALES = ("en-US", "ko-KR", "ja-JP", "de-DE")
+# The ten Logic ships, as of 2026-09-18 (#892). de-DE joined on 2026-09-12 (#876, an external
+# report that the product did not work on a German Logic — it did not, and the report's premise
+# that Chinese worked was also wrong: zh appeared in exactly two arrays and in no LabelSet variant).
+#
+# The sentence that used to end this comment — "every label starts `unmeasured` in it and the
+# campaign fills them in" — was true before the canon axis and is false now. Measured the day these
+# six were added: 110 of 167 labels start `derived` in Spanish, 112 in French, 117 in Italian, 120
+# in Portuguese, 105 in Simplified Chinese and 111 in Traditional. Apple ships those strings and
+# the corpus pins them; nobody has to run a Spanish Logic to know what Logic calls the Mixer there.
+#
+# What the six DO add is six ratchet axes the base has never seen, and the ratchet treats every
+# member of a new key as growth — deliberately, because "a branch adds an axis pre-populated with
+# its own gaps and nothing asks" is the failure it exists to stop. The gaps were always there; the
+# ledger simply was not asking about them. Each is raised once, by name, in RATCHETS.json.
+SUPPORTED_LOCALES = ("en-US", "ko-KR", "ja-JP", "de-DE", "es-ES", "fr-FR",
+                     "it-IT", "pt-BR", "zh-CN", "zh-TW")
 #: `derived` is the state the axis added: Apple ships this label in this locale, and the canon
 #: index pins it. It is not `measured` -- nobody ran a Spanish Logic -- and it is emphatically not
 #: `unmeasured`, which means nobody knows. Before it existed, deriving `Compás de entrada` from

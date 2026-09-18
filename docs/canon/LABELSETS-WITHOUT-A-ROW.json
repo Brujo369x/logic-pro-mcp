@@ -1,0 +1,10 @@
+{
+  "note": "LabelSets added after 2026-09-18 that name no row in `derivedFrom`, each with the proof that there is none to name. Checked by Scripts/check-new-labelsets-name-a-row.py, which re-derives the absence from Apple's bytes rather than believing this file. The list may only SHRINK -- that ratchet lives in Scripts/check-canon-citations.py, so a branch cannot add an entry and waive itself in one commit.",
+  "labelsets": {
+    "showLibraryMenuItem": {
+      "why_no_row": "Logic ASSEMBLES this menu item; Apple ships no string for it. `Show %@` is the template and the Library noun is the argument, so `Show Library` is the value of nothing in any source's English corpus -- and neither is any of its nine translations, which is why this set reaches ten languages while the string itself exists in none. Composition is what gives it its locales, and `check-labelsets-are-derived.py` verifies a ROW, so nothing offline checks the composition itself. That gap is #910; this entry records that the gap is composition and not an unread row.",
+      "date": "2026-09-18",
+      "issue": 910
+    }
+  }
+}

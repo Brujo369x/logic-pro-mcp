@@ -2792,10 +2792,10 @@ extension AccessibilityChannel {
                   !pluginSlotControlOpensMenu(actionNames: actionNames) else {
                 return nil
             }
-            if text.range(of: "open", options: [.caseInsensitive]) != nil || text.contains("열기") {
+            if AXLocalePolicy.pluginSlotOpenControl.containsAny(in: text) {
                 return (0, button)
             }
-            if text.range(of: "list", options: [.caseInsensitive]) != nil || text.contains("목록") {
+            if AXLocalePolicy.pluginSlotListControl.containsAny(in: text) {
                 return (1, button)
             }
             if AXLocalePolicy.pluginOpenOrListControl.containsAny(in: text) {
@@ -2812,7 +2812,15 @@ extension AccessibilityChannel {
         actionNames.contains(kAXShowMenuAction as String) || actionNames.contains { actionName in
             let normalized = actionName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             guard normalized.hasPrefix("name:") else { return false }
-            return normalized.contains("menu") || normalized.contains("메뉴")
+            // `menu` and `메뉴` stood here. The action name is LOCALIZED: measured 2026-09-18 on
+            // Logic 12.3 ko-KR, 136 buttons carry `Name:Legacy 플러그인으로 플러그인 메뉴 열기`,
+            // which is character-for-character the ko value of Apple's row `Open plug-in menu
+            // with legacy plug-ins`. That pair happened to cover five more locales by accident --
+            // the French, Italian and Portuguese sentences contain a lowercase `menu` -- but it
+            // sees nothing in ja, de, es, zh-CN or zh-TW, where a menu-opening button was ranked
+            // as an editor control. Each of the row's ten values contains its own locale's value
+            // of `Menu`, which is why matching that row closes all five.
+            return AXLocalePolicy.menuActionNameFragment.containsAny(in: normalized)
         }
     }
 

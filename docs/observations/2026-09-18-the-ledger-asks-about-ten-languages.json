@@ -1,0 +1,105 @@
+{
+  "id": "2026-09-18-the-ledger-asks-about-ten-languages",
+  "date": "2026-09-18",
+  "schema": 3,
+  "subject": "Widening the coverage ledger from four supported locales to the ten Logic ships",
+  "question": "The ledger asked about four languages. What does it say when it asks about all ten, and how much of the answer already exists?",
+  "verdict": "works",
+  "issues": [
+    892,
+    904
+  ],
+  "surface": "system.bundle",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "en-US",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-observation-ratchets.py",
+    "expected": "every ledger gap is within its allowed set, with an unmeasured_coverage key for each of the ten locales",
+    "cost": "~15s; reads committed digests and the ledger, launches nothing"
+  },
+  "depends": [
+    "Scripts/locale_labels.py",
+    "docs/locale/ui-labels.json"
+  ],
+  "method": "Set SUPPORTED_LOCALES to the ten `.lproj` names Logic ships, regenerated the projection and read the coverage state of all 167 labels in each locale. Then compared the six new ratchet keys against the merge base, which has never seen them, and recorded each raise with what it actually contains.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FMAMobileGeneralUI.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Show%20Mixer#value",
+      "value": "Show Mixer",
+      "used_for": "a label whose ten languages the corpus already had while the ledger asked about four. Its Spanish and Chinese were `derived` the moment the column existed, which is the shape of 110-to-119 of the 167. The unit is MAMobileGeneralUI.framework, not Logic.framework -- this reference was first written from memory with the wrong framework and the gate refused it, which is what a citation that must resolve is for",
+      "binding": {
+        "kind": "record"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "locales the ledger asked about, before",
+      "count": 4
+    },
+    {
+      "what": "after",
+      "count": 10
+    },
+    {
+      "what": "labels in the ledger",
+      "count": 167
+    },
+    {
+      "what": "of those, derived in Spanish the moment the column existed",
+      "count": 110
+    },
+    {
+      "what": "in French",
+      "count": 111
+    },
+    {
+      "what": "in Italian",
+      "count": 117
+    },
+    {
+      "what": "in Portuguese",
+      "count": 119
+    },
+    {
+      "what": "in Simplified Chinese",
+      "count": 105
+    },
+    {
+      "what": "in Traditional Chinese",
+      "count": 111
+    },
+    {
+      "what": "unmeasured in Spanish, the largest of the six new gaps",
+      "count": 56
+    },
+    {
+      "what": "unmeasured in Portuguese, the smallest",
+      "count": 47
+    },
+    {
+      "what": "ratchet members raised across the six new coverage keys",
+      "count": 323
+    },
+    {
+      "what": "ratchet members raised for surfaces with no record in a new locale",
+      "count": 132
+    }
+  ],
+  "conclusion": "The ledger now asks about the ten languages Logic ships instead of four. The comment on SUPPORTED_LOCALES predicted what that would cost -- 'every label starts unmeasured in it and the campaign fills them in' -- and that was true when it was written and is false now: between 105 and 119 of the 167 labels are `derived` in each new locale the moment the column exists, because Apple ships those strings and the corpus pins them. Nobody has to run a Spanish Logic to know what Logic calls the Mixer there: `Show Mixer` is one row, it carries all ten locales, and its Spanish and Chinese were `derived` the moment the column existed.\\n\\nWhat the six do add is six ratchet axes the merge base has never seen, and the ratchet counts every member of a new key as growth on purpose: a branch that adds an axis pre-populated with its own gaps and is not asked about it is the failure that rule exists to stop. So each is raised once, by name, with what it contains -- 323 coverage members across the six, which are the labels whose row is ambiguous, whose row does not exist, or which are lowercase containment fragments that were never whole labels.\\n\\nThe surfaces axis is the honest counterexample and is raised separately. 132 of its members are new, and no derivation can close one: a surface census is a READING taken on a running Logic, and this repository has run four languages. A label's ten languages come from Apple's rows; a census of what the mixer looks like on a Spanish Logic does not.",
+  "limits": [
+    "`derived` is not `measured`. It says Apple ships this string in this locale and the corpus pins it; it does not say anybody has seen Logic render it, and for an AXDescription it is an expectation rather than a reading.",
+    "The six new columns can only shrink from here, so the 323 and the 132 are now debt this repository has committed to paying down rather than numbers it can revise.",
+    "Widening was safe only because nothing outside `SUPPORTED_LOCALES` assumes four -- checked by sweeping every consumer of `supported_locales`. A consumer added later that hardcodes the list would not be caught by this."
+  ],
+  "evidence": [
+    "evidence/2026-09-18-the-ledger-asks-about-ten-languages.json"
+  ],
+  "supersedes": null
+}

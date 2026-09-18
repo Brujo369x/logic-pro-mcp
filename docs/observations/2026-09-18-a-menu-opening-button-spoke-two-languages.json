@@ -1,0 +1,198 @@
+{
+  "id": "2026-09-18-a-menu-opening-button-spoke-two-languages",
+  "date": "2026-09-18",
+  "schema": 3,
+  "subject": "The four remaining CJK literal sites, read against a running Korean Logic before being replaced",
+  "question": "Four matchers still carried hand-written Korean: the cycle-locator field scan, the plug-in slot ranking, the menu-opening action-name test, and the bounce dialog poll. What does a running Logic actually expose at each, and can Apple's own rows replace the literals?",
+  "verdict": "partial",
+  "issues": [
+    892,
+    904,
+    910
+  ],
+  "surface": "system.accessibility",
+  "host": {
+    "app": "Logic Pro",
+    "version": "12.3",
+    "build": "6674",
+    "locale": "ko-KR",
+    "os": "macOS 26.3 (25D125)"
+  },
+  "reverify": {
+    "kind": "script",
+    "command": "python3 Scripts/check-labelsets-are-derived.py && python3 Scripts/check-probe-product-drift.py",
+    "expected": "exit 0: every LabelSet naming a row is pinned in all ten locales, and no set carries two members differing only by case",
+    "cost": "~20s; reads the committed canon index, launches nothing"
+  },
+  "depends": [
+    "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+VerifiedPlugins.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+Transport.swift",
+    "Sources/LogicProMCP/Channels/AccessibilityChannel+Project.swift",
+    "Sources/LogicProMCP/Utilities/AppleScriptMenuResolution.swift"
+  ],
+  "method": "Read a Logic that was already running in Korean with a project open. Nothing was launched, no menu was opened, no element was pressed -- four read-only AX walks: the whole window filtered by description, the control-bar subtree, every AXTextField and AXStaticText, and an action-name census over all 492 buttons. Then looked up each string that came back in the ten-locale corpus.",
+  "canon": [
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FMAMixer.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Open%20plug-in%20menu%20with%20legacy%20plug-ins#value",
+      "value": "Open plug-in menu with legacy plug-ins",
+      "used_for": "the row whose ko value IS the live action name. Logic localizes its custom AX action names, which is the fact the old `menu`/`\\uba54\\ub274` test did not know",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Channels/AccessibilityChannel+VerifiedPlugins.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FMAWorkspace.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/Menu#value",
+      "value": "Menu",
+      "used_for": "the ten values the replacement matches with. Each is a substring of that locale's rendering of the sentence above, so the action is recognized in every language Logic ships rather than in five of them",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FMAGUI.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/open#value",
+      "value": "open",
+      "used_for": "the insert slot's open control. This row, not either `Open` row, because its Japanese is `\\u958b\\u304f` -- what #795's ja-JP census read at an open button -- while the `Open` rows carry `\\u30aa\\u30fc\\u30d7\\u30f3`",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    },
+    {
+      "ref": "logic-canon://strings/Contents%2FFrameworks%2FLogic.framework%2FVersions%2FA%2FResources%2FLocalizable.strings/en/End#value",
+      "value": "End",
+      "used_for": "the cycle range's end side. Apple's Korean here is `\\uc885\\ub8cc`; the literal this product shipped is `\\ub05d`, which is the value of no row in any locale",
+      "binding": {
+        "kind": "code",
+        "path": "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "what": "elements walked in the running Logic's windows",
+      "count": 1334
+    },
+    {
+      "what": "of those, elements whose description names the cycle",
+      "count": 2,
+      "values": [
+        "사이클 (AXCheckBox, control bar)",
+        "사이클 리전 (AXLayoutItem, ruler)"
+      ]
+    },
+    {
+      "what": "cycle-locator AXTextFields, which the transport AX path scans for",
+      "count": 0
+    },
+    {
+      "what": "AXTextField and AXStaticText elements dumped with their descriptions",
+      "count": 169
+    },
+    {
+      "what": "buttons censused for action names",
+      "count": 492
+    },
+    {
+      "what": "distinct action names across all of them",
+      "count": 4,
+      "values": [
+        "AXPress",
+        "AXShowMenu",
+        "AXZoomWindow",
+        "Name:Legacy 플러그인으로 플러그인 메뉴 열기"
+      ]
+    },
+    {
+      "what": "buttons carrying that localized action name",
+      "count": 136
+    },
+    {
+      "what": "of those, by button description",
+      "count": 3,
+      "values": [
+        "오디오 플러그인 ×58",
+        "마디 삽입 ×30",
+        "목록 ×48"
+      ]
+    },
+    {
+      "what": "locales the old `menu`/`메뉴` test reached",
+      "count": 5,
+      "values": [
+        "en",
+        "ko",
+        "fr",
+        "it",
+        "pt"
+      ]
+    },
+    {
+      "what": "locales it reached nothing in",
+      "count": 5,
+      "values": [
+        "ja",
+        "de",
+        "es",
+        "zh-CN",
+        "zh-TW"
+      ]
+    },
+    {
+      "what": "locales the `Menu` row reaches",
+      "count": 10
+    },
+    {
+      "what": "slot controls read live at an occupied ChromaVerb insert",
+      "count": 2,
+      "values": [
+        "열기 (opens the editor)",
+        "목록 (carries the menu action)"
+      ]
+    },
+    {
+      "what": "literals dropped because Apple ships them nowhere",
+      "count": 4,
+      "values": [
+        "in",
+        "left",
+        "out",
+        "right"
+      ]
+    },
+    {
+      "what": "CJK string literals outside AXLocalePolicy.swift, before",
+      "count": 26
+    },
+    {
+      "what": "after",
+      "count": 17
+    },
+    {
+      "what": "of those 17, ones that are a matcher rather than the derived locale-detection table or an AppleScript comment",
+      "count": 2,
+      "values": [
+        "the two region bar-position regexes (#909)"
+      ]
+    },
+    {
+      "what": "LabelSets in the policy, after",
+      "count": 173
+    }
+  ],
+  "conclusion": "Logic LOCALIZES its custom AX action names. 136 buttons on this Korean Logic answer `Name:Legacy 플러그인으로 플러그인 메뉴 열기`, which is character-for-character the ko value of `Open plug-in menu with legacy plug-ins` in MAMixer -- so the test that decided whether pressing a slot control opens an EDITOR or a MENU was reading a translated sentence with two English/Korean words. It reached five locales, not two, because the French, Italian and Portuguese renderings happen to contain a lowercase `menu`; it reached nothing in Japanese, German, Spanish or either Chinese, where a menu-opening button is not recognized as one and is ranked as an editor control. Matching Apple's `Menu` row instead closes all five, because each of that sentence's ten values contains its own locale's value of that row.\\n\\nThe cycle-locator matcher is the opposite finding. Walking all 1334 elements the running Logic exposes turns up exactly two that name the cycle -- the control-bar checkbox and a ruler layout item -- and NEITHER is a text field. With the LCD in `비트 및 프로젝트` the AX path at `setCycle` cannot resolve at all and the osascript fallback carries the operation. So the six literals it carried were a guess about a field nobody here has seen, and one of them, `끝`, is the value of no row in the ten-locale corpus: Apple's `End` is `종료`. `끝` is kept so the change cannot narrow a Korean match; the four English direction words beside it are dropped, because the ledger's list of literals answered nowhere in Logic may only shrink.\\n\\nThe two remaining sites were straightforward once the rows were found. The insert slot's open control reads `열기` live and is MAGUI's lowercase `open` row -- identifiable as that row rather than either `Open` row because its Japanese is `開く`, the string a ja-JP census already read at an open button. The bounce dialog poll compared a window title against `Bounce` or `바운스`, the same two-language shape `windowWithTitleSuffix` and `groupWithDescription` were written to replace, and now runs through a `textContainsAny` generator over the LabelSet that already drove the menu click.",
+  "limits": [
+    "One locale, one machine, one project. That a German Logic's action name is `Plug-in-Menü mit veralteten Plug-ins öffnen` is read from Apple's row, not from a running German Logic.",
+    "`derived` is not `measured`. The nine non-Korean values of every set added here are Apple's bytes; nobody has watched Logic render them.",
+    "The cycle-locator path is recorded as UNREACHABLE in one LCD display mode, not as dead. Reading the other display modes needs the mode popup opened, and an open menu is a recorded wedge risk on a live session, so it was not done.",
+    "Dropping `in`, `left`, `out` and `right` NARROWS the cycle matcher. It is narrowing a path measured to resolve to nothing here, which is not the same as knowing it resolves to nothing anywhere.",
+    "`pluginSlotListControl` reads `unmeasured` in fr-FR and is recorded as a raised gap: French `liste` and German `Liste` differ only by case, the drift guard refuses a set carrying both, and the corpus proves case-exactly while the product matches case-insensitively.",
+    "The list control was not observed at an insert slot at all -- every `목록` button under a plug-in group carries the menu action and is filtered out before ranking. That LabelSet is a derivation, not a reading."
+  ],
+  "evidence": [
+    "evidence/2026-09-18-a-menu-opening-button-spoke-two-languages.json"
+  ],
+  "supersedes": null
+}

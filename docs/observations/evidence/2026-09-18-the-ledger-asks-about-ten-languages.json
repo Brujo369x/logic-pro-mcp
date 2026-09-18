@@ -1,0 +1,76 @@
+{
+  "logic": {
+    "app": "Logic Pro",
+    "build": "6674",
+    "version": "12.3"
+  },
+  "supported_locales": [
+    "en-US",
+    "ko-KR",
+    "ja-JP",
+    "de-DE",
+    "es-ES",
+    "fr-FR",
+    "it-IT",
+    "pt-BR",
+    "zh-CN",
+    "zh-TW"
+  ],
+  "coverage_by_locale": {
+    "en-US": {
+      "measured": 36,
+      "derived": 89,
+      "unmeasured": 41,
+      "retired": 1
+    },
+    "ko-KR": {
+      "measured": 36,
+      "derived": 115,
+      "unmeasured": 15,
+      "retired": 1
+    },
+    "ja-JP": {
+      "measured": 29,
+      "derived": 99,
+      "unmeasured": 38,
+      "retired": 1
+    },
+    "de-DE": {
+      "measured": 30,
+      "derived": 78,
+      "unmeasured": 58,
+      "retired": 1
+    },
+    "es-ES": {
+      "derived": 110,
+      "unmeasured": 56,
+      "retired": 1
+    },
+    "fr-FR": {
+      "derived": 111,
+      "unmeasured": 55,
+      "retired": 1
+    },
+    "it-IT": {
+      "derived": 117,
+      "unmeasured": 49,
+      "retired": 1
+    },
+    "pt-BR": {
+      "derived": 119,
+      "unmeasured": 47,
+      "retired": 1
+    },
+    "zh-CN": {
+      "derived": 105,
+      "unmeasured": 61,
+      "retired": 1
+    },
+    "zh-TW": {
+      "derived": 111,
+      "unmeasured": 55,
+      "retired": 1
+    }
+  },
+  "labels_total": 167
+}
