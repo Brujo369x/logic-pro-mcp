@@ -170,9 +170,19 @@ import Testing
     }
 }
 
-@Test func testCoverageWorkflowFailsClosedAndUsesWritableProfilePath() throws {
+/// The coverage gate, across the two files it now lives in.
+///
+/// The thresholds moved to `Scripts/ci-coverage-gate.sh` on 2026-09-18, because inline in the
+/// workflow the only way to watch the gate refuse anything was to push a branch whose coverage had
+/// actually dropped. This case follows them. Asserting `MIN_REGION=70` against `ci.yml` after the
+/// number moved would be a test looking in the wrong file and passing for it -- the shape this
+/// repository keeps finding, and the reason each claim below names which file holds it.
+@Test func testCoverageGateFailsClosedAndUsesWritableProfilePath() throws {
     let workflow = try scriptContents(".github/workflows/ci.yml")
+    let gate = try scriptContents("Scripts/ci-coverage-gate.sh")
 
+    // Running the tests and collecting the profile stays in the workflow: it is the one part a
+    // fixture cannot stand in for.
     #expect(workflow.contains("set -euo pipefail"))
     #expect(workflow.contains("PROFRAW_DIR=\"$RUNNER_TEMP/logicpromcp-profraw\""))
     #expect(workflow.contains("export LLVM_PROFILE_FILE=\"$PROFRAW_DIR/%m-%p.profraw\""))
@@ -180,10 +190,30 @@ import Testing
     #expect(workflow.contains("PROFILE_WARNING_COUNT=$(grep -c \"LLVM Profile Error\" \"$COVERAGE_LOG\" || true)"))
     #expect(workflow.contains("continuing to profdata/report validation"))
     #expect(workflow.contains("LLVM profile warnings: ${PROFILE_WARNING_COUNT:-0}."))
-    #expect(workflow.contains("MIN_REGION=70"))
-    #expect(workflow.contains("MIN_LINE=78"))
-    #expect(workflow.contains("COVERAGE_TARGET=90"))
-    #expect(!workflow.contains("set +e"))
+
+    // A cached `default.profdata` is the previous run's answer to a question nobody asked again.
+    #expect(workflow.contains("find .build -type d -name codecov"))
+
+    // The workflow must actually CALL the gate. A gate nothing invokes is the defect one level up.
+    #expect(workflow.contains("bash Scripts/ci-coverage-gate.sh"))
+
+    // GitHub's default `run:` shell is `bash -e` with no pipefail, so `a | tee log` reports tee's
+    // exit code. Naming `bash` selects `bash --noprofile --norc -eo pipefail`.
+    #expect(workflow.contains("defaults:"))
+    #expect(workflow.contains("shell: bash"))
+
+    // The thresholds, where they now are. Unchanged at 70/78, with 90 a notice and not a gate.
+    #expect(gate.contains("set -euo pipefail"))
+    #expect(gate.contains("LPM_COVERAGE_MIN_REGION:-70"))
+    #expect(gate.contains("LPM_COVERAGE_MIN_LINE:-78"))
+    #expect(gate.contains("LPM_COVERAGE_TARGET:-90"))
+
+    // H-4: the coverage step disabled error handling and exited 0, so regressions never blocked a
+    // merge. Neither file may turn it off, in code OR in a comment -- this is a substring search
+    // and cannot tell them apart, which has already cost one red run.
+    let forbidden = "set " + "+e"
+    #expect(!workflow.contains(forbidden))
+    #expect(!gate.contains(forbidden))
     #expect(!workflow.contains("lets transient instrumentation flakes"))
 }
 

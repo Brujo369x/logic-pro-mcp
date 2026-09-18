@@ -195,14 +195,22 @@ jobs:
         # this workflow. It prints each one and its result, its wall time, and runs them all before
         # reporting.
         #
-        # Redirected rather than piped through `tee`. `pipefail` is on now, so `cmd | tee` would
-        # be correct today -- and it is one edit away from not being, which is exactly how this
-        # class of defect gets in. Capturing the status explicitly cannot be undone by a shell
-        # setting somewhere else in the file.
+        # `|| status=$?` rather than disabling errexit around the call. Both capture the exit
+        # code; only one of them leaves error handling ON for every other line, and
+        # `InstallScriptContractTests.swift` forbids turning it off anywhere in this file --
+        # because doing that around a gate is the H-4 defect verbatim, where the coverage step
+        # disabled it and exited 0 for months. A command on the left of `||` does not trip
+        # errexit, so this needs no exemption and asks for none.
+        #
+        # That contract test is a plain substring check over this whole file, so it cannot tell
+        # code from a comment: the first version of THIS comment quoted the forbidden line and
+        # turned the test red while the code was already correct. Do not name it here.
+        #
+        # Redirected rather than piped through `tee`: `pipefail` makes `cmd | tee` correct today
+        # and one shell setting away from not being.
         run: |
-          set +e
-          python3 Scripts/run-repo-guards.py > guard-run.log 2>&1
-          status=$?
+          status=0
+          python3 Scripts/run-repo-guards.py > guard-run.log 2>&1 || status=$?
           cat guard-run.log
           exit "$status"
 
@@ -337,10 +345,15 @@ jobs:
           find .build -type d -name codecov -prune -exec rm -rf {} + 2>/dev/null || true
 
           swift test --enable-code-coverage -Xswiftc -suppress-warnings --no-parallel 2>&1 | tee "$COVERAGE_LOG"
+          # Surfaced, and deliberately NOT the gate by itself: GitHub's macOS runner can emit
+          # recoverable child-process profile warnings while still producing a valid
+          # default.profdata. What decides is whether the gate below can read a report from it.
           PROFILE_WARNING_COUNT=$(grep -c "LLVM Profile Error" "$COVERAGE_LOG" || true)
           if [ "$PROFILE_WARNING_COUNT" != "0" ]; then
-            echo "::warning::LLVM profile runtime reported $PROFILE_WARNING_COUNT warning(s); the gate below validates the profdata it actually produced."
+            echo "::warning::LLVM profile runtime reported $PROFILE_WARNING_COUNT warning(s); continuing to profdata/report validation."
+            echo "::warning::LLVM_PROFILE_FILE=$LLVM_PROFILE_FILE"
           fi
+          echo "LLVM profile warnings: ${PROFILE_WARNING_COUNT:-0}." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Coverage gate
         # Hard thresholds: 70% region, 78% line. 90% line is the project target and deliberately
