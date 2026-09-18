@@ -241,11 +241,24 @@ jobs:
           restore-keys: |
             spm-macos15-xcode164-release-
 
-      - name: Select Xcode
-        # Xcode 16.4 ships Swift 6.2 — required by swift-sdk 0.11.0+ which
-        # adopts the short-form `withThrowingTaskGroup { ... }` syntax. The
-        # previous 16.2 pin (Swift 6.0) cannot compile that form.
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Select Xcode and say which toolchain this is
+        # The pin is Xcode 16.4, required by swift-sdk 0.11.0+ which adopts the short-form
+        # `withThrowingTaskGroup { ... }` syntax that the previous 16.2 pin cannot compile.
+        #
+        # The comment here used to assert "Xcode 16.4 ships Swift 6.2". Apple's own version table
+        # says 6.1, so one of the two was wrong and neither was measured -- and a wrong version in
+        # a comment is what the next person reads when deciding whether to move the pin. The step
+        # prints the toolchain instead of describing it, so the log answers the question and the
+        # comment does not have to.
+        #
+        # This is a correction to a DESCRIPTION. It changes no version and moves no pin.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+          swift --version
+          xcrun --find swift
+          uname -m
+          sw_vers
 
       - name: Build
         run: swift build -c release
@@ -277,11 +290,24 @@ jobs:
           restore-keys: |
             spm-macos15-xcode164-debug-
 
-      - name: Select Xcode
-        # Xcode 16.4 ships Swift 6.2 — required by swift-sdk 0.11.0+ which
-        # adopts the short-form `withThrowingTaskGroup { ... }` syntax. The
-        # previous 16.2 pin (Swift 6.0) cannot compile that form.
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Select Xcode and say which toolchain this is
+        # The pin is Xcode 16.4, required by swift-sdk 0.11.0+ which adopts the short-form
+        # `withThrowingTaskGroup { ... }` syntax that the previous 16.2 pin cannot compile.
+        #
+        # The comment here used to assert "Xcode 16.4 ships Swift 6.2". Apple's own version table
+        # says 6.1, so one of the two was wrong and neither was measured -- and a wrong version in
+        # a comment is what the next person reads when deciding whether to move the pin. The step
+        # prints the toolchain instead of describing it, so the log answers the question and the
+        # comment does not have to.
+        #
+        # This is a correction to a DESCRIPTION. It changes no version and moves no pin.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+          swift --version
+          xcrun --find swift
+          uname -m
+          sw_vers
 
       - name: Coverage report
         # H-4 (2026-05-08 enterprise review) closed in v3.4.0: re-armed

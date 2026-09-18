@@ -32,10 +32,21 @@ jobs:
             exit 1
           fi
 
-      - name: Select Xcode
-        # Xcode 16.4 (Swift 6.2) — required by swift-sdk 0.11.0+ short-form
-        # withThrowingTaskGroup syntax. Keep in sync with .github/workflows/ci.yml.
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Select Xcode and say which toolchain this is
+        # Xcode 16.4, required by swift-sdk 0.11.0+ short-form withThrowingTaskGroup syntax. Keep
+        # in sync with .github/workflows/ci.yml.
+        #
+        # The Swift version this comment used to assert (6.2) disagreed with Apple's own version
+        # table (6.1), and neither number came from the runner. A release's toolchain is the one
+        # fact about a release build that should never be inferred, so it is printed here and the
+        # log is the answer. The pin is unchanged.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+          swift --version
+          xcrun --find swift
+          uname -m
+          sw_vers
 
       - name: Run test suite
         # Keep release logs bounded. The codebase still contains deprecated
