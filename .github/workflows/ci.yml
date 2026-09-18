@@ -309,29 +309,20 @@ jobs:
           uname -m
           sw_vers
 
-      - name: Coverage report
-        # H-4 (2026-05-08 enterprise review) closed in v3.4.0: re-armed
-        # the coverage gate. Pre-fix this step disabled shell error handling
-        # and exited successfully, so coverage regressions never blocked
-        # a merge — exactly the bug the previous review caught.
+      - name: Run the tests and collect coverage
+        # H-4 (2026-05-08 enterprise review) closed in v3.4.0: re-armed the coverage gate.
+        # Pre-fix this step disabled shell error handling and exited successfully, so coverage
+        # regressions never blocked a merge -- exactly the bug that review caught.
         #
-        # The step now runs in TWO phases:
-        #   1. Generate the report fail-closed: the coverage test command,
-        #      profdata lookup, llvm-cov report, and threshold parser must all
-        #      succeed. LLVM runtime profile warnings are surfaced, but are not
-        #      treated as the gate by themselves because GitHub's macOS runner
-        #      can emit recoverable child-process profile warnings while still
-        #      producing a valid default.profdata.
-        #   2. Enforce thresholds (this is the actual gate).
+        # `if: always()` USED to sit here and is gone. It belongs on a step that must run after a
+        # failure -- the artefact upload below -- and this is the step that decides. With it, a
+        # failed `Select Xcode` was followed by a test run against whatever toolchain was left.
         #
-        # Hard thresholds: 70% region, 78% line. 90% line coverage is the
-        # project target, but not the hard gate until a dedicated coverage
-        # uplift lands; setting 90% today would only make every release red.
-        #
-        # `if: always()` USED to sit here, and it is gone. It belongs on a step that must run after
-        # a failure -- an artefact upload, a cleanup -- and this is the step that decides. With it,
-        # a failed `Select Xcode` was followed by a coverage run against whatever toolchain was
-        # left, which is a different answer to the question the gate is asking.
+        # The GATE itself moved to `Scripts/ci-coverage-gate.sh`. Inline, the only way to watch it
+        # refuse anything was to push a branch whose coverage had actually dropped, so four of its
+        # refusals had never been observed; `Scripts/test_ci_coverage_gate.py` now drives all of
+        # them against a fake `llvm-cov`. What stays here is running the tests, which is the one
+        # thing a fixture cannot stand in for.
         run: |
           set -euo pipefail
           PROFRAW_DIR="$RUNNER_TEMP/logicpromcp-profraw"
@@ -348,120 +339,14 @@ jobs:
           swift test --enable-code-coverage -Xswiftc -suppress-warnings --no-parallel 2>&1 | tee "$COVERAGE_LOG"
           PROFILE_WARNING_COUNT=$(grep -c "LLVM Profile Error" "$COVERAGE_LOG" || true)
           if [ "$PROFILE_WARNING_COUNT" != "0" ]; then
-            echo "::warning::LLVM profile runtime reported $PROFILE_WARNING_COUNT warning(s); continuing to profdata/report validation."
-            echo "::warning::LLVM_PROFILE_FILE=$LLVM_PROFILE_FILE"
+            echo "::warning::LLVM profile runtime reported $PROFILE_WARNING_COUNT warning(s); the gate below validates the profdata it actually produced."
           fi
 
-          # v3.4.3: locate the test binary + profdata via `find` instead of
-          # the `.build/debug/...` symlink path. The symlink exists on local
-          # arm64 Macs but its presence under the macos-15-arm64 GitHub
-          # runner is not guaranteed across SwiftPM versions; an absent
-          # symlink silently produces an empty coverage report. `find`
-          # against the actual `.build/arm64-apple-macosx/debug/` tree is
-          # path-version-stable.
-          # EXACTLY one of each. `find | head -1` took whichever the filesystem happened to list
-          # first, so a tree holding two architectures' builds -- or a stale one beside a fresh
-          # one -- was resolved silently, and the report could be about a binary these tests did
-          # not produce. Two matches is a state this gate may not resolve by picking.
-          find .build -type f -path '*/debug/LogicProMCPPackageTests.xctest/Contents/MacOS/LogicProMCPPackageTests' > "$RUNNER_TEMP/bins.txt"
-          find .build -type f -path '*/debug/codecov/default.profdata' > "$RUNNER_TEMP/profs.txt"
-          BIN_COUNT=$(grep -c . "$RUNNER_TEMP/bins.txt" || true)
-          PROF_COUNT=$(grep -c . "$RUNNER_TEMP/profs.txt" || true)
-          if [ "$BIN_COUNT" != "1" ] || [ "$PROF_COUNT" != "1" ]; then
-            echo "::error::Expected exactly one test binary and one profdata; found $BIN_COUNT and $PROF_COUNT."
-            echo "::error::binaries:"; cat "$RUNNER_TEMP/bins.txt"
-            echo "::error::profdata:"; cat "$RUNNER_TEMP/profs.txt"
-            echo "::error::.build tree:"
-            find .build -maxdepth 4 -type d | head -30
-            exit 1
-          fi
-          BIN=$(cat "$RUNNER_TEMP/bins.txt")
-          PROFDATA=$(cat "$RUNNER_TEMP/profs.txt")
-          echo "Test binary: $BIN"
-          echo "Profdata:    $PROFDATA"
-
-          find Sources/LogicProMCP -name '*.swift' | sort > /tmp/logicpro_sources.txt
-          xargs xcrun llvm-cov report "$BIN" -instr-profile "$PROFDATA" \
-            < /tmp/logicpro_sources.txt > coverage-report.txt
-          echo "::group::Full coverage report"
-          cat coverage-report.txt
-          echo "::endgroup::"
-
-          # Extract TOTAL line — llvm-cov column order: regions, missed,
-          # cover%, functions, missed, cover%, lines, missed, cover%.
-          # v3.4.1 (independent review P2-4): validate extracted values match the
-          # `<float>%` shape before threshold compare. A future LLVM
-          # version that prepends a column (e.g. instantiation summary
-          # in TOTAL) would silently grab a different field; the regex
-          # guard below makes that fail-loud instead.
-          # One TOTAL line, not "at least one". Two of them make `$TOTAL_LINE` two lines, `awk`
-          # prints two fields, and the shape check below sees `70.00%\n71.00%` -- which fails, but
-          # for a reason that reads as a column-order change rather than as a report this gate
-          # cannot parse. Say which it is.
-          TOTAL_COUNT=$(grep -cE "^TOTAL" coverage-report.txt || true)
-          if [ "$TOTAL_COUNT" != "1" ]; then
-            echo "::error::The coverage report has $TOTAL_COUNT TOTAL lines; this gate reads one."
-            tail -5 coverage-report.txt
-            exit 1
-          fi
-          TOTAL_LINE=$(grep -E "^TOTAL" coverage-report.txt)
-          REGION_RAW=$(echo "$TOTAL_LINE" | awk '{print $4}')
-          LINE_RAW=$(echo "$TOTAL_LINE" | awk '{print $10}')
-          if ! echo "$REGION_RAW" | grep -qE '^[0-9]+\.[0-9]+%$'; then
-            echo "::error::Region coverage field '$REGION_RAW' did not match <float>% pattern."
-            echo "::error::TOTAL line was: $TOTAL_LINE"
-            echo "::error::This usually means llvm-cov column order changed; review the awk extraction."
-            exit 1
-          fi
-          if ! echo "$LINE_RAW" | grep -qE '^[0-9]+\.[0-9]+%$'; then
-            echo "::error::Line coverage field '$LINE_RAW' did not match <float>% pattern."
-            echo "::error::TOTAL line was: $TOTAL_LINE"
-            exit 1
-          fi
-          REGION_PCT=$(echo "$REGION_RAW" | tr -d '%')
-          LINE_PCT=$(echo "$LINE_RAW" | tr -d '%')
-
-          {
-            echo "## Coverage report"
-            echo ""
-            echo '```'
-            echo "$TOTAL_LINE"
-            echo '```'
-            echo ""
-            echo "Hard thresholds: region ≥ 70%, line ≥ 78%."
-            echo "Coverage target: line ≥ 90%."
-            echo "LLVM profile warnings: ${PROFILE_WARNING_COUNT:-0}."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          MIN_REGION=70
-          MIN_LINE=78
-          COVERAGE_TARGET=90
-          FAIL=0
-          if [ -z "$REGION_PCT" ] || [ -z "$LINE_PCT" ]; then
-            echo "::error::Could not parse coverage TOTAL line; coverage gate cannot evaluate."
-            FAIL=1
-          else
-            # Bash arithmetic doesn't handle floats; use awk for the comparison.
-            REGION_OK=$(awk -v r="$REGION_PCT" -v m="$MIN_REGION" 'BEGIN { print (r+0 >= m+0) ? 1 : 0 }')
-            LINE_OK=$(awk -v l="$LINE_PCT" -v m="$MIN_LINE" 'BEGIN { print (l+0 >= m+0) ? 1 : 0 }')
-            if [ "$REGION_OK" != "1" ]; then
-              echo "::error::Region coverage $REGION_PCT% below threshold $MIN_REGION%."
-              FAIL=1
-            fi
-            if [ "$LINE_OK" != "1" ]; then
-              echo "::error::Line coverage $LINE_PCT% below threshold $MIN_LINE%."
-              FAIL=1
-            fi
-            TARGET_OK=$(awk -v l="$LINE_PCT" -v m="$COVERAGE_TARGET" 'BEGIN { print (l+0 >= m+0) ? 1 : 0 }')
-            if [ "$TARGET_OK" != "1" ]; then
-              echo "::notice::Line coverage $LINE_PCT% is below the 90% target; hard gate remains $MIN_LINE% until coverage uplift lands."
-            fi
-          fi
-
-          if [ "$FAIL" = "1" ]; then
-            exit 1
-          fi
-          echo "Coverage gate passed: region $REGION_PCT% / line $LINE_PCT%."
+      - name: Coverage gate
+        # Hard thresholds: 70% region, 78% line. 90% line is the project target and deliberately
+        # NOT the hard gate -- setting it today would only make every release red. Both numbers
+        # live in the script beside the comparison that uses them.
+        run: bash Scripts/ci-coverage-gate.sh
 
       - name: Keep the test log and the coverage report whatever happened
         # This is where `always()` belongs: after the step that decides, so a red gate leaves
