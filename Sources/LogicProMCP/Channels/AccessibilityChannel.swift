@@ -552,43 +552,38 @@ actor AccessibilityChannel: Channel {
         // MARK: - Track creation via menu click
         case "track.create_instrument":
             return await AccessibilityChannel.createTrackViaMenu(
-                korean: "새로운 소프트웨어 악기 트랙",
-                english: "New Software Instrument Track",
+                item: AXLocalePolicy.newSoftwareInstrumentTrackMenuItem,
                 expectedTrackType: .softwareInstrument,
                 confirmDialog: runtime.confirmNewTrackDialog,
                 runtime: runtime.logicRuntime
             )
         case "track.create_audio":
             return await AccessibilityChannel.createTrackViaMenu(
-                korean: "새로운 오디오 트랙",
-                english: "New Audio Track",
+                item: AXLocalePolicy.newAudioTrackMenuItem,
                 expectedTrackType: .audio,
                 confirmDialog: runtime.confirmNewTrackDialog,
                 runtime: runtime.logicRuntime
             )
         case "track.create_drummer":
-            // Logic 12.0.1+: menu renamed to "Session Player SI" with Drummer as
-            // a sub-option in the dialog. Try Logic 12 menu first; fall back to
-            // Logic 11's "Drummer 트랙" for older installs.
-            let l12 = await AccessibilityChannel.createTrackViaMenu(
-                korean: "새로운 Session Player SI 트랙…",
-                english: "New Session Player SI Track…",
-                expectedTrackType: .drummer,
-                confirmDialog: runtime.confirmNewTrackDialog,
-                runtime: runtime.logicRuntime
-            )
-            if l12.isSuccess { return l12 }
+            // Logic 12.0.1+ renamed this leaf to `New Session Player SI Track…`, with Drummer as a
+            // sub-option in the dialog that follows.
+            //
+            // The Logic 11 fallback that used to sit under this one was removed on 2026-09-16
+            // in #907. It tried `New Drummer Track` and a Korean spelling of it, which is two of
+            // the ten languages Logic ships, and neither string is in ANY locale of the pinned
+            // 12.3 corpus -- Apple stopped shipping them when the item was renamed. So it was a
+            // guess about an application this repository cannot read, cite or test, in two
+            // languages, and widening it to ten was impossible for the same reason. Restoring it
+            // needs a reading taken on a running Logic 11, which is what #908 asks for.
             return await AccessibilityChannel.createTrackViaMenu(
-                korean: "새로운 Drummer 트랙",
-                english: "New Drummer Track",
+                item: AXLocalePolicy.newSessionPlayerTrackMenuItem,
                 expectedTrackType: .drummer,
                 confirmDialog: runtime.confirmNewTrackDialog,
                 runtime: runtime.logicRuntime
             )
         case "track.create_external_midi":
             return await AccessibilityChannel.createTrackViaMenu(
-                korean: "새로운 외부 MIDI 트랙",
-                english: "New External MIDI Track",
+                item: AXLocalePolicy.newExternalMIDITrackMenuItem,
                 expectedTrackType: .externalMIDI,
                 runtime: runtime.logicRuntime
             )
@@ -628,17 +623,14 @@ actor AccessibilityChannel: Channel {
 
         // MARK: - Navigation
         case "nav.get_markers":
-            // History: v3.1.5 used an AppleScript-primary path
-            // (`tell front document → markers`) — Logic 12.x dictionary
-            // doesn't expose `markers` so it was always failing; removed
-            // in v3.1.8. v3.1.8's `AXRuler`-structural fallback also
-            // returned empty on Logic 12.2 (Apple removed the role from
-            // the arrange window AX subtree entirely). v3.1.9
-            // (`AXLogicProElements.enumerateMarkers`) now scrapes the
-            // dedicated Marker List window's `AXTable` first, falls
-            // through to `AXRuler` for Logic 11.x, then keyword match
-            // for Logic 10.x. See PRD-issue7-logic12-read-paths.md for
-            // the strategy hierarchy.
+            // One path: `AXLogicProElements.enumerateMarkers` scrapes the dedicated Marker List
+            // window's `AXTable`. The three that used to sit under it are gone -- an AppleScript
+            // `tell front document → markers` that Logic 12's dictionary never exposed (removed
+            // v3.1.8), an `AXRuler` scan of the arrange window, and an `AXGroup` keyword match.
+            // Apple took markers out of the arrange subtree in 12.2, so the last two answered
+            // empty on every build this repository pins, and an empty answer here is read as
+            // "no markers" rather than "not found". Removed 2026-09-16 in #907; whether Logic 11 is
+            // supported at all is #908.
             return runtime.markers()
         case "nav.open_marker_list":
             return await runtime.openMarkerList()

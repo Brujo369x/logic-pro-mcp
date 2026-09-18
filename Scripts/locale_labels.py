@@ -65,9 +65,19 @@ LINE_COMMENT = re.compile(r"//[^\n]*")
 _CANON_CACHE = {}
 
 
+#: The ledger speaks BCP-47 and the corpus is keyed by Logic's `.lproj` names, which agree for
+#: seven of the ten and do not for Chinese: Logic ships `zh_CN.lproj` and `zh_TW.lproj`, so
+#: splitting on the hyphen yields `zh`, which is not a corpus Logic has.
+#:
+#: That mattered silently. `_apple_ships` swallowed the CanonError an unknown locale raises and
+#: read it as "Apple does not ship this" -- so every Chinese label answered `unmeasured`, and
+#: widening `supported_locales` to ten would have recorded 334 gaps that are not there.
+_LPROJ = {"zh-CN": "zh_CN", "zh-TW": "zh_TW", "zh-Hans": "zh_CN", "zh-Hant": "zh_TW"}
+
+
 def _locale_code(locale: str) -> str:
-    """`ko-KR` -> `ko`. The ledger speaks BCP-47; the corpus is keyed by Logic's .lproj names."""
-    return locale.split("-")[0] if locale != "zh-Hans" else "zh_CN"
+    """`ko-KR` -> `ko`, `zh-CN` -> `zh_CN`. The `.lproj` Logic actually ships."""
+    return _LPROJ.get(locale) or locale.split("-")[0]
 
 
 def _apple_ships(entry: dict, locale: str) -> bool:
@@ -92,16 +102,37 @@ def _apple_ships(entry: dict, locale: str) -> bool:
         return False
     code = _locale_code(locale)
     strings = [entry.get("canonical")] + list(entry.get("variants") or [])
+    # A string Logic COMPOSES is Apple's too. `Show %@` with a noun means `Afficher Bibliothèque`
+    # is in no corpus and is exactly what a French Logic's View menu says, so asking the absence
+    # sets alone answers `unmeasured` for a label that reaches ten languages.
+    # `check-policy-literals-against-canon.py` decides this and commits the answer; this reads that
+    # decision rather than re-deriving it, because two readers of one fact drift.
+    if "composed" not in _CANON_CACHE:
+        try:
+            with open(os.path.join(REPO, "docs", "canon", "POLICY-LITERALS.json"),
+                      encoding="utf-8") as handle:
+                literals = json.load(handle).get("literals") or {}
+            _CANON_CACHE["composed"] = {text for text, where in literals.items()
+                                        if where == "composed_value"}
+        except (OSError, ValueError):
+            _CANON_CACHE["composed"] = set()
+    composed = _CANON_CACHE["composed"]
     for source, block in (_CANON_CACHE["manifest"].get("sources") or {}).items():
         if code not in (block.get("locales") or []):
             continue
         for text in strings:
             if not text:
                 continue
+            if text in composed:
+                return True
             try:
                 if not canon.is_absent(source, code, text):
                     return True
-            except Exception:
+            except canon.CanonError:
+                # A corpus this source does not carry for this locale. `continue` is right: the
+                # NEXT source may carry it, and the locale check above already skipped sources
+                # whose manifest does not list it. What is NOT right is swallowing every
+                # exception, which is how a mistyped locale code read as "Apple ships nothing".
                 continue
     return False
 

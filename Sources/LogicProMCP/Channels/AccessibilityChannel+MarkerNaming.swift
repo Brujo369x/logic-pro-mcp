@@ -93,17 +93,37 @@ extension AccessibilityChannel {
         let escapedName = AppleScriptSafety.escapeForScript(name)
         let escapedWindowTitle = AppleScriptSafety.escapeForScript(windowTitle)
         let target = LogicProTarget.appleScriptTarget()
+        // #892: the marker group and its Edit button, resolved from AXLocalePolicy rather than
+        // from an English `try` with a Korean `on error` fallback. That pair covered two of the
+        // ten languages Logic ships, and it failed in a way worth naming: `first group ... whose
+        // description is` RAISES -1719 when nothing matches, so on a German or Japanese Logic both
+        // arms errored and the rename reported a write failure about a window that was open. The
+        // English arm being first also means an ENGLISH Logic was the one that worked -- the
+        // Korean fallback existed because somebody hit it, and nobody hit the other eight.
+        let markerGroupResolution = AppleScriptMenuResolution.groupWithDescription(
+            AXLocalePolicy.markerContainerKeywords,
+            of: "markerWindow",
+            variableName: "markerGroup",
+            notFoundError: "MARKER_GROUP_NOT_FOUND"
+        )
+        // By DESCRIPTION, like the group above it. `candidateResolution` emits a by-NAME reference,
+        // which is right for a dialog's Cancel and wrong here: this button's label is its
+        // AXDescription and its AXTitle is empty. Measured 2026-09-18 on a running Logic -- 412 of
+        // 439 buttons report no name at all -- and the first version of this change used the
+        // by-name form, which would have returned MARKER_EDIT_BUTTON_NOT_FOUND in every locale
+        // including the two that worked before.
+        let editButtonResolution = AppleScriptMenuResolution.buttonWithDescription(
+            AXLocalePolicy.markerListEditMenuButton,
+            of: "markerGroup",
+            variableName: "editButton",
+            notFoundError: "MARKER_EDIT_BUTTON_NOT_FOUND"
+        )
         let script = """
         tell application "System Events"
             tell \(target.systemEventsProcessTarget)
                 set markerWindow to first window whose name is "\(escapedWindowTitle)"
-                try
-                    set markerGroup to first group of markerWindow whose description is "Marker"
-                    set editButton to first button of markerGroup whose description is "Edit"
-                on error
-                    set markerGroup to first group of markerWindow whose description is "마커"
-                    set editButton to first button of markerGroup whose description is "편집"
-                end try
+                \(markerGroupResolution)
+                \(editButtonResolution)
                 set editor to first text area of first scroll area of markerGroup
                 if focused of editor is false then error "marker editor is not focused"
                 keystroke "a" using command down
@@ -147,8 +167,8 @@ extension AccessibilityChannel {
             maxDepth: 8,
             runtime: runtime
         ).first {
-            let label = (AXHelpers.getDescription($0, runtime: runtime) ?? "").lowercased()
-            return label == "edit marker" || label == "마커 편집"
+            AXLocalePolicy.markerEditToggle.matches(
+                AXHelpers.getDescription($0, runtime: runtime))
         }
     }
 
@@ -162,8 +182,8 @@ extension AccessibilityChannel {
             maxDepth: 8,
             runtime: runtime
         ).first {
-            let label = (AXHelpers.getDescription($0, runtime: runtime) ?? "").lowercased()
-            return label == "edit" || label == "편집"
+            AXLocalePolicy.markerListEditMenuButton.matches(
+                AXHelpers.getDescription($0, runtime: runtime))
         }
     }
 }

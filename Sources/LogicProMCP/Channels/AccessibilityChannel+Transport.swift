@@ -1302,6 +1302,20 @@ extension AccessibilityChannel {
             variableName: "positionName",
             notFoundError: "POSITION_MENU_ITEM_NOT_FOUND"
         )
+        // #892: the localized Cancel of this modal, resolved from AXLocalePolicy.cancelButton
+        // rather than from three literals. The three were `Cancel`, `취소` and `キャンセル`, so a
+        // Logic running in German, Spanish, French, Italian, Portuguese or either Chinese found no
+        // button and every cleanup fell through to Escape -- which only actuates while the dialog
+        // holds focus and actuates whatever is focused when it does not. `notFoundError: nil`
+        // because this caller BRANCHES on not-found; raising would turn a defined fallback into
+        // the same `UNREADABLE` an AX failure produces.
+        let cancelResolution = AppleScriptMenuResolution.candidateResolution(
+            elementKeyword: "button",
+            labelSet: AXLocalePolicy.cancelButton,
+            existsSuffix: " of dialogWindow",
+            variableName: "cancelName",
+            notFoundError: nil
+        )
         return """
         -- A selected menu-bar item is the AX observation that one of Logic's
         -- menus is currently open. Return UNREADABLE rather than treating a
@@ -1634,16 +1648,9 @@ extension AccessibilityChannel {
                     try
                         set dialogState to my goToPositionDialogState(theProcess, dialogWindow, preLeafGoToPositionWindows, preLeafGoToPositionWindowCount)
                         if dialogState is not "OPEN" then return dialogState
-                        if exists button "Cancel" of dialogWindow then
-                            click button "Cancel" of dialogWindow
-                            return "PRESSED"
-                        end if
-                        if exists button "취소" of dialogWindow then
-                            click button "취소" of dialogWindow
-                            return "PRESSED"
-                        end if
-                        if exists button "キャンセル" of dialogWindow then
-                            click button "キャンセル" of dialogWindow
+                        \(cancelResolution)
+                        if cancelName is not missing value then
+                            click button cancelName of dialogWindow
                             return "PRESSED"
                         end if
                         return "NO_BUTTON"
@@ -2509,6 +2516,20 @@ extension AccessibilityChannel {
         executeScript: @escaping @Sendable (String, TimeInterval) async -> ChannelResult
     ) async -> StrayGoToPositionUIOutcome {
         let target = LogicProTarget.appleScriptTarget()
+        // #892: the localized Cancel of this modal, resolved from AXLocalePolicy.cancelButton
+        // rather than from three literals. The three were `Cancel`, `취소` and `キャンセル`, so a
+        // Logic running in German, Spanish, French, Italian, Portuguese or either Chinese found no
+        // button and every cleanup fell through to Escape -- which only actuates while the dialog
+        // holds focus and actuates whatever is focused when it does not. `notFoundError: nil`
+        // because this caller BRANCHES on not-found; raising would turn a defined fallback into
+        // the same `UNREADABLE` an AX failure produces.
+        let cancelResolution = AppleScriptMenuResolution.candidateResolution(
+            elementKeyword: "button",
+            labelSet: AXLocalePolicy.cancelButton,
+            existsSuffix: " of dialogWindow",
+            variableName: "cancelName",
+            notFoundError: nil
+        )
         let script = """
         on knownGoToPositionDialogSubrole(dialogSubrole)
             if dialogSubrole is "AXFloatingWindow" or dialogSubrole is "AXDialog" or dialogSubrole is "AXSystemDialog" then return true
@@ -2673,14 +2694,9 @@ extension AccessibilityChannel {
                 using terms from application "System Events"
                     tell theProcess
                         try
-                            if exists button "Cancel" of dialogWindow then
-                                click button "Cancel" of dialogWindow
-                                set cancelPressed to true
-                            else if exists button "취소" of dialogWindow then
-                                click button "취소" of dialogWindow
-                                set cancelPressed to true
-                            else if exists button "キャンセル" of dialogWindow then
-                                click button "キャンセル" of dialogWindow
+                            \(cancelResolution)
+                            if cancelName is not missing value then
+                                click button cancelName of dialogWindow
                                 set cancelPressed to true
                             end if
                         on error

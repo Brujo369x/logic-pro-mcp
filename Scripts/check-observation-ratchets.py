@@ -61,10 +61,27 @@ def _derivable_variants(repo: str) -> set:
                for loc in (block.get("locales") or [])]
     labels = json.load(open(os.path.join(repo, "docs", "locale", "ui-labels.json"),
                             encoding="utf-8")).get("labels") or {}
+    # A variant Logic COMPOSES is Apple's too, and asking for a reading of one is asking somebody
+    # to confirm a string Apple assembles from two strings it ships. `Show %@` with a noun is the
+    # shape: `Afficher Bibliothèque` is in no corpus and is what a French Logic's View menu says.
+    # `check-policy-literals-against-canon.py` already decides this and commits the answer, so this
+    # reads that decision rather than re-deriving it and drifting from it.
+    composed = set()
+    try:
+        with open(os.path.join(repo, "docs", "canon", "POLICY-LITERALS.json"),
+                  encoding="utf-8") as handle:
+            composed = {text for text, where in (json.load(handle).get("literals") or {}).items()
+                        if where == "composed_value"}
+    except (OSError, ValueError):
+        composed = set()
+
     out = set()
     for entry in labels.values():
         for variant in (entry.get("variants") or []):
             if variant in out:
+                continue
+            if variant in composed:
+                out.add(variant)
                 continue
             for src, loc in corpora:
                 try:

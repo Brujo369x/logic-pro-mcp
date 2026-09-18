@@ -1719,9 +1719,7 @@ extension AccessibilityChannel {
         raiseTrackWindowForRename(index: index, runtime: runtime)
 
         let click = clickTrackMenu(
-            ["Rename Track", "트랙 이름 변경", "이름 변경"],
-            menuName: "트랙",
-            englishMenuName: "Track",
+            AXLocalePolicy.renameTrackMenuItem.labels,
             runtime: runtime
         )
         guard click.isSuccess else {
@@ -1845,11 +1843,25 @@ extension AccessibilityChannel {
         return .mismatch(selectedIndex: selectedIndex)
     }
 
+    /// The title `clickTrackMenu` reports it actually pressed, or nil when it did not say.
+    ///
+    /// The receipt names the spelling Logic rendered, not the one the caller asked for, which is
+    /// the only way a reader can tell WHICH language the menu was in.
+    private static func clickedTitle(from result: ChannelResult) -> String? {
+        let parsed = (try? JSONSerialization.jsonObject(with: Data(result.message.utf8)))
+        return (parsed as? [String: String])?["menu_clicked"]
+    }
+
     // MARK: - Track Creation via Menu
 
+    /// The menu leaf, as a LabelSet rather than a Korean string and an English one.
+    ///
+    /// `(korean:, english:)` tried the Korean spelling and fell back to the English, which is two
+    /// of the ten languages Logic ships: on a German, Spanish, French, Italian, Portuguese or
+    /// Chinese Logic neither matched and the operation answered `Cannot find menu item` about a
+    /// menu that was there. That is #883.
     static func createTrackViaMenu(
-        korean: String,
-        english: String,
+        item: AXLocalePolicy.LabelSet,
         expectedTrackType: TrackType,
         // Retained for channel-runtime compatibility. The create route no
         // longer invokes this unchecked keyboard fallback.
@@ -1882,17 +1894,12 @@ extension AccessibilityChannel {
         let arrangeWindow = AXLogicProElements.arrangeWindowRead(runtime: runtime)
         let beforeTracks = observedTrackStates(in: arrangeWindow, runtime: runtime)
 
-        // Try Korean locale first
-        let result = clickTrackMenu(korean, menuName: "트랙", englishMenuName: "Track", runtime: runtime)
-        let menuClickedTitle: String
-        if result.isSuccess {
-            menuClickedTitle = korean
-        } else {
-            // Fallback: English locale with English item title
-            let fallback = clickTrackMenu(english, menuName: "Track", englishMenuName: "Track", runtime: runtime)
-            guard fallback.isSuccess else { return fallback }
-            menuClickedTitle = english
-        }
+        // Every spelling the policy knows, in one pass. The old shape tried Korean and then
+        // English, which made the operation's reach the size of that pair rather than the size of
+        // the LabelSet -- and a LabelSet that learns a language could not reach this call site.
+        let result = clickTrackMenu(item.labels, runtime: runtime)
+        guard result.isSuccess else { return result }
+        let menuClickedTitle = Self.clickedTitle(from: result) ?? item.canonical
 
         // Logic may publish a mandatory New Track dialog after the menu click.
         // Reconcile it through the classifier-bound AX Create element; Return
@@ -2297,22 +2304,20 @@ extension AccessibilityChannel {
             // load-bearing here: the same menu also carries `使用されていないトラックを削除`
             // (Delete Unused Tracks), which ENDS WITH the same string — a suffix or containment match
             // would reach a different destructive command that deletes tracks the caller never named.
-            ["Delete Track", "트랙 삭제", "トラックを削除"],
-            menuName: "트랙",
-            englishMenuName: "Track",
+            AXLocalePolicy.deleteTrackMenuItem.labels,
             runtime: runtime
         )
         guard click.isSuccess else {
             return .error(HonestContract.encodeStateC(
                 error: .elementNotFound,
-                hint: "Track > Delete Track / 트랙 삭제 menu item not found / not pressable",
+                hint: "Track > \(AXLocalePolicy.deleteTrackMenuItem.canonical) menu item not found / not pressable",
                 extras: ["track_count_before": beforeCount ?? NSNull()]
             ))
         }
 
         let menuClicked = (
             (try? JSONSerialization.jsonObject(with: Data(click.message.utf8))) as? [String: String]
-        )?["menu_clicked"] ?? "Delete Track / 트랙 삭제"
+        )?["menu_clicked"] ?? AXLocalePolicy.deleteTrackMenuItem.canonical
 
         var extras: [String: Any] = [
             "menu_clicked": menuClicked,
@@ -2514,17 +2519,19 @@ extension AccessibilityChannel {
 
     private static func clickTrackMenu(
         _ menuItemTitle: String,
-        menuName: String = "트랙",
-        englishMenuName: String = "Track",
         runtime: AXLogicProElements.Runtime = .production
     ) -> ChannelResult {
-        clickTrackMenu([menuItemTitle], menuName: menuName, englishMenuName: englishMenuName, runtime: runtime)
+        clickTrackMenu([menuItemTitle], runtime: runtime)
     }
 
+    /// The bar comes from `AXLocalePolicy.trackMenuBar` and nowhere else.
+    ///
+    /// It used to default to `menuName: "트랙", englishMenuName: "Track"` and put those two ahead
+    /// of the policy's labels so "an explicit override wins". No caller ever overrode them, the
+    /// policy already carried both, and the pair was the last Korean literal on this path -- while
+    /// the LabelSet it shadowed now holds all ten languages Logic ships.
     private static func clickTrackMenu(
         _ menuItemTitles: [String],
-        menuName: String = "트랙",
-        englishMenuName: String = "Track",
         runtime: AXLogicProElements.Runtime = .production
     ) -> ChannelResult {
         // #519: the menu-bar spellings live in AXLocalePolicy now rather than in this array. The
@@ -2536,11 +2543,7 @@ extension AccessibilityChannel {
         //
         // The caller-supplied names still come first so an explicit override wins, and the policy's
         // labels are appended rather than replacing them.
-        var barCandidates = [menuName, englishMenuName]
-        for label in AXLocalePolicy.trackMenuBar.labels where !barCandidates.contains(label) {
-            barCandidates.append(label)
-        }
-        for menuTitle in barCandidates {
+        for menuTitle in AXLocalePolicy.trackMenuBar.labels {
             for itemTitle in menuItemTitles {
                 guard let item = AXLogicProElements.menuItem(path: [menuTitle, itemTitle], runtime: runtime) else {
                     continue
@@ -2552,7 +2555,7 @@ extension AccessibilityChannel {
             }
         }
         let joinedTitles = menuItemTitles.joined(separator: " | ")
-        return .error("Cannot find menu item: \(menuName) > \(joinedTitles)")
+        return .error("Cannot find menu item: \(AXLocalePolicy.trackMenuBar.canonical) > \(joinedTitles)")
     }
 
 }

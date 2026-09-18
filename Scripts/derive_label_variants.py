@@ -159,9 +159,34 @@ def applicability(canon, rows, row, members):
     carries 25 members spanning a dozen controls. Telling those three apart is a reading, so this
     reports them instead of guessing.
     """
-    held = {canon.normalize(rows[row][locale]) for locale in LOCALES}
-    extra = [member for member in members if canon.normalize(member) not in held]
+    # Case-FOLDED, the same way the applier dedupes and the guard checks, because that is the
+    # question the product asks: every `LabelSet.matches` mode is case-insensitive. Comparing
+    # case-exactly called the lowercase containment fragments `marker`, `bus` and `audio` members
+    # their row does not hold, when the row holds `Marker`, `Bus` and `Audio` and the product
+    # cannot tell those apart. The corpus stays case-exact; this question is not the corpus's.
+    held = {canon.normalize(rows[row][locale]).casefold() for locale in LOCALES}
+    extra = [member for member in members
+             if canon.normalize(member).casefold() not in held]
     return (SAFE if not extra else EXTRA_MEMBERS), extra
+
+
+def compose(rows, template_row, noun_row, locales=LOCALES):
+    """The strings Logic BUILDS at runtime from a `%@` template and a noun, per locale.
+
+    Apple ships `Show %@` and `Hide %@` as templates, so `Show Library` is not a string that exists
+    anywhere -- it is assembled. Measured on a Korean Logic 12.3 on 2026-09-18: the View menu reads
+    `\uB77C\uC774\uBE0C\uB7EC\uB9AC \uAC00\uB9AC\uAE30`, which is the Hide template with the
+    Library noun in it, and no literal list could have produced the Traditional Chinese form with
+    its corner brackets.
+
+    Returned in locale order with duplicates dropped, which is the shape a LabelSet wants.
+    """
+    out = []
+    for locale in locales:
+        value = rows[template_row][locale].replace("%@", rows[noun_row][locale])
+        if value not in out:
+            out.append(value)
+    return out
 
 
 def load_labels():
@@ -200,7 +225,14 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     as_json = "--json" in argv
     swift = "--swift" in argv
-    wanted = [arg for arg in argv if not arg.startswith("--")]
+    compose_pair = None
+    if "--compose" in argv:
+        rest = [a for a in argv[argv.index("--compose") + 1:]]
+        if len(rest) < 2:
+            print("usage: --compose <template-key> <noun-key>", file=sys.stderr)
+            return 2
+        compose_pair = (rest[0], rest[1])
+    wanted = [] if compose_pair else [arg for arg in argv if not arg.startswith("--")]
     if not os.path.isdir(APP):
         print(f"{APP} is not installed. This tool reads Apple's bytes; there is no offline "
               f"substitute for extracting them, and inventing one would be the failure this whole "
@@ -209,6 +241,21 @@ def main(argv=None) -> int:
     canon = _canon()
     rows = corpus_rows(canon)
     index = by_value(canon, rows)
+    if compose_pair:
+        template_key, noun_key = compose_pair
+        def one(key):
+            hits = [k for k in rows if k[1] == key and all(l in rows[k] for l in LOCALES)]
+            if len(hits) != 1:
+                print(f"{key!r} resolves to {len(hits)} row(s) carrying all ten locales; "
+                      f"composition needs exactly one", file=sys.stderr)
+                raise SystemExit(2)
+            return hits[0]
+        template, noun = one(template_key), one(noun_key)
+        for value in compose(rows, template, noun):
+            print(value)
+        print(f"# template {template[0]} {template[1]}", file=sys.stderr)
+        print(f"# noun     {noun[0]} {noun[1]}", file=sys.stderr)
+        return 0
     labels = load_labels()
     report = _report(canon, rows, index, labels, wanted)
     if as_json:

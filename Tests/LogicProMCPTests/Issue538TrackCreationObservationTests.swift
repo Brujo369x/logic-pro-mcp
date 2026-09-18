@@ -94,8 +94,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -165,8 +169,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -265,8 +273,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             confirmDialog: { uncheckedReturnCalls.increment() },
             runtime: runtime
@@ -378,8 +390,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime,
             dialogPollDelayNanoseconds: 0
@@ -508,8 +524,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         _ = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime,
             dialogPollDelayNanoseconds: 0
@@ -588,8 +608,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -666,8 +690,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -734,8 +762,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -829,8 +861,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -904,8 +940,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -1008,8 +1048,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
@@ -1088,8 +1132,12 @@ struct Issue538TrackCreationObservationTests {
         )
 
         let result = await AccessibilityChannel.createTrackViaMenu(
-            korean: "소프트웨어 악기",
-            english: "Software Instrument",
+            // The fixture's own menu titles, not Logic's. An inline LabelSet is the shape
+            // `createTrackViaMenu` takes now; the production call sites pass a derived one.
+            item: AXLocalePolicy.LabelSet(
+                canonical: "Software Instrument",
+                variants: ["소프트웨어 악기"],
+                rationale: "fixture menu leaf"),
             expectedTrackType: .softwareInstrument,
             runtime: runtime
         )
