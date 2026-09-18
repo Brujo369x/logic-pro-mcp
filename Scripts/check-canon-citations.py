@@ -283,6 +283,19 @@ def _ratchet_members(blob, key):
     return set(value or [])
 
 
+def _labelset_waiver_members(blob, key):
+    """The LabelSet names waived from naming a row.
+
+    A dict keyed by name, so the default extractor's `set(value or [])` would read the KEYS and be
+    right by accident. Spelling it out means a later shape change -- a list of objects, say -- makes
+    this return nothing and trips the empty-reading guard instead of passing everything.
+    """
+    value = blob.get(key)
+    if not isinstance(value, dict):
+        return set()
+    return set(value)
+
+
 #: Each ratcheted list, and the direction it may move in. Two directions, because two kinds of list
 #: got mixed:
 #:
@@ -312,6 +325,9 @@ RATCHETS = (
      "cases guards are allowed to SKIP under CI", _skip_members),
     ("docs/canon/MANIFEST.json", "sources", "grow",
      "the (source, locale) corpora every absence proof searches", _corpus_members),
+    ("docs/canon/LABELSETS-WITHOUT-A-ROW.json", "labelsets", "shrink",
+     "LabelSets waived from naming the row they are Apple's values of",
+     _labelset_waiver_members),
 )
 
 
