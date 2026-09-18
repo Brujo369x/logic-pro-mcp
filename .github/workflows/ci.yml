@@ -26,6 +26,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The DEFAULT shell for a `run:` block is `bash -e {0}` -- no `pipefail`. So `a | tee log` reports
+# tee's exit code and a failing `a` reads as success, which is the shape of defect that lets a red
+# test suite finish green. Naming `bash` selects GitHub's `bash --noprofile --norc -eo pipefail`,
+# which is the same thing with the pipeline failure preserved. `-u` is deliberately not added: it
+# is not what the default gives either, and turning it on globally is a different change.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # `docs/roadmap/README.md` declares itself the source of truth for what is open, and its update
   # rule ("the same PR that opens or closes an issue updates the table") is a convention until
@@ -87,12 +96,20 @@ jobs:
           python3 Scripts/check-canon-citations.py \
             --text /tmp/pr-body.md --changed /tmp/pr-changed.txt
 
-  roadmap:
+  # WAS `roadmap`, and carried four things: two that compare GitHub issue state against
+  # `docs/roadmap/README.md` and the ADR index, and two about the Homebrew Formula. Only the
+  # second pair protects the product -- a wrong `sha256` is `brew install` failing for everyone --
+  # and only the second pair belongs in front of a merge.
+  #
+  # The status checks moved to `.github/workflows/maintenance.yml`, manual and weekly. They still
+  # FAIL there; they no longer stop an unrelated code change. Keeping them here meant a stale
+  # roadmap row blocked a merge that had nothing to do with the roadmap, which is the cost the
+  # instruction to separate them names.
+  formula:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
-      issues: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -103,34 +120,7 @@ jobs:
           # base is unreadable under CI, and this is what makes that satisfiable.
           fetch-depth: 0
 
-      - name: Self-test the roadmap drift guard (#678)
-        # Offline, fixtures only. Asserts the guard fails on a stale row, on an open issue nobody
-        # added, and on a row pointing at no issue — and that it refuses (exit 2) rather than
-        # reporting clean on a truncated issue list or a table it could not parse.
-        run: bash Scripts/test-roadmap-table-guard.sh
-
-      - name: Self-test the ADR index guard (#815)
-        # Offline, fixtures only, except its last case which runs the real guard against the real
-        # tree — hence the token below rather than in this step.
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 Scripts/test-adr-index-guard.py
-
-      - name: ADR index matches GitHub (#815)
-        # The sibling of the roadmap check and here for the same reason: it asks GitHub for issue
-        # state, so it needs the token this job has and `run-repo-guards.py` deliberately does not.
-        # On 2026-09-07 the index called eight ADRs `In Implementation` whose issues were CLOSED,
-        # and nothing noticed, because the drift guard beside it had never been pointed at this
-        # file. It reports CANNOT DETERMINE (exit 2) rather than passing when it cannot see.
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 Scripts/adr-index-matches-github.py
-
       - name: Formula sha256 matches the release its version names (#775)
-        # Same family as the check below — "does the repository agree with what GitHub actually
-        # says" — so it lives in the same job: one ubuntu runner, one small download, `contents:
-        # read` already granted, and the network this needs already available.
-        #
         # It runs on every build rather than only when `Formula/` changed. Not because the base is
         # unreachable — the checkout above is now full — but because the answer can go stale
         # without the file moving at all: it is a claim about a RELEASE, not about this tree, so
@@ -138,25 +128,33 @@ jobs:
         #
         # It cannot live in `run-repo-guards.py`: that job's contract is plain Python needing
         # neither Xcode nor a network, and the only way to know a hash is right is to ask the
-        # release what it published.
+        # release what it published. Its OFFLINE half does live there --
+        # `Scripts/test_ci_verify_formula_sha.py` drives every classification through a fake `gh`.
+        #
+        # This is a merge gate and not a maintenance check, which is the line the roadmap and ADR
+        # steps were moved across: a wrong `sha256` here is `brew install` failing for every user,
+        # and that is a defect in what this repository ships rather than a bookkeeping drift.
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash Scripts/ci-verify-formula-sha.sh
 
-      - name: Roadmap table matches GitHub (#678)
-        # `--pr` is passed only on a pull request, and only so the table may mark closed the issues
-        # THAT pull request says it closes. Without it a PR closing an issue has no truthful row to
-        # write: open while it is open, stale the instant it merges — which is what turned main red
-        # on #684's own merge commit. On a push to main no number is passed and nothing is exempt.
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 Scripts/roadmap-table-matches-github.py \
-            ${{ github.event.pull_request.number && format('--pr {0}', github.event.pull_request.number) || '' }}
 
-  compile:
-    runs-on: macos-15
-    timeout-minutes: 60
+  # Every guard and headless drive, ONCE. They used to be five steps duplicated across `compile`
+  # and `test`, which on the 2026-09-17 main run cost 13.3 minutes of the first and 11.7 of the
+  # second -- most of both jobs, for the same answer twice.
+  #
+  # Ubuntu, and that is measured rather than assumed. Every one of the 57 discovered guards and
+  # all four shell guards were run in a `python:3.12-slim` container on 2026-09-18: 55 passed and
+  # the two that did not were the merge-base checks failing on a bind-mounted git WORKTREE, which
+  # is an artefact of how the container saw `.git` and not a Linux difference. Nothing here shells
+  # out to `plutil`, `xcrun`, `osascript` or `sed -i ''`.
+  #
+  # It does NOT gate `compile` and `test` -- all three start together. Serialising would add the
+  # guard's wall time to the front of a 23-minute test job to save runner minutes on the runs that
+  # fail, and the guards are now two minutes rather than thirteen, so there is little left to save.
+  guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -194,8 +192,52 @@ jobs:
         # Each of these used to be its own step, duplicated across compile and test, and the file
         # conflicted on three consecutive PRs — every one appending at the same point. The runner
         # discovers Scripts/check-*.py and the test_*.py drives, so adding a guard no longer edits
-        # this workflow. It prints each one and its result, and runs them all before reporting.
-        run: python3 Scripts/run-repo-guards.py
+        # this workflow. It prints each one and its result, its wall time, and runs them all before
+        # reporting.
+        #
+        # `|| status=$?` rather than disabling errexit around the call. Both capture the exit
+        # code; only one of them leaves error handling ON for every other line, and
+        # `InstallScriptContractTests.swift` forbids turning it off anywhere in this file --
+        # because doing that around a gate is the H-4 defect verbatim, where the coverage step
+        # disabled it and exited 0 for months. A command on the left of `||` does not trip
+        # errexit, so this needs no exemption and asks for none.
+        #
+        # That contract test is a plain substring check over this whole file, so it cannot tell
+        # code from a comment: the first version of THIS comment quoted the forbidden line and
+        # turned the test red while the code was already correct. Do not name it here.
+        #
+        # Redirected rather than piped through `tee`: `pipefail` makes `cmd | tee` correct today
+        # and one shell setting away from not being.
+        run: |
+          status=0
+          python3 Scripts/run-repo-guards.py > guard-run.log 2>&1 || status=$?
+          cat guard-run.log
+          exit "$status"
+
+      - name: Keep the guard log whatever happened
+        # `always()` belongs on diagnostics, not on the step that decides. If the run above failed,
+        # this is the artefact somebody reads to find out which guard and why.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: guards-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            guard-run.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  compile:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Guards in this repository compare the branch against its merge base — the observation
+          # ratchets are the load-bearing one: with a shallow clone the base is absent, so the
+          # check degrades to comparing the branch against its own file and a commit that adds a
+          # gap AND raises its own ceiling passes. The ratchet guard now fails outright when the
+          # base is unreadable under CI, and this is what makes that satisfiable.
+          fetch-depth: 0
 
       - name: Cache SwiftPM and build products
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -207,11 +249,24 @@ jobs:
           restore-keys: |
             spm-macos15-xcode164-release-
 
-      - name: Select Xcode
-        # Xcode 16.4 ships Swift 6.2 — required by swift-sdk 0.11.0+ which
-        # adopts the short-form `withThrowingTaskGroup { ... }` syntax. The
-        # previous 16.2 pin (Swift 6.0) cannot compile that form.
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Select Xcode and say which toolchain this is
+        # The pin is Xcode 16.4, required by swift-sdk 0.11.0+ which adopts the short-form
+        # `withThrowingTaskGroup { ... }` syntax that the previous 16.2 pin cannot compile.
+        #
+        # The comment here used to assert "Xcode 16.4 ships Swift 6.2". Apple's own version table
+        # says 6.1, so one of the two was wrong and neither was measured -- and a wrong version in
+        # a comment is what the next person reads when deciding whether to move the pin. The step
+        # prints the toolchain instead of describing it, so the log answers the question and the
+        # comment does not have to.
+        #
+        # This is a correction to a DESCRIPTION. It changes no version and moves no pin.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+          swift --version
+          xcrun --find swift
+          uname -m
+          sw_vers
 
       - name: Build
         run: swift build -c release
@@ -233,36 +288,6 @@ jobs:
           # base is unreadable under CI, and this is what makes that satisfiable.
           fetch-depth: 0
 
-      - name: Forbid dead boolean #expect (#393 test-integrity)
-        # `#expect(<Bool> == true/false)` and kin pass unconditionally on this toolchain — they
-        # prove nothing. Fail fast (no Xcode needed) before the build if any reappear.
-        run: bash Scripts/ci-forbid-dead-expect.sh
-
-      - name: Self-test the menu-literal guard (#519)
-        # A guard nobody has watched fail is decoration. This asserts each known evasion is caught, that
-        # legitimate code is not flagged, and that a tree the guard cannot examine is never reported
-        # clean — the failure the guard itself had before review.
-        run: bash Scripts/test-menu-literal-guard.sh
-
-      - name: Self-test the typechecker-heavy-literal guard (#749)
-        # Fixtures prove a three-concatenation value is refused and that unrelated one-concatenation
-        # values, comments, and plain literals remain accepted.
-        run: bash Scripts/test-typechecker-heavy-literal-guard.sh
-
-      - name: Forbid hard-coded menu-bar item literals (#519 locale-routing)
-        # A literal `menu bar item "..."` cannot reach the extra locale variants
-        # AXLocalePolicy already records for that menu. Fail fast before the build if one
-        # reappears — see the script for the full rationale.
-        run: bash Scripts/ci-forbid-hardcoded-menu-bar-item.sh
-
-
-      - name: Guards and headless drives (discovered, not listed)
-        # Each of these used to be its own step, duplicated across compile and test, and the file
-        # conflicted on three consecutive PRs — every one appending at the same point. The runner
-        # discovers Scripts/check-*.py and the test_*.py drives, so adding a guard no longer edits
-        # this workflow. It prints each one and its result, and runs them all before reporting.
-        run: python3 Scripts/run-repo-guards.py
-
       - name: Cache SwiftPM and build products
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
@@ -273,31 +298,39 @@ jobs:
           restore-keys: |
             spm-macos15-xcode164-debug-
 
-      - name: Select Xcode
-        # Xcode 16.4 ships Swift 6.2 — required by swift-sdk 0.11.0+ which
-        # adopts the short-form `withThrowingTaskGroup { ... }` syntax. The
-        # previous 16.2 pin (Swift 6.0) cannot compile that form.
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+      - name: Select Xcode and say which toolchain this is
+        # The pin is Xcode 16.4, required by swift-sdk 0.11.0+ which adopts the short-form
+        # `withThrowingTaskGroup { ... }` syntax that the previous 16.2 pin cannot compile.
+        #
+        # The comment here used to assert "Xcode 16.4 ships Swift 6.2". Apple's own version table
+        # says 6.1, so one of the two was wrong and neither was measured -- and a wrong version in
+        # a comment is what the next person reads when deciding whether to move the pin. The step
+        # prints the toolchain instead of describing it, so the log answers the question and the
+        # comment does not have to.
+        #
+        # This is a correction to a DESCRIPTION. It changes no version and moves no pin.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+          swift --version
+          xcrun --find swift
+          uname -m
+          sw_vers
 
-      - name: Coverage report
-        # H-4 (2026-05-08 enterprise review) closed in v3.4.0: re-armed
-        # the coverage gate. Pre-fix this step disabled shell error handling
-        # and exited successfully, so coverage regressions never blocked
-        # a merge — exactly the bug the previous review caught.
+      - name: Run the tests and collect coverage
+        # H-4 (2026-05-08 enterprise review) closed in v3.4.0: re-armed the coverage gate.
+        # Pre-fix this step disabled shell error handling and exited successfully, so coverage
+        # regressions never blocked a merge -- exactly the bug that review caught.
         #
-        # The step now runs in TWO phases:
-        #   1. Generate the report fail-closed: the coverage test command,
-        #      profdata lookup, llvm-cov report, and threshold parser must all
-        #      succeed. LLVM runtime profile warnings are surfaced, but are not
-        #      treated as the gate by themselves because GitHub's macOS runner
-        #      can emit recoverable child-process profile warnings while still
-        #      producing a valid default.profdata.
-        #   2. Enforce thresholds (this is the actual gate).
+        # `if: always()` USED to sit here and is gone. It belongs on a step that must run after a
+        # failure -- the artefact upload below -- and this is the step that decides. With it, a
+        # failed `Select Xcode` was followed by a test run against whatever toolchain was left.
         #
-        # Hard thresholds: 70% region, 78% line. 90% line coverage is the
-        # project target, but not the hard gate until a dedicated coverage
-        # uplift lands; setting 90% today would only make every release red.
-        if: always()
+        # The GATE itself moved to `Scripts/ci-coverage-gate.sh`. Inline, the only way to watch it
+        # refuse anything was to push a branch whose coverage had actually dropped, so four of its
+        # refusals had never been observed; `Scripts/test_ci_coverage_gate.py` now drives all of
+        # them against a fake `llvm-cov`. What stays here is running the tests, which is the one
+        # thing a fixture cannot stand in for.
         run: |
           set -euo pipefail
           PROFRAW_DIR="$RUNNER_TEMP/logicpromcp-profraw"
@@ -305,109 +338,47 @@ jobs:
           mkdir -p "$PROFRAW_DIR"
           export LLVM_PROFILE_FILE="$PROFRAW_DIR/%m-%p.profraw"
 
+          # `.build` is RESTORED FROM CACHE, and `default.profdata` lives inside it. A run whose
+          # tests produced no profile would otherwise find the previous run's file and report its
+          # coverage as this one's -- the cached answer to a question nobody asked again. Deleting
+          # only the coverage output keeps the incremental build, which is what the cache is for.
+          find .build -type d -name codecov -prune -exec rm -rf {} + 2>/dev/null || true
+
           swift test --enable-code-coverage -Xswiftc -suppress-warnings --no-parallel 2>&1 | tee "$COVERAGE_LOG"
+          # Surfaced, and deliberately NOT the gate by itself: GitHub's macOS runner can emit
+          # recoverable child-process profile warnings while still producing a valid
+          # default.profdata. What decides is whether the gate below can read a report from it.
           PROFILE_WARNING_COUNT=$(grep -c "LLVM Profile Error" "$COVERAGE_LOG" || true)
           if [ "$PROFILE_WARNING_COUNT" != "0" ]; then
             echo "::warning::LLVM profile runtime reported $PROFILE_WARNING_COUNT warning(s); continuing to profdata/report validation."
             echo "::warning::LLVM_PROFILE_FILE=$LLVM_PROFILE_FILE"
           fi
+          echo "LLVM profile warnings: ${PROFILE_WARNING_COUNT:-0}." >> "$GITHUB_STEP_SUMMARY"
 
-          # v3.4.3: locate the test binary + profdata via `find` instead of
-          # the `.build/debug/...` symlink path. The symlink exists on local
-          # arm64 Macs but its presence under the macos-15-arm64 GitHub
-          # runner is not guaranteed across SwiftPM versions; an absent
-          # symlink silently produces an empty coverage report. `find`
-          # against the actual `.build/arm64-apple-macosx/debug/` tree is
-          # path-version-stable.
-          BIN=$(find .build -type f -path '*/debug/LogicProMCPPackageTests.xctest/Contents/MacOS/LogicProMCPPackageTests' | head -1)
-          PROFDATA=$(find .build -type f -path '*/debug/codecov/default.profdata' | head -1)
-          echo "Test binary: $BIN"
-          echo "Profdata:    $PROFDATA"
-          if [ -z "$BIN" ] || [ -z "$PROFDATA" ]; then
-            echo "::error::Could not locate test binary or profdata; coverage gate cannot run."
-            echo "::error::.build tree:"
-            find .build -maxdepth 4 -type d | head -30
-            exit 1
-          fi
+      - name: Coverage gate
+        # Hard thresholds: 70% region, 78% line. 90% line is the project target and deliberately
+        # NOT the hard gate -- setting it today would only make every release red. Both numbers
+        # live in the script beside the comparison that uses them.
+        run: bash Scripts/ci-coverage-gate.sh
 
-          find Sources/LogicProMCP -name '*.swift' | sort > /tmp/logicpro_sources.txt
-          xargs xcrun llvm-cov report "$BIN" -instr-profile "$PROFDATA" \
-            < /tmp/logicpro_sources.txt > coverage-report.txt
-          echo "::group::Full coverage report"
-          cat coverage-report.txt
-          echo "::endgroup::"
+      - name: Keep the test log and the coverage report whatever happened
+        # This is where `always()` belongs: after the step that decides, so a red gate leaves
+        # behind the report that explains it. An upload that fails does not turn a failed test run
+        # green -- this step's own result is not in `build`'s aggregate.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            coverage-report.txt
+            ${{ runner.temp }}/logicpromcp-coverage.log
+          retention-days: 7
+          if-no-files-found: warn
 
-          # Extract TOTAL line — llvm-cov column order: regions, missed,
-          # cover%, functions, missed, cover%, lines, missed, cover%.
-          # v3.4.1 (independent review P2-4): validate extracted values match the
-          # `<float>%` shape before threshold compare. A future LLVM
-          # version that prepends a column (e.g. instantiation summary
-          # in TOTAL) would silently grab a different field; the regex
-          # guard below makes that fail-loud instead.
-          TOTAL_LINE=$(grep -E "^TOTAL" coverage-report.txt || true)
-          REGION_RAW=$(echo "$TOTAL_LINE" | awk '{print $4}')
-          LINE_RAW=$(echo "$TOTAL_LINE" | awk '{print $10}')
-          if ! echo "$REGION_RAW" | grep -qE '^[0-9]+\.[0-9]+%$'; then
-            echo "::error::Region coverage field '$REGION_RAW' did not match <float>% pattern."
-            echo "::error::TOTAL line was: $TOTAL_LINE"
-            echo "::error::This usually means llvm-cov column order changed; review the awk extraction."
-            exit 1
-          fi
-          if ! echo "$LINE_RAW" | grep -qE '^[0-9]+\.[0-9]+%$'; then
-            echo "::error::Line coverage field '$LINE_RAW' did not match <float>% pattern."
-            echo "::error::TOTAL line was: $TOTAL_LINE"
-            exit 1
-          fi
-          REGION_PCT=$(echo "$REGION_RAW" | tr -d '%')
-          LINE_PCT=$(echo "$LINE_RAW" | tr -d '%')
-
-          {
-            echo "## Coverage report"
-            echo ""
-            echo '```'
-            echo "$TOTAL_LINE"
-            echo '```'
-            echo ""
-            echo "Hard thresholds: region ≥ 70%, line ≥ 78%."
-            echo "Coverage target: line ≥ 90%."
-            echo "LLVM profile warnings: ${PROFILE_WARNING_COUNT:-0}."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          MIN_REGION=70
-          MIN_LINE=78
-          COVERAGE_TARGET=90
-          FAIL=0
-          if [ -z "$REGION_PCT" ] || [ -z "$LINE_PCT" ]; then
-            echo "::error::Could not parse coverage TOTAL line; coverage gate cannot evaluate."
-            FAIL=1
-          else
-            # Bash arithmetic doesn't handle floats; use awk for the comparison.
-            REGION_OK=$(awk -v r="$REGION_PCT" -v m="$MIN_REGION" 'BEGIN { print (r+0 >= m+0) ? 1 : 0 }')
-            LINE_OK=$(awk -v l="$LINE_PCT" -v m="$MIN_LINE" 'BEGIN { print (l+0 >= m+0) ? 1 : 0 }')
-            if [ "$REGION_OK" != "1" ]; then
-              echo "::error::Region coverage $REGION_PCT% below threshold $MIN_REGION%."
-              FAIL=1
-            fi
-            if [ "$LINE_OK" != "1" ]; then
-              echo "::error::Line coverage $LINE_PCT% below threshold $MIN_LINE%."
-              FAIL=1
-            fi
-            TARGET_OK=$(awk -v l="$LINE_PCT" -v m="$COVERAGE_TARGET" 'BEGIN { print (l+0 >= m+0) ? 1 : 0 }')
-            if [ "$TARGET_OK" != "1" ]; then
-              echo "::notice::Line coverage $LINE_PCT% is below the 90% target; hard gate remains $MIN_LINE% until coverage uplift lands."
-            fi
-          fi
-
-          if [ "$FAIL" = "1" ]; then
-            exit 1
-          fi
-          echo "Coverage gate passed: region $REGION_PCT% / line $LINE_PCT%."
-
-      # The branch ruleset requires `build`, `compile` and `test` as contexts -- measured
-    # 2026-09-15 via `gh api repos/.../rulesets`, after a comment here claimed `build`
-    # and nothing else. That comment is what the next author would trust when deciding
-    # whether `needs` matters, and it was wrong; `needs` matters for every job that is
-    # NOT one of those three, which is what `check-every-ci-job-is-required.py` enforces.
+      # The branch ruleset requires `build`, `compile` and `test` as contexts -- re-read 2026-09-18
+  # via `gh api repos/MongLong0214/logic-pro-mcp/rulesets/19060230`: strict is on, the bypass list
+  # is empty, and those three are the whole list. So `needs` is what makes every OTHER job able to
+  # block a merge, which is what `check-every-ci-job-is-required.py` enforces.
   build:
     runs-on: ubuntu-latest
     # `roadmap` joins this list in the same change that restores the job. The instruction three
@@ -415,7 +386,7 @@ jobs:
     # it can fail, and the only required context does not look at it. A stale roadmap, a drifted ADR
     # index or a wrong Formula sha256 would have turned `roadmap` red while `build` stayed green and
     # the ruleset permitted the merge. Found by review 2026-09-15.
-    needs: [compile, test, roadmap, canon-citations-in-the-pull-request]
+    needs: [guards, compile, test, formula, canon-citations-in-the-pull-request]
     if: always()
     timeout-minutes: 5
     steps:
@@ -433,15 +404,21 @@ jobs:
         # both read as "did not succeed" and only one of them is.
         env:
           EVENT: ${{ github.event_name }}
+          GUARDS: ${{ needs.guards.result }}
           COMPILE: ${{ needs.compile.result }}
           TEST: ${{ needs.test.result }}
-          ROADMAP: ${{ needs.roadmap.result }}
+          FORMULA: ${{ needs.formula.result }}
           CANON: ${{ needs.canon-citations-in-the-pull-request.result }}
         run: |
-          echo "compile=$COMPILE test=$TEST roadmap=$ROADMAP canon=$CANON event=$EVENT"
+          echo "guards=$GUARDS compile=$COMPILE test=$TEST formula=$FORMULA canon=$CANON event=$EVENT"
+          # Each one spelled out, and each compared to `success` rather than tested for truthiness.
+          # `cancelled` and `skipped` are not success, and a dependency this list forgets is a job
+          # that can go red while the only required context stays green -- which has happened here
+          # three times and is what `Scripts/check-every-ci-job-is-required.py` now watches for.
+          [ "$GUARDS" = "success" ] || { echo "::error::guards did not succeed"; exit 1; }
           [ "$COMPILE" = "success" ] || { echo "::error::compile did not succeed"; exit 1; }
           [ "$TEST" = "success" ] || { echo "::error::test did not succeed"; exit 1; }
-          [ "$ROADMAP" = "success" ] || { echo "::error::roadmap did not succeed"; exit 1; }
+          [ "$FORMULA" = "success" ] || { echo "::error::formula did not succeed"; exit 1; }
           if [ "$EVENT" = "pull_request" ]; then
             [ "$CANON" = "success" ] || {
               echo "::error::canon-citations-in-the-pull-request did not succeed"; exit 1; }

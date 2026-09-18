@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Prove `Scripts/ci-verify-formula-sha.sh` can fail, without a network.
 
-NOT covered here, stated rather than implied by silence: the network branch. Every case below hands
-the rule a local sums file, which is the seam that makes an offline test possible and also means the
-`gh release view` / `gh release download` path is never exercised. In particular the deliberate
-exception — a version whose release is not published yet exits 0 with a loud line, so a release-prep
-bump is not blocked — has no case here. It was verified by hand against the live repository
-(2026-09-05: `version "9.99.0"` exits 0 and says so; the real version exits 0 and matches).
+The network branch IS covered now, through a fake `gh` (`LPM_GH_BIN`) that prints a chosen HTTP
+status line. That branch used to classify every failure of `gh release view` as "not published yet"
+and exit 0 -- an expired token, a 403, a rate limit and a 502 all read as "fine". The docstring here
+said the branch was not covered, and the thing it was not covering was wrong.
+
+What is still NOT covered, stated rather than implied by silence: the real `gh release download`
+against a real release, and therefore the bytes of a real SHA256SUMS.txt. The fake stops at the
+status classification and hands the sums in directly from there.
 
 The guard exists because a hash was copied by hand and nothing compared the copy to the release it
 named. A test that only ever sees the repository in its correct state would repeat that mistake one
@@ -45,6 +47,63 @@ def _run(formula_text, sums_text, sums_name="sums.txt"):
         env = dict(os.environ, LPM_FORMULA_PATH=str(formula))
         proc = subprocess.run(["bash", str(GUARD), str(sums)],
                               capture_output=True, text=True, env=env)
+        return proc.returncode, proc.stdout + proc.stderr
+
+
+FAKE_GH = r"""#!/usr/bin/env bash
+# A `gh` that answers one status, so the classification can be tested without having a 403.
+if [ "$1" = "api" ]; then
+  if [ -n "${FAKE_STDERR:-}" ]; then printf '%s
+' "$FAKE_STDERR" >&2; fi
+  if [ -n "${FAKE_STATUS:-}" ]; then
+    printf 'HTTP/2.0 %s Fake
+' "$FAKE_STATUS"
+    printf 'content-type: application/json
+
+'
+    printf '{}
+'
+  fi
+  if [ "${FAKE_STATUS:-}" = "200" ]; then exit 0; fi
+  exit 1
+fi
+# `gh release download` -- only reached after a 200. Write the sums the case asked for.
+if [ -n "${FAKE_SUMS:-}" ]; then
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = "-O" ]; then printf '%s' "$FAKE_SUMS" > "$2"; exit 0; fi
+    shift
+  done
+fi
+exit 1
+"""
+
+
+def _run_network(formula_text, status, sums=None, stderr="", release_prep=False):
+    """Run the guard's NETWORK branch against a fake `gh`; return (exit code, output).
+
+    No local sums argument, so the rule takes the branch that asks GitHub. The fake is what makes
+    that branch reachable offline -- and the only way a 401/429/5xx case exists at all.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        formula = root / "logic-pro-mcp.rb"
+        formula.write_text(formula_text, encoding="utf-8")
+        fake = root / "gh"
+        fake.write_text(FAKE_GH, encoding="utf-8")
+        fake.chmod(0o755)
+        env = dict(os.environ,
+                   LPM_FORMULA_PATH=str(formula),
+                   LPM_GH_BIN=str(fake),
+                   LPM_FORMULA_RETRY_DELAY="0",
+                   FAKE_STATUS=str(status),
+                   FAKE_STDERR=stderr)
+        env.pop("FAKE_SUMS", None)
+        env.pop("LPM_FORMULA_RELEASE_PREPARATION", None)
+        if sums is not None:
+            env["FAKE_SUMS"] = sums
+        if release_prep:
+            env["LPM_FORMULA_RELEASE_PREPARATION"] = "1"
+        proc = subprocess.run(["bash", str(GUARD)], capture_output=True, text=True, env=env)
         return proc.returncode, proc.stdout + proc.stderr
 
 
@@ -94,11 +153,63 @@ def main():
     rc, out = _run(two, sums)
     check("two hashes is exit 2", rc == 2, f"exit {rc}: {out.strip()[:200]}")
 
+    # 9. The manifest names the asset twice. Taking the first is the shape this guard is about.
+    rc, out = _run(_formula("3.15.0", GOOD), f"{GOOD}  {ASSET}\n{OTHER}  {ASSET}\n")
+    check("a duplicated asset row is refused", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+
+    # 10. A manifest hash that is not a sha256 at all. Exit 1 alone does not prove this case:
+    #     the mismatch branch below it also exits 1, so a run with the shape check removed would
+    #     still be red for the wrong reason. The MESSAGE is what separates the two.
+    rc, out = _run(_formula("3.15.0", GOOD), f"not-a-hash  {ASSET}\n")
+    check("a malformed manifest hash is refused", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+    check("a malformed manifest hash is refused AS malformed", "64 hex" in out,
+          f"this must not pass through the mismatch branch: {out.strip()[:200]}")
+
+    # --- The network branch. THE defect: every one of these used to exit 0. ---
+    formula = _formula("3.15.0", GOOD)
+    for status in (401, 403, 429, 500, 502, 503):
+        rc, out = _run_network(formula, status)
+        check(f"HTTP {status} is not a pass", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+        check(f"HTTP {status} says it could not check",
+              "could not" in out or "nothing was checked" in out,
+              f"the message must say the check was not made: {out.strip()[:200]}")
+
+    # No status line at all -- a DNS failure, a timeout, a `gh` that died before answering.
+    rc, out = _run_network(formula, "", stderr="dial tcp: lookup api.github.com: no such host")
+    check("no status is not a pass", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+
+    # 404 on an ordinary run: the committed Formula points at a release nobody published.
+    rc, out = _run_network(formula, 404)
+    check("404 fails on an ordinary run", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+
+    # 404 while PREPARING a release: not applicable, and it has to say it proved nothing.
+    rc, out = _run_network(formula, 404, release_prep=True)
+    check("404 in release preparation is not applicable", rc == 0, f"exit {rc}: {out.strip()[:200]}")
+    check("release preparation does not claim the hash is right", "NOT" in out,
+          f"it must say it confirmed nothing: {out.strip()[:200]}")
+
+    # 200 and the manifest agrees -- the whole path, fake `gh` and all.
+    rc, out = _run_network(formula, 200, sums=f"{GOOD}  {ASSET}\n")
+    check("200 with an agreeing manifest passes", rc == 0, f"exit {rc}: {out.strip()[:200]}")
+
+    # 200 and the manifest disagrees -- #775 through the network branch.
+    rc, out = _run_network(formula, 200, sums=f"{OTHER}  {ASSET}\n")
+    check("200 with a stale hash fails", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+
+    # 200 but the asset is not in the manifest.
+    rc, out = _run_network(formula, 200, sums=f"{GOOD}  SomethingElse.tar.gz\n")
+    check("200 with no such asset fails", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+
+    # 200 but the download itself fails -- the release is there and the check could not be made.
+    rc, out = _run_network(formula, 200)
+    check("200 with an undownloadable manifest fails", rc == 1, f"exit {rc}: {out.strip()[:200]}")
+
     if failures:
         for f in failures:
             print(f"FAIL {f}")
         return 1
-    print("8 case(s) pass: the guard catches a stale hash and refuses what it cannot read")
+    print("25 case(s) pass: the guard catches a stale hash, refuses what it cannot read, and no "
+          "longer reads an auth, rate-limit or server failure as 'not published yet'")
     return 0
 
 
