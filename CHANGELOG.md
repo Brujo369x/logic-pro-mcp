@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-(No unreleased changes yet.)
+- Added: `LogicProMCPKit` library product, so a host application can link the `LogicProMCP` target as a SwiftPM dependency (manifest-only; the executable is unchanged). (#944)
 
 ---
 
