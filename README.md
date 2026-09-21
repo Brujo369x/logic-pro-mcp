@@ -214,7 +214,8 @@ The package also exposes the `LogicProMCP` target as a library product named `Lo
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/MongLong0214/logic-pro-mcp", from: "3.16.0"),
+    // The branch, not a version, until the first release carrying this product is published.
+    .package(url: "https://github.com/MongLong0214/logic-pro-mcp", branch: "main"),
 ],
 targets: [
     .target(
@@ -227,6 +228,15 @@ targets: [
 ```swift
 import LogicProMCP
 ```
+
+`v3.16.0`, the current published stable release, predates this product, and `from:` resolves the highest matching tag — so the ordinary `from: "3.16.0"` form resolves a package that does not contain `LogicProMCPKit`. Measured 2026-09-22 with a consumer package written exactly that way:
+
+```text
+error: 'consumer': product 'LogicProMCPKit' required by package 'consumer' target 'Consumer'
+not found in package 'logic-pro-mcp'.
+```
+
+Once a release carries the product, `from: "<that version>"` is the ordinary form and is preferred over the branch.
 
 The product name is `LogicProMCPKit`; the module you import is `LogicProMCP`. A library product cannot share the executable's name: SwiftPM accepts such a manifest but reports "ignoring duplicate product" and drops the library.
 
