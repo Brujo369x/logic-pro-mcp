@@ -72,6 +72,23 @@ def _load_canon():
 
 canon = _load_canon()
 
+
+def _load_ratchet():
+    """The merge-base comparison, shared with `check-every-ci-job-is-required.py`.
+
+    Loaded the same way `logic_canon` is, because `Scripts/` is not a package and
+    these guards run as scripts from the repository root. It knows nothing about
+    Logic: the CI-integrity owner uses it without loading the corpus.
+    """
+    path = os.path.join(REPO, "Scripts", "ratchet.py")
+    spec = importlib.util.spec_from_file_location("ratchet_for_guard", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+ratchet = _load_ratchet()
+
 #: Records that predate the canon axis. This set may only SHRINK -- a new record joining it is
 #: refused. Written as identities rather than a count because a count hides a swap, which is the
 #: same reasoning `docs/observations/RATCHETS.json` is built on.
@@ -84,6 +101,22 @@ WITHOUT_CANON_PATH = os.path.join(REPO, "docs", "canon", "WITHOUT-CANON.json")
 
 class CanonWaiverError(Exception):
     """A waiver file this guard cannot compare. Raised rather than degrading to an empty set."""
+
+
+class CanonIndexUnavailable(Exception):
+    """The committed index a citation would be judged against could not be read here.
+
+    `load_index` returns an empty table for a MISSING index file, so `resolve_offline` says the
+    reference "is not in docs/canon/index/<source>.tsv" -- true, and indistinguishable from the
+    author citing a key that does not exist. `diagnose_text` filed both as INVALID_REFERENCE,
+    which is a sentence addressed to the contributor about their citation. On a checkout without
+    the corpus built, every citation in every body became the author's fault.
+
+    That is the exact confusion this whole axis was rebuilt to remove: a corpus that would not
+    load must not reach a first-time contributor as an accusation. Raised instead, so `check_text`
+    renders ERROR and exits 2 -- nonzero, because a check that could not evaluate has not passed,
+    and saying nothing about the body.
+    """
 
 
 def _json(path, default):
@@ -118,86 +151,23 @@ def load_without_canon() -> set:
 POLICY_CLASSIFICATION = os.path.join(REPO, "docs", "canon", "POLICY-LITERALS.json")
 
 
+#: One reader of this repository's history, shared with the CI-integrity owner. Its `note()` says
+#: a thing once: two rules ratchet MANIFEST.json, and a note repeated per caller reads as two
+#: findings rather than one fact about the branch.
+_HISTORY = ratchet.History(REPO)
+R = ratchet.Ratchet
+
+
 def _merge_base():
-    """The commit this branch forked from, or None when it cannot be read.
-
-    A waiver list that may only shrink has to be compared against something OUTSIDE the branch.
-    Comparing it against its own file is what a same-commit edit defeats: add a record at schema 1
-    AND add it to the waiver in one commit, and a file-only check sees a consistent tree. Same
-    reasoning as `check-observation-ratchets.py`, and it fails outright under CI when the base is
-    unreadable rather than degrading to the weaker comparison.
-    """
-    for ref in ("origin/main", "main"):
-        found = subprocess.run(["git", "merge-base", "HEAD", ref],
-                               cwd=REPO, capture_output=True, text=True)
-        if found.returncode == 0 and found.stdout.strip():
-            return found.stdout.strip()
-    return None
-
-
-def _git(*args):
-    out = subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True)
-    return out.stdout.strip() if out.returncode == 0 else None
-
-
-def _show_json(sha, path):
-    out = subprocess.run(["git", "-C", REPO, "show", f"{sha}:{path}"],
-                         capture_output=True, text=True)
-    if out.returncode != 0:
-        return None
-    try:
-        return json.loads(out.stdout)
-    except json.JSONDecodeError:
-        return None
+    return _HISTORY.merge_base()
 
 
 def _at_base(base, path):
-    """The ratcheted file as the branch departed from it, or (None, why) dressed as None + a note.
-
-    The merge base not carrying the file is NOT the same as the file being new, and this returned
-    None for both and the caller skipped. `check-observation-ratchets.py`, one directory over,
-    already worked out why that is wrong, and this is the same walk:
-
-      * A delete-then-restore pair reaches a branch too. Treating it as a bootstrap adopts whatever
-        the restored file says as the permanent base.
-      * `--full-history`, or `rev-list` simplifies through a TREESAME merge and follows one parent,
-        so a delete on a side branch hides what the other parent did.
-      * In a shallow clone `rev-list` exits 0 with no output, so "no ancestor carries it" is not a
-        reading anyone can trust.
-
-    The window this closes is not hypothetical: every ratchet introduced on this branch was
-    invisible for exactly this reason, which is how rule 14 and rule 7 came to contradict each
-    other without anything firing.
-    """
-    found = _show_json(base, path)
-    if found is not None:
-        return found
-    history = _git("rev-list", "--full-history", "--max-count=200", base, "--", path)
-    for sha in (history or "").split():
-        prior = _show_json(sha, path)
-        if prior is not None:
-            _note(f"{path} is absent at the merge base {base[:8]}; ratcheted against "
-                  f"{sha[:8]}, the last ancestor carrying it.")
-            return prior
-    if _git("rev-parse", "--is-shallow-repository") == "true":
-        _note(f"{path}: history is truncated (shallow clone), so 'no ancestor carries it' is not "
-              f"a reading anyone can trust. Check out with fetch-depth: 0.")
-        return None
-    _note(f"{path} is carried by neither the merge base {base[:8]} nor any ancestor, so this is "
-          f"the commit that introduces it and its ratchet does not run here. It runs on the next "
-          f"branch -- a contradiction introduced with a new list is invisible until then.")
-    return None
-
-
-_SAID = set()
+    return _HISTORY.at_base(base, path)
 
 
 def _note(message):
-    """Said once. Two rules ratchet MANIFEST.json, and a note repeated per caller reads as two
-    findings rather than one fact about the branch."""
-    if message not in _SAID:
-        _SAID.add(message)
-        print(f"  note: {message}", file=sys.stderr)
+    _HISTORY.note(message)
 
 
 def _corpus_members(blob, key):
@@ -309,78 +279,49 @@ def _labelset_waiver_members(blob, key):
 #: would have had nowhere to go. It had not fired only because those two files do not exist at the
 #: merge base of the branch that introduces them; it fires on the next one.
 RATCHETS = (
-    ("docs/canon/WITHOUT-CANON.json", "records", "shrink",
-     "records predating the canon axis"),
-    ("docs/canon/POLICY-LITERALS.json", "literals", "shrink",
-     "literals classified as answered nowhere in Logic"),
-    ("docs/canon/NOT-A-RECORD.json", "files", "shrink",
-     "files in docs/observations that are declared not to be records"),
-    ("docs/canon/LOGIC-FACING.json", "prefixes", "grow",
-     "path prefixes whose changes may not use the opt-out"),
-
-    ("docs/canon/CI-GATE.json", "required_commands", "grow",
-     "commands the required CI gate must carry"),
-    ("docs/canon/PROSE-NUMBERS.json", "numbers", "shrink",
-     "numbers docs/canon/README.md may state with no artifact behind them", _key_members),
-    ("docs/canon/CI-SKIPS.json", "allowed", "shrink",
-     "cases guards are allowed to SKIP under CI", _skip_members),
-    ("docs/canon/MANIFEST.json", "sources", "grow",
-     "the (source, locale) corpora every absence proof searches", _corpus_members),
-    #: `LOGIC-FACING.json`'s `exceptions` is NOT here either, and for the same reason as the list
-    #: below: its entries are re-proved on every run. Rule 15 reads each excepted file and refuses
-    #: it if it carries a `logic-canon://` reference or quotes a value the pinned corpus holds, so
-    #: the bar an added entry clears is a property of the file, not a sentence about it. A
-    #: monotonic ratchet on top of that would forbid the repair and buy nothing -- and forbidding
-    #: the repair is what #937 is about.
-    #:
-    #: `LABELSETS-WITHOUT-A-ROW.json` WAS HERE as a `shrink` list, and that made the repository's
-    #: own documented path unreachable. `check-new-labelsets-name-a-row.py` offers a new LabelSet
-    #: two answers -- name a row in `derivedFrom`, or carry a waiver with a proof -- and rule 7
-    #: refused the second in the same run that accepted it. An outside review found the pair and
-    #: the code had already recorded this exact contradiction once, for LOGIC-FACING.json.
-    #:
-    #: What makes this list different from every other waiver here is that its entries are not
-    #: taken on trust for a moment. `check-new-labelsets-name-a-row.py:225` re-proves EVERY entry
-    #: on EVERY run -- `prove_absent` searches every ENGLISH corpus the manifest pins (measured
-    #: 2026-09-20: three of the 24, `nibstrings`, `quickhelp` and `strings`, because a waiver's
-    #: claim is that the canonical is the value of no row in English), and
-    #: `prove_composition` verifies each factor against the row's committed digest per locale -- and
-    #: that guard is discovered by `run-repo-guards.py`, run by the `guards` job, which `build`
-    #: needs and the ruleset requires. So the bar an added entry must clear is a proof against
-    #: Apple's own data, not a sentence. A monotonic ratchet on top of that adds no protection and
-    #: costs the only path a genuinely composed label has.
+    R("docs/canon/WITHOUT-CANON.json", "records", "shrink",
+      "records predating the canon axis", _ratchet_members),
+    R("docs/canon/POLICY-LITERALS.json", "literals", "shrink",
+      "literals classified as answered nowhere in Logic", _ratchet_members),
+    R("docs/canon/NOT-A-RECORD.json", "files", "shrink",
+      "files in docs/observations that are declared not to be records", _ratchet_members),
+    R("docs/canon/LOGIC-FACING.json", "prefixes", "grow",
+      "path prefixes whose changes may not use the opt-out", _ratchet_members),
+    R("docs/canon/PROSE-NUMBERS.json", "numbers", "shrink",
+      "numbers docs/canon/README.md may state with no artifact behind them", ratchet.key_members),
+    R("docs/canon/MANIFEST.json", "sources", "grow",
+      "the (source, locale) corpora every absence proof searches", _corpus_members),
+    #: `LOGIC-FACING.json`'s `exceptions` is NOT here, and neither is `LABELSETS-WITHOUT-A-ROW`:
+    #: their entries are re-proved on every run. Rule 15 reads each excepted file and refuses it
+    #: if it carries a `logic-canon://` reference or quotes a value the pinned corpus holds, and
+    #: `check-new-labelsets-name-a-row.py:225` re-proves EVERY waiver against Apple's own data --
+    #: `prove_absent` searches every ENGLISH corpus the manifest pins, `prove_composition` verifies
+    #: each factor against the row's committed digest per locale. The bar an added entry clears is
+    #: a property of the file, not a sentence about it. A monotonic ratchet on top of that would
+    #: forbid the repair and buy nothing -- and `LABELSETS-WITHOUT-A-ROW.json` WAS here as a
+    #: `shrink` list, which made the repository's own documented path unreachable: the guard
+    #: offered a new LabelSet two answers and rule 7 refused the second in the same run that
+    #: accepted it.
     #:
     #: The ratchet stays on every other waiver list, where the entries ARE taken on trust.
-    #: `not_required` was NOT here, and `check-every-ci-job-is-required.py`'s own comment says the
-    #: list was moved into a file "so the merge-base ratchet can see it". Only `required_commands`
-    #: was listed, so it could not: a change could add a CI job that always fails, waive it in
-    #: `not_required` in the same commit, and both guards passed. A waiver for "this job does not
-    #: have to be required" is the most load-bearing waiver in the repository, because what it
-    #: waives is the gate itself.
-    ("docs/canon/CI-GATE.json", "not_required", "shrink",
-     "CI jobs that are allowed not to gate a merge", _key_members),
-    #: This file DOES NOT EXIST at the time of writing, and that was the hole: the guard reads it
-    #: (`check-ax-comparisons-use-labelsets.py`) and skips whatever it names, so anyone could
-    #: create it in the same change as the comparison it excuses and nothing compared it to
-    #: anything. A ratchet entry on an absent file is not a mistake -- `_members` returns an empty
-    #: set for a missing file, so the first version of it is measured against nothing and every
-    #: entry in it is a growth that rule 7 refuses.
+    #:
+    #: The file below DOES NOT EXIST at the time of writing, and that was the hole: the guard
+    #: reads it (`check-ax-comparisons-use-labelsets.py`) and skips whatever it names, so anyone
+    #: could create it in the same change as the comparison it excuses and nothing compared it to
+    #: anything. A ratchet entry on an absent file is not a mistake -- the comparison begins the
+    #: moment somebody creates it, and every entry in the first version is a growth rule 7 refuses.
     #: The key is `literals` because that is what `check-ax-comparisons-use-labelsets.py::waived`
-    #: reads. A ratchet aimed at a key the consumer does not use guards a list nothing obeys, and
-    #: the shape check would report it as a renamed key rather than as the mismatch it is.
-    ("docs/canon/AX-COMPARISON-WAIVERS.json", "literals", "shrink",
-     "AX comparisons waived from using a LabelSet", _key_members),
-    #: Was a Python set literal in the guard that reads it, so "may only shrink" was a comment and
-    #: a change could add a guard with no test and waive it in the same diff.
-    ("docs/canon/GUARDS-WITHOUT-A-TEST.json", "guards", "shrink",
-     "guards with no test that drives them", _key_members),
-    #: Measured by `Scripts/mutation-sweep-guard-tests.py`, not declared. A guard leaves this list
-    #: by gaining a case that drives its entry point at an input that must fail, and the sweep
-    #: re-measures; a guard cannot be added to it to excuse a test that was never written, because
-    #: rule 7 refuses the growth.
-    ("docs/canon/GUARD-TESTS-BLIND-TO-THEIR-GUARD.json", "guards", "shrink",
-     "guards whose test does not notice the gate being removed", _key_members),
+    #: reads. A ratchet aimed at a key the consumer does not use guards a list nothing obeys.
+    R("docs/canon/AX-COMPARISON-WAIVERS.json", "literals", "shrink",
+      "AX comparisons waived from using a LabelSet", ratchet.key_members),
 )
+
+#: THE CI-ONLY LISTS ARE NOT HERE ANY MORE. `CI-GATE.json`, `CI-SKIPS.json`,
+#: `GUARDS-WITHOUT-A-TEST.json` and `GUARD-TESTS-BLIND-TO-THEIR-GUARD.json` say nothing about
+#: Logic: they are the CI gate's own topology and debt, and they were ratcheted here only because
+#: this is where the comparison happened to live. They moved to `.github/ci/` with their owner,
+#: `check-every-ci-job-is-required.py`, which declares the same ratchets over the new paths and
+#: names the old ones as `legacy` so the relocation is compared rather than bootstrapped (#951).
 
 
 def check_waivers_only_shrink(failures: list) -> None:
@@ -389,127 +330,12 @@ def check_waivers_only_shrink(failures: list) -> None:
     Compared against `git merge-base`, not against the file itself, because a file-only check is
     what a same-commit edit defeats: add a record at schema 1 AND add it to the waiver in one
     commit, and the tree is internally consistent.
-    """
-    base = _merge_base()
-    under_ci = os.environ.get("CI") == "true"
-    if base is None:
-        message = ("the merge base could not be read, so a ratcheted list can only be compared "
-                   "against its own file -- which a same-commit edit defeats")
-        if under_ci:
-            failures.append(f"canon ratchets: {message}. A shallow clone has no base; "
-                            f"CI must check out with fetch-depth: 0.")
-        else:
-            print(f"  note: {message}", file=sys.stderr)
-        return
 
-    for entry in RATCHETS:
-        path, key, direction, what = entry[:4]
-        members = entry[4] if len(entry) > 4 else _ratchet_members
-        before = _at_base(base, path)
-        if before is None:
-            # A list no ancestor carries is unratcheted on the branch that introduces it. For a
-            # `grow` list that is necessary -- rule 14 refuses a Logic-facing directory that is not
-            # in LOGIC-FACING.json, so the commit adding the directory must be able to add the
-            # prefix, and refusing it would make the first such change unmergeable.
-            #
-            # For a `shrink` list it is the abuse itself. A waiver list may only shrink, and a NEW
-            # waiver list arriving pre-populated is a growth from nothing that nobody is asked
-            # about. `docs/canon/AX-COMPARISON-WAIVERS.json` was exactly this: the AX-comparison
-            # guard already read it and skipped whatever it named, the file did not exist, and it
-            # was in no ratchet -- so creating it in the same change as the comparison it excuses
-            # cost nothing. An empty base is the honest comparison for a waiver: every entry in the
-            # first version is new, because before it there was no permission at all.
-            if direction != "shrink":
-                continue
-            if not os.path.exists(os.path.join(REPO, path)):
-                # Absent on both sides. A waiver list that does not exist is the good state, and
-                # the shape check below would otherwise read "one side does not have the key" as a
-                # renamed key. The comparison begins the moment somebody creates the file.
-                continue
-            # A list that MOVED is not a list that appeared. `KNOWN_BARE` lived as a Python set in
-            # the guard that read it, where "may only shrink" was a comment and nothing compared
-            # it; moving it into a file is what makes the ratchet possible, and refusing the move
-            # would keep every such list in code forever.
-            #
-            # `migrated_from` is checked, not believed: the named path is read AT THE MERGE BASE
-            # and every member of the new list must appear there as a quoted string. A member the
-            # predecessor did not carry is still a growth from nothing. That is the difference
-            # between a decision and a sentence -- the file cannot authorise itself.
-            #
-            # And before that, the distinction the first version of this rule missed: a `shrink`
-            # list is either a set of PERMISSIONS or a CENSUS of measured debt, and only the first
-            # can excuse anything. What separates them is not what the file says about itself --
-            # it is whether any guard READS it to skip something. `AX-COMPARISON-WAIVERS.json` is
-            # read by `check-ax-comparisons-use-labelsets.py`, which skips whatever it names, so a
-            # new entry silences a real finding and its first version must be empty.
-            # `GUARD-TESTS-BLIND-TO-THEIR-GUARD.json` is read by no guard at all: it records what
-            # `mutation-sweep-guard-tests.py` measured, and its first version is that measurement.
-            # Refusing a census is refusing somebody for writing down what is already true.
-            #
-            # Checked by looking, not by asking the file.
-            readers = sorted(
-                os.path.basename(g) for g in glob.glob(os.path.join(REPO, "Scripts", "check-*.py"))
-                if os.path.basename(g) != os.path.basename(__file__)
-                and os.path.basename(path) in open(g, encoding="utf-8", errors="replace").read())
-            if not readers and os.path.exists(os.path.join(REPO, path)):
-                _note(f"{path} is new and no guard reads it to exempt anything, so it is a census "
-                      f"rather than a set of permissions. Its first version is the measurement; "
-                      f"the ratchet holds it to shrinking from the next branch on.")
-                continue
-            now_doc = _json(os.path.join(REPO, path), {})
-            origin = now_doc.get("migrated_from")
-            if origin:
-                was_text = _git("show", f"{base}:{origin}") or ""
-                if not was_text:
-                    failures.append(
-                        f"{path}: `migrated_from` names {origin!r}, which the merge base does not "
-                        f"carry. A move has a place it moved FROM, and this one cannot be checked.")
-                    continue
-                strays = sorted(m for m in members(now_doc, key)
-                                if f'"{m}"' not in was_text and f"'{m}'" not in was_text)
-                if strays:
-                    failures.append(
-                        f"{path}: {len(strays)} member(s) are not in {origin} at the merge base, so "
-                        f"they were not moved, they were added: {', '.join(strays[:6])}. A new "
-                        f"exemption lands as a growth however the file it lands in was created.")
-                    continue
-                _note(f"{path} was migrated from {origin}; every member is one that file already "
-                      f"carried at {base[:8]}, so the move is not a growth. The ratchet compares "
-                      f"against this file from the next branch on.")
-                continue
-            before = {key: []}
-            _note(f"{path} is carried by no ancestor of {base[:8]}. It is a waiver list, so its "
-                  f"first version is compared against an EMPTY set: a new list of exemptions is a "
-                  f"growth from nothing, not a bootstrap.")
-        now = _json(os.path.join(REPO, path), {})
-        if not isinstance(before.get(key), (list, dict)) or not isinstance(now.get(key), (list, dict)):
-            failures.append(
-                f"{path}: the list this ratchet compares lives under {key!r}, and one side does "
-                f"not have it. A renamed key makes the comparison silently empty.")
-            continue
-        was, is_now = members(before, key), members(now, key)
-        if not was and before.get(key):
-            # The extractor reads a SHAPE. Change the shape and it returns nothing, the comparison
-            # is empty, and the ratchet passes everything -- the failure mode this whole file is
-            # about. An empty reading of a non-empty value is a broken extractor, not a clean run.
-            failures.append(
-                f"{path}: the ratchet read no members out of a non-empty {key!r}. Its extractor "
-                f"no longer matches the file's shape, so the comparison would pass anything.")
-            continue
-        gained = sorted(is_now - was)
-        lost = sorted(was - is_now)
-        if direction == "shrink":
-            for member in gained:
-                failures.append(
-                    f"{path}: {member!r} was added to the list of {what}. That list may only "
-                    f"SHRINK. A change that breaks the rule and waives itself in the same commit "
-                    f"passes every check that reads only the tree.")
-        else:
-            for member in lost:
-                failures.append(
-                    f"{path}: {member!r} was removed from the list of {what}. That list may only "
-                    f"GROW -- it is a requirement, not a waiver, and dropping an entry quietly "
-                    f"removes a rule.")
+    The comparison itself is `Scripts/ratchet.py`, shared with the CI-integrity owner. What stays
+    here is WHICH Logic-facing lists are ratcheted and how their members are read.
+    """
+    ratchet.check(REPO, RATCHETS, failures, history=_HISTORY,
+                  owner=os.path.basename(__file__))
 
 
 #: Numbers under `sources.*.shape` and `sources.*.round_trip` that may move DOWN without the
@@ -1166,13 +992,18 @@ def _visible(body: str) -> str:
 def logic_facing_exceptions() -> set:
     """Files under a Logic-facing prefix that state no fact about Logic.
 
-    `docs/canon/` is a prefix, and four files under it hold job names, guard names, test counts and
-    the numbers a document may state. A change touching only those has no row of Apple's data to
-    cite and could not opt out either, so the only way through was to paste a citation that
+    `docs/canon/` is a prefix, and two files under it hold the numbers a document may state and the
+    paths that are not observation records. A change touching only those has no row of Apple's data
+    to cite and could not opt out either, so the only way through was to paste a citation that
     resolves and quote its value in the diff -- manufacturing evidence, which is the failure the
     citation rule exists to prevent. Measured twice on 2026-09-20 (#937): a four-line correction to
     `GUARD-TESTS-BLIND-TO-THEIR-GUARD.json` could not be made, and a new ratchet file was moved out
     of `docs/canon` for no reason but this rule.
+
+    The list was six entries until #951. The other four governed CI rather than Logic and moved to
+    `.github/ci/`, which is under no prefix here, so they need no exemption -- a file in the right
+    place beats a file with a note saying it is an exception, because the exemption is one rename
+    away from lapsing and the location is not.
 
     An empty or absent list is the STRICT direction -- everything under a prefix stays Logic-facing
     -- so it is read leniently here and the entries are proved below instead.
@@ -1236,26 +1067,117 @@ def logic_facing(changed):
 
 
 
-def check_text(path: str, changed_paths=None, *, require_changed: bool = False) -> int:
-    """Validate the canonical citations in a pull request or issue body.
+#: STABLE DIAGNOSTIC CODES, emitted by `--format json` and keyed on by the advisory issue bot.
+#:
+#: There is ONE evaluation and two renderings of it. The bot does not parse this file's stderr --
+#: that was the shape the old `canon-issue.yml` had, and it is why a corpus failure and a missing
+#: citation reached a contributor as the same sentence accusing them of an uncited claim. Adding a
+#: code is additive. Changing what an existing one MEANS is a breaking change for that workflow.
+MISSING_DECLARATION = "missing_declaration"
+HIDDEN_DECLARATION = "hidden_declaration"
+DECLARATION_QUOTES_CORPUS = "declaration_quotes_corpus"
+LOGIC_FACING_OPT_OUT = "logic_facing_opt_out"
+INVALID_REFERENCE = "invalid_reference"
+MISSING_QUOTED_VALUE = "missing_quoted_value"
+UNRELATED_BINDING = "unrelated_binding"
+UNPROVED_EXCEPTIONS = "unproved_exceptions"
+EMPTY_CHANGED_LIST = "empty_changed_list"
+INPUT_UNREADABLE = "input_unreadable"
+CHECKER_ERROR = "checker_error"
+
+#: SATISFIED means the evidence-format requirements are met, not that anything about Logic was
+#: verified. ACTIONABLE means the author can fix a named problem. ERROR means the evaluation did
+#: not finish -- a corpus, a file or the checker itself -- and says nothing about the author.
+SATISFIED = "satisfied"
+ACTIONABLE = "actionable"
+ERROR = "error"
+
+#: 0 and 1 are what every caller before this saw and are unchanged. ERROR is 2, and it is still
+#: NONZERO on purpose: `pr-policy.yml` runs this as a required check, and a check that could not
+#: evaluate has not passed. Advisory issue intake is the only place the distinction softens
+#: anything, and that softening is in the bot's wording, not in an exit code.
+EXIT_FOR = {SATISFIED: 0, ACTIONABLE: 1, ERROR: 2}
+
+
+class Diagnosis:
+    """What one evaluation of a body found: a category, and findings that carry a stable code."""
+
+    def __init__(self, category: str, findings=None, references: int = 0):
+        self.category = category
+        self.findings = list(findings or [])
+        self.references = references
+
+    def as_dict(self) -> dict:
+        return {
+            "category": self.category,
+            "references": self.references,
+            "diagnostics": [{"code": code, "message": message}
+                            for code, message in self.findings],
+        }
+
+
+def _require_readable_index(ref) -> None:
+    """Refuse to judge a citation against an index this run could not read.
+
+    Three failures wore the same word before this. A missing index file made `load_index` return
+    an empty table, so every reference "is not in docs/canon/index/<source>.tsv". A malformed row
+    made it raise the base `CanonError`, which the caller filed as the reference being invalid. A
+    missing value index made `resolve_offline` say no value citation for the source is pinned. All
+    three are this repository's corpus, and all three arrived at the contributor as a claim about
+    the reference THEY typed.
+
+    A reference that does not resolve against an index this run CAN read is still the author's --
+    that is the ordinary unknown-key case and it stays actionable.
+    """
+    if ref.is_value_citation:
+        path = canon.value_index_path(ref.source)
+        if not os.path.exists(path):
+            raise CanonIndexUnavailable(
+                f"{path} does not exist, so no value citation for {ref.source} can be checked "
+                f"here. Run Scripts/logic_canon.py build on a machine with Logic. Nothing is "
+                f"being asserted about the citation.")
+        # The same second question the key branch asks below. Existence is not readability: a
+        # `.values.tsv` row with the wrong field count raises the base `CanonError` out of
+        # `load_value_index`, and without this the two branches would answer differently about
+        # the same repository-side fault -- which is the asymmetry this function exists to close.
+        try:
+            canon.load_value_index(ref.source)
+        except canon.CanonError as exc:
+            raise CanonIndexUnavailable(f"{path} could not be read: {exc}") from exc
+        return
+    path = canon.index_path(ref.source)
+    if not os.path.exists(path):
+        raise CanonIndexUnavailable(
+            f"{path} does not exist, so no reference for {ref.source} can be resolved here. Run "
+            f"Scripts/logic_canon.py build on a machine with Logic. Nothing is being asserted "
+            f"about the citation.")
+    try:
+        canon.load_index(ref.source)
+    except canon.CanonError as exc:
+        raise CanonIndexUnavailable(f"{path} could not be read: {exc}") from exc
+
+
+def diagnose_text(body: str, changed_paths=None, *, require_changed: bool = False,
+                  label: str = "<body>") -> Diagnosis:
+    """Evaluate a pull request or issue body and return what was found.
 
     The tree-wide check cannot see this text -- a pull request body is not a file in the tree, and
     that is exactly where the rule was named and not enforced. `docs/canon/README.md` says every
     artefact this repository produces cites Logic or says it cannot; without this, "every artefact"
     meant "every file", and the two documents a change is actually reviewed through were exempt.
-    """
-    with open(path, "r", encoding="utf-8") as handle:
-        body = handle.read()
 
+    Raising is how this reports that it could not evaluate. `check_text` turns that into ERROR;
+    nothing here returns SATISFIED for a lookup that did not happen.
+    """
     if require_changed and not changed_paths:
-        print(f"{path}: the list of changed files is empty, so whether this change may opt out "
-              f"cannot be derived.\n"
-              f"  A pull request changes something. An empty list means the diff command failed, "
-              f"and the CI step's\n"
-              f"  `||` fallback turns that into a file with nothing in it -- which used to REOPEN "
-              f"the opt-out for a\n"
-              f"  change that edits Logic-facing paths. Fail closed instead.", file=sys.stderr)
-        return 1
+        return Diagnosis(ACTIONABLE, [(EMPTY_CHANGED_LIST, (
+            f"{label}: the list of changed files is empty, so whether this change may opt out "
+            f"cannot be derived.\n"
+            f"  A pull request changes something. An empty list means the diff command failed, "
+            f"and the CI step's\n"
+            f"  `||` fallback turns that into a file with nothing in it -- which used to REOPEN "
+            f"the opt-out for a\n"
+            f"  change that edits Logic-facing paths. Fail closed instead."))])
 
     touched = logic_facing(changed_paths)
     # The exceptions NARROW that set, so the opt-out below can rest on them -- and rule 15 is what
@@ -1273,19 +1195,19 @@ def check_text(path: str, changed_paths=None, *, require_changed: bool = False) 
         proof: list = []
         check_exceptions_state_no_fact(proof)
         if proof:
-            print(f"{path}: the Logic-facing exceptions are not proved, so nothing here may narrow "
-                  f"what counts as a claim about Logic:", file=sys.stderr)
-            for line in proof:
-                print(f"  {line}", file=sys.stderr)
-            return 1
+            detail = "\n".join(f"  {line}" for line in proof)
+            return Diagnosis(ACTIONABLE, [(UNPROVED_EXCEPTIONS, (
+                f"{label}: the Logic-facing exceptions are not proved, so nothing here may narrow "
+                f"what counts as a claim about Logic:\n{detail}"))])
+
     references = canon.find_refs(body)
     if not references:
         if touched:
-            print(f"{path}: no canonical reference, and this change may not opt out: it edits "
-                  f"{len(touched)} file(s)\n  whose contents are claims about Logic, first "
-                  f"{touched[0]}.\n"
-                  f"  Cite what those claims rest on. See docs/canon/README.md.", file=sys.stderr)
-            return 1
+            return Diagnosis(ACTIONABLE, [(LOGIC_FACING_OPT_OUT, (
+                f"{label}: no canonical reference, and this change may not opt out: it edits "
+                f"{len(touched)} file(s)\n  whose contents are claims about Logic, first "
+                f"{touched[0]}.\n"
+                f"  Cite what those claims rest on. See docs/canon/README.md."))])
         if NO_FACT_OPT_OUT in _visible(body):
             # ...unless the body QUOTES something citable. The opt-out says "this states no fact
             # about Logic", and a body carrying a string Logic ships is stating one. This is the
@@ -1293,26 +1215,45 @@ def check_text(path: str, changed_paths=None, *, require_changed: bool = False) 
             # derive the opt-out from -- and it tightens the pull request path for free.
             quoted = _citable_strings_in(body)
             if quoted:
-                print(f"{path}: says {NO_FACT_OPT_OUT!r} and quotes {len(quoted)} string(s) the "
-                      f"corpus holds, first {quoted[0][:50]!r}.\n"
-                      f"  A body that quotes a string Logic ships is stating a fact about Logic. "
-                      f"Cite it.", file=sys.stderr)
-                return 1
-            print(f"{path}: no citation, and it says so: {NO_FACT_OPT_OUT!r}")
-            return 0
-        print(f"{path}: no canonical reference, and no opt-out.\n"
-              f"  Cite what this rests on, or write the sentence {NO_FACT_OPT_OUT!r} with the\n"
-              f"  reason -- outside any code block or HTML comment. See docs/canon/README.md.",
-              file=sys.stderr)
-        return 1
+                return Diagnosis(ACTIONABLE, [(DECLARATION_QUOTES_CORPUS, (
+                    f"{label}: says {NO_FACT_OPT_OUT!r} and quotes {len(quoted)} string(s) the "
+                    f"corpus holds, first {quoted[0][:50]!r}.\n"
+                    f"  A body that quotes a string Logic ships is stating a fact about Logic. "
+                    f"Cite it."))])
+            return Diagnosis(SATISFIED)
+        # WHICH of the two is wrong decides what to say. A declaration typed into a code fence or
+        # an HTML comment is a contributor who followed the instruction and got the rendering
+        # wrong, and telling them "no opt-out" sends them to write a sentence they already wrote.
+        # `_visible()` is NOT relaxed to accept it -- three earlier bypasses came out of that -- so
+        # the repair is to name the place it is hiding.
+        if NO_FACT_OPT_OUT in body:
+            return Diagnosis(ACTIONABLE, [(HIDDEN_DECLARATION, (
+                f"{label}: the sentence {NO_FACT_OPT_OUT!r} is in this text, but only inside a "
+                f"code block or an\n"
+                f"  HTML comment, and those are deliberately not read -- a declaration that "
+                f"renders as an example\n"
+                f"  is not a declaration. Move it into ordinary visible prose, with the reason.")
+            )])
+        return Diagnosis(ACTIONABLE, [(MISSING_DECLARATION, (
+            f"{label}: no canonical reference, and no opt-out.\n"
+            f"  Cite what this rests on, or write the sentence {NO_FACT_OPT_OUT!r} with the\n"
+            f"  reason -- outside any code block or HTML comment. See docs/canon/README.md."))])
 
-    failures = []
+    findings = []
     for ref_text in references:
         try:
             ref = canon.CanonRef.parse(ref_text)
+        except canon.CanonRefError as exc:
+            # The citation STRING is malformed. That is the author's to fix and nothing else here
+            # was consulted to say so.
+            findings.append((INVALID_REFERENCE, f"{label}: {exc}"))
+            continue
+        _require_readable_index(ref)
+        try:
             canon.resolve_offline(ref)
-        except canon.CanonError as exc:
-            failures.append(f"{path}: {exc}")
+        except canon.CanonResolveError as exc:
+            # A well-formed reference against an index this run could read: the key is not there.
+            findings.append((INVALID_REFERENCE, f"{label}: {exc}"))
 
     # A reference is only half of a citation. The value it resolves to must be in the text too, or
     # the reader cannot tell what was claimed -- and the digest check has nothing to compare.
@@ -1320,15 +1261,20 @@ def check_text(path: str, changed_paths=None, *, require_changed: bool = False) 
     for ref_text in references:
         try:
             ref = canon.CanonRef.parse(ref_text)
-            committed = canon.resolve_offline(ref)
-        except canon.CanonError:
+        except canon.CanonRefError:
             continue
-        table = canon.load_index(ref.source)
-        del table
+        # No `_require_readable_index` here. The loop above already ran it for every reference
+        # that parses, over the same references and the same sources, and raised if any index was
+        # unreadable -- so reaching this line means they all were. A second call would be a second
+        # place deciding the same thing, and the mutation that deleted one of them survived.
+        try:
+            committed = canon.resolve_offline(ref)
+        except canon.CanonResolveError:
+            continue
         if not _quotes_the_value(folded, ref, committed):
-            failures.append(
-                f"{path}: {ref} appears without the value it resolves to. A reference alone is a "
-                f"key anybody can type; the citation is the reference AND the value.")
+            findings.append((MISSING_QUOTED_VALUE, (
+                f"{label}: {ref} appears without the value it resolves to. A reference alone is a "
+                f"key anybody can type; the citation is the reference AND the value.")))
 
     # A CITATION MUST BEAR ON WHAT CHANGED. Until 2026-09-19 any resolving reference satisfied this
     # rule: paste the Install.strings reference and `설치` on its own line, change two Logic-facing
@@ -1340,23 +1286,65 @@ def check_text(path: str, changed_paths=None, *, require_changed: bool = False) 
     # post-change contents. A `derivedFrom` satisfies it by construction, which is the common case;
     # a document that quotes a value it is writing about satisfies it too. Both pull request bodies
     # this branch descends from bind 2 of 2 references under it, measured before it was written.
-    if touched and references and not failures:
+    if touched and references and not findings:
         relevant = _citation_bears_on(references, body, changed_paths)
         if not relevant:
-            failures.append(
-                f"{path}: cites {len(references)} reference(s) and none of them bears on anything "
+            findings.append((UNRELATED_BINDING, (
+                f"{label}: cites {len(references)} reference(s) and none of them bears on anything "
                 f"this change touches. A citation that could sit on any pull request is not "
                 f"evidence for THIS one -- cite the row the change rests on, or say what the "
                 f"cited row has to do with the files being changed by quoting its value where "
-                f"they use it.")
+                f"they use it.")))
 
-    if failures:
-        print(f"{path}: {len(failures)} failure(s)", file=sys.stderr)
-        for failure in failures:
-            print(f"  {failure}", file=sys.stderr)
-        return 1
-    print(f"{path}: {len(references)} citation(s) resolved")
-    return 0
+    if findings:
+        return Diagnosis(ACTIONABLE, findings, references=len(references))
+    return Diagnosis(SATISFIED, references=len(references))
+
+
+def check_text(path: str, changed_paths=None, *, require_changed: bool = False,
+               as_json: bool = False) -> int:
+    """Render one evaluation of a body, as prose or as JSON, and return its exit status.
+
+    ONE evaluation, two renderings. `canon-issue.yml` used to read this function's stderr and turn
+    whatever it found into a sentence addressed to the author -- so a corpus that would not load
+    reached a first-time contributor as an accusation that they had cited nothing. The bot now
+    reads `--format json` and keys on the stable codes above; nothing downstream parses prose.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            body = handle.read()
+    except OSError as exc:
+        diagnosis = Diagnosis(ERROR, [(INPUT_UNREADABLE, f"{path}: {exc}")])
+    else:
+        try:
+            diagnosis = diagnose_text(body, changed_paths,
+                                      require_changed=require_changed, label=path)
+        except (canon.CanonError, CanonWaiverError, CanonIndexUnavailable,
+                CitableScanFailed, OSError) as exc:
+            # The evaluation did not finish. That is not the author's doing and must not be
+            # reported as though it were -- but it is not a pass either, so the status is nonzero.
+            diagnosis = Diagnosis(ERROR, [(CHECKER_ERROR, (
+                f"{path}: this check could not evaluate the text: {type(exc).__name__}: {exc}\n"
+                f"  Nothing about the body is being asserted. This is a repository-side "
+                f"failure."))])
+
+    if as_json:
+        json.dump(diagnosis.as_dict(), sys.stdout, ensure_ascii=False, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
+        return EXIT_FOR[diagnosis.category]
+
+    if diagnosis.category == SATISFIED:
+        if diagnosis.references:
+            print(f"{path}: {diagnosis.references} citation(s) resolved")
+        else:
+            print(f"{path}: no citation, and it says so: {NO_FACT_OPT_OUT!r}")
+        return EXIT_FOR[SATISFIED]
+
+    if len(diagnosis.findings) > 1:
+        print(f"{path}: {len(diagnosis.findings)} failure(s)", file=sys.stderr)
+    for _code, message in diagnosis.findings:
+        print(message, file=sys.stderr)
+    return EXIT_FOR[diagnosis.category]
 
 
 #: Shortest quoted run worth testing. Below this a fragment hits the corpus by coincidence.
@@ -1508,29 +1496,77 @@ def _unquoted(text: str) -> str:
     return ""
 
 
-def _changed_from_argv():
-    """The changed-file list for the tree-wide run, or None when it was not given.
+USAGE = ("usage: check-canon-citations.py [--changed <file>]\n"
+         "       check-canon-citations.py --text <file> [--changed <file>] [--format text|json]")
 
-    None means "do not check which files the change touches", which is the behaviour every run
-    before this had. It is not a default that weakens anything silently: `--changed` is what CI
-    passes, and a local run without it says less rather than passing something wrong.
+
+class UsageError(Exception):
+    """The command line did not say what it meant, so nothing is evaluated."""
+
+
+def _usage(message: str) -> int:
+    """Refuse, loudly, with the ERROR status.
+
+    EVERY argument form below used to be POSITIONAL: `--text` had to be argv[1], `--changed` had
+    to be argv[3], and the whole `--changed` clause was ignored unless argc was exactly 5. Adding
+    `--format` to that shape would have made `--text b.md --format json --changed c.txt` run with
+    NO file list -- which is the mode where a change that edits Logic-facing paths may opt out.
+    A dropped flag has to be an error rather than a quieter check.
     """
-    if "--changed" in sys.argv:
-        index = sys.argv.index("--changed")
-        if index + 1 < len(sys.argv):
-            with open(sys.argv[index + 1], "r", encoding="utf-8") as handle:
-                return [line.strip() for line in handle if line.strip()]
-    return None
+    print(f"check-canon-citations: {message}\n{USAGE}", file=sys.stderr)
+    return EXIT_FOR[ERROR]
+
+
+def _read_list(path: str) -> list:
+    with open(path, "r", encoding="utf-8") as handle:
+        return [line.strip() for line in handle if line.strip()]
+
+
+def _parse_argv(argv: list) -> dict:
+    """The options in `argv`, or `UsageError`. No option is consumed by position."""
+    options = {"text": None, "changed": None, "format": "text"}
+    rest = list(argv)
+    positional = []
+    while rest:
+        token = rest.pop(0)
+        if token in ("--text", "--changed", "--format"):
+            key = token[2:]
+            if not rest:
+                raise UsageError(f"{token} needs a value")
+            if options[key] is not None and key != "format":
+                raise UsageError(f"{token} given twice")
+            options[key] = rest.pop(0)
+        elif token.startswith("-"):
+            raise UsageError(f"unknown option {token}")
+        else:
+            positional.append(token)
+    if positional:
+        raise UsageError(f"unexpected argument {positional[0]!r}")
+    if options["format"] not in ("text", "json"):
+        raise UsageError(f"--format takes text or json, not {options['format']!r}")
+    if options["format"] == "json" and options["text"] is None:
+        raise UsageError("--format applies to --text; the tree-wide run has no JSON rendering")
+    return options
 
 
 def main() -> int:
-    if len(sys.argv) >= 3 and sys.argv[1] == "--text":
+    try:
+        options = _parse_argv(sys.argv[1:])
+    except UsageError as exc:
+        return _usage(str(exc))
+    except OSError as exc:
+        return _usage(f"cannot read the changed-file list: {exc}")
+
+    if options["text"] is not None:
         changed, required = [], False
-        if len(sys.argv) == 5 and sys.argv[3] == "--changed":
+        if options["changed"] is not None:
             required = True
-            with open(sys.argv[4], "r", encoding="utf-8") as handle:
-                changed = [line.strip() for line in handle if line.strip()]
-        return check_text(sys.argv[2], changed, require_changed=required)
+            try:
+                changed = _read_list(options["changed"])
+            except OSError as exc:
+                return _usage(f"cannot read the changed-file list: {exc}")
+        return check_text(options["text"], changed, require_changed=required,
+                          as_json=options["format"] == "json")
 
     failures: list = []
 
@@ -1554,7 +1590,12 @@ def main() -> int:
     check_every_json_is_a_record_or_declared(failures)
     check_labelsets_are_logic_facing(failures)
     check_exceptions_state_no_fact(failures)
-    changed = _changed_from_argv()
+    # None means "do not check which files the change touches", which is the behaviour every run
+    # before `--changed` existed had. It is not a default that weakens anything silently: CI passes
+    # the list, and a local run without it says less rather than passing something wrong. What is
+    # forbidden is reaching that weaker mode BY ACCIDENT, which is why `_parse_argv` refuses a
+    # `--changed` with nothing after it instead of behaving like a run that never asked.
+    changed = None if options["changed"] is None else _read_list(options["changed"])
     references = check_references(failures)
     without_canon = load_without_canon()
     records = observation_records()
