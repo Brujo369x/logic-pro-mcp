@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-- Added: `LogicProMCPKit` library product, so a host application can link the `LogicProMCP` target as a SwiftPM dependency (manifest-only; the executable is unchanged). (#944)
+- Added: `LogicProMCPKit` library product, so a host application can link the `LogicProMCP` target as a SwiftPM dependency (no runtime behavior and no access level changes; no source file is touched, and the executable is unchanged. `Package.resolved` moves with it: CI's toolchain resolves 25 pins instead of 9 once the package vends a library). (#944)
 
 ---
 

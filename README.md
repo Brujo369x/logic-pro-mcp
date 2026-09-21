@@ -207,7 +207,7 @@ See [SECURITY.md §Installer trust model](SECURITY.md#installer-trust-model) for
 
 ## Using LogicProMCP as a library
 
-The package also exposes the `LogicProMCP` target as a library product named `LogicProMCPKit` (#944), so a Swift application can link the same code the server runs instead of driving the server as a separate stdio process. This is a manifest-only addition: it adds no MCP tool or resource, and it changes no runtime behavior of the server or its executables.
+The package also exposes the `LogicProMCP` target as a library product named `LogicProMCPKit` (#944), so a Swift application can link the same code the server runs instead of driving the server as a separate stdio process. It changes no runtime behavior and no access level: not one `public`, `internal` or `private` modifier moved, no MCP tool or resource was added, and the server and its executables are byte-for-byte the same code. What the pull request touches besides `Package.swift` is `Package.resolved` — CI's toolchain resolves a larger transitive graph once the package vends a library — and this file, `CHANGELOG.md` and the roadmap.
 
 ### Dependency setup
 
