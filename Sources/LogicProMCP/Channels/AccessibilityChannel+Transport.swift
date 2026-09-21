@@ -2188,10 +2188,9 @@ extension AccessibilityChannel {
             /// reports what it observed. Keeping them in one case rather than adding a sibling case
             /// is deliberate -- `requiresUnsafeUIRefusal` matches this case whatever its payload,
             /// so a reconciled closure cannot quietly release the safety refusal.
-            case menuCouldNotBeClosed(writeAttempted: Bool, reconciledMenuClosed: Bool)
+            case menuCouldNotBeClosed(menuActuationAttempted: Bool, reconciledMenuClosed: Bool)
             case dialogPreexisting
             case dialogPreexistenceUnreadable
-            case dialogNotReady
             case dialogUnidentifiedNewWindow
             case dialogAppearanceUnreadable
             case dialogActuationIssued(cleanupObservedClosed: Bool)
@@ -2200,6 +2199,9 @@ extension AccessibilityChannel {
             case dialogSubmissionIssued(cleanupObservedClosed: Bool)
             case executionFailed(issuance: DialogIssuanceStage, cleanupObservedClosed: Bool)
             case malformedPayload
+            /// An unparsed script result is the absence of a dialog-safety observation, not an
+            /// observation that nothing happened; it must refuse rather than release a later
+            /// position actuator.
             case unexpectedResult
         }
 
@@ -2218,11 +2220,10 @@ extension AccessibilityChannel {
             case .failure(.menuValidationUnreadable(menuActuationAttempted: _)):
                 return "menu_validation_unreadable"
             case .failure(.menuPickFailed): return "menu_pick_failed"
-            case let .failure(.menuCouldNotBeClosed(writeAttempted, _)):
-                return "menu_could_not_be_closed_write_attempted_\(writeAttempted)"
+            case let .failure(.menuCouldNotBeClosed(menuActuationAttempted, _)):
+                return "menu_could_not_be_closed_menu_actuation_attempted_\(menuActuationAttempted)"
             case .failure(.dialogPreexisting): return "dialog_preexisting"
             case .failure(.dialogPreexistenceUnreadable): return "dialog_preexistence_unreadable"
-            case .failure(.dialogNotReady): return "dialog_not_ready"
             case .failure(.dialogUnidentifiedNewWindow): return "dialog_unidentified_new_window"
             case .failure(.dialogAppearanceUnreadable): return "dialog_appearance_unreadable"
             case let .failure(.dialogActuationIssued(closed)):
@@ -2326,7 +2327,6 @@ extension AccessibilityChannel {
                  .failure(.dialogAppearanceUnreadable),
                  .failure(.dialogActuationIssued(cleanupObservedClosed: false)),
                  .failure(.dialogSubmissionNotIssued(cleanupObservedClosed: false)),
-                 .failure(.dialogNotReady),
                  .failure(.executionFailed(issuance: .notIssued, cleanupObservedClosed: false)):
                 return true
             default:
@@ -2337,22 +2337,40 @@ extension AccessibilityChannel {
         /// Whether this result is downstream of the run's dialog-safety observation. `false`
         /// means the route did not read the pre-leaf dialog/window state, not that it observed no
         /// dialog. Callers must retain the failure rather than treating it as a clean fallback.
+        /// The list is the outcomes that DID read the state, and anything unlisted answers `false`.
+        /// The inverse shape -- a list of outcomes that did not, defaulting to `true` -- is what
+        /// made `.malformedPayload` release the fallback: it was added to the enum and inherited
+        /// "observed" by saying nothing, which is the same defect `.unexpectedResult` was fixed for
+        /// one switch arm away. A case that never declares which side it is on must refuse, because
+        /// the absence of a declaration is the absence of an observation.
         private var performedDialogSafetyObservation: Bool {
             switch self {
+            case .driven,
+                 .failure(.menuPickFailed),
+                 .failure(.menuCouldNotBeClosed),
+                 .failure(.dialogPreexisting),
+                 .failure(.dialogPreexistenceUnreadable),
+                 .failure(.dialogUnidentifiedNewWindow),
+                 .failure(.dialogAppearanceUnreadable),
+                 .failure(.dialogActuationIssued),
+                 .failure(.dialogSubmissionNotIssued),
+                 .failure(.dialogInputIssued),
+                 .failure(.dialogSubmissionIssued),
+                 .failure(.executionFailed):
+                return true
             case .failure(.menuNotFound),
                  .failure(.menuStateUnreadable),
                  .failure(.menuDisabled),
-                 .failure(.menuValidationUnreadable(menuActuationAttempted: _)):
+                 .failure(.menuValidationUnreadable),
+                 .failure(.malformedPayload),
+                 .failure(.unexpectedResult):
                 return false
-            default:
-                return true
             }
         }
 
         var dialogActuationMayHaveOccurred: Bool {
             switch self {
-            case .failure(.dialogNotReady),
-                 .failure(.dialogUnidentifiedNewWindow),
+            case .failure(.dialogUnidentifiedNewWindow),
                  .failure(.dialogAppearanceUnreadable),
                  .failure(.dialogActuationIssued),
                  .failure(.dialogSubmissionNotIssued),
@@ -2452,8 +2470,8 @@ extension AccessibilityChannel {
                 // The generated script writes the flag it observed after that statement, so preserve
                 // that fact rather than manufacturing a constant in the receipt.
                 return menuActuationAttempted
-            case let .failure(.menuCouldNotBeClosed(writeAttempted, _)):
-                return writeAttempted
+            case let .failure(.menuCouldNotBeClosed(menuActuationAttempted, _)):
+                return menuActuationAttempted
             default:
                 return false
             }
@@ -2464,7 +2482,7 @@ extension AccessibilityChannel {
         /// exactly that case; the generated dialog script must not send a blind Escape on an
         /// unreadable focus read.
         var requiresPostActuationMenuReconciliation: Bool {
-            if case .failure(.menuCouldNotBeClosed(writeAttempted: true, reconciledMenuClosed: false))
+            if case .failure(.menuCouldNotBeClosed(menuActuationAttempted: true, reconciledMenuClosed: false))
                 = self { return true }
             return false
         }
@@ -2504,7 +2522,7 @@ extension AccessibilityChannel {
                 // This sentinel is a safety refusal. A legacy bare value or malformed suffix has
                 // lost the observation, not established that no click occurred, so retain `true`
                 // in the receipt as an indeterminate menu-actuation attempt. Only
-                // `.menuCouldNotBeClosed(writeAttempted: true)` triggers post-actuation reconciliation.
+                // `.menuCouldNotBeClosed(menuActuationAttempted: true)` triggers post-actuation reconciliation.
                 return .failure(.menuValidationUnreadable(menuActuationAttempted: true))
             }
             return .failure(.menuValidationUnreadable(
@@ -2518,7 +2536,7 @@ extension AccessibilityChannel {
             if value.hasPrefix("MENU_PICK_FAILED: menu state was not observed closed at entry")
                 || value.hasPrefix("MENU_PICK_FAILED: menu cleanup was not observed") {
                 return .failure(.menuCouldNotBeClosed(
-                    writeAttempted: value.hasPrefix(
+                    menuActuationAttempted: value.hasPrefix(
                         "MENU_PICK_FAILED: menu cleanup was not observed after menu actuation"
                     ),
                     // The parser only ever reports what the script observed. Reconciliation has
@@ -2527,8 +2545,6 @@ extension AccessibilityChannel {
                 ))
             }
             return .failure(.menuPickFailed)
-        case "DIALOG_NOT_READY":
-            return .failure(.dialogNotReady)
         case let value where value.hasPrefix("DIALOG_UNIDENTIFIED_NEW_WINDOW"):
             return .failure(.dialogUnidentifiedNewWindow)
         case let value where value.hasPrefix("DIALOG_APPEARANCE_UNREADABLE"):
@@ -2630,9 +2646,9 @@ extension AccessibilityChannel {
                     // closed was still reported `could_not_be_closed`. Carry it. The refusal itself
                     // is deliberately unchanged -- dialog safety was never established here.
                     if reconciledMenuClosed,
-                       case let .failure(.menuCouldNotBeClosed(writeAttempted, _)) = classification {
+                       case let .failure(.menuCouldNotBeClosed(menuActuationAttempted, _)) = classification {
                         return .failed(.failure(.menuCouldNotBeClosed(
-                            writeAttempted: writeAttempted, reconciledMenuClosed: true
+                            menuActuationAttempted: menuActuationAttempted, reconciledMenuClosed: true
                         )))
                     }
                 }
