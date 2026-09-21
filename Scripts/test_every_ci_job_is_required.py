@@ -166,7 +166,16 @@ class Refusals(unittest.TestCase):
         """A required JOB says nothing about its STEPS; deleting a step leaves the job green."""
         self._policy(required_commands=["python3 Scripts/nothing-runs-this.py"])
         problems = self._check(FLOW)
-        self.assertTrue(any("no step runs" in p for p in problems), problems)
+        self.assertTrue(any("no step in any merge-gating workflow runs" in p for p in problems),
+                        problems)
+
+    def test_a_command_declared_as_one_workflows_own_that_it_does_not_run_fails(self):
+        """The per-workflow half of the same rule. The top-level list may be satisfied by EITHER
+        gate, so only this one says a named owner still carries what it declared."""
+        self._policy(workflows={"ci.yml": {"gates_merges": True, "why": "the audited one",
+                                           "required_commands": ["python3 Scripts/absent.py"]}})
+        problems = self._check(FLOW)
+        self.assertTrue(any("ci.yml: no step runs" in p for p in problems), problems)
 
 
 class TheBodyGateMustRerunWhenTheBodyChanges(unittest.TestCase):
@@ -224,16 +233,50 @@ class AgainstTheRealWorkflow(unittest.TestCase):
     def test_the_repositorys_own_workflow_passes(self):
         self.assertEqual(guard.check(), [])
 
-    def test_the_real_workflow_rebuilds_when_the_body_is_edited(self):
-        text = open(guard.WORKFLOW, encoding="utf-8").read()
-        self.assertIn("edited", text)
-        self.assertIn("--text", text, "if the body step is gone this assertion is about nothing")
+    def test_whichever_workflow_reads_the_body_rebuilds_when_it_is_edited(self):
+        """Aimed at the file that reads the body rather than at `ci.yml` by name.
 
-    def test_the_canon_citation_job_is_actually_required(self):
-        """Named rather than left to the general rule, because this is the job that was omitted."""
+        It used to assert `--text` was in `ci.yml`, with a message saying the assertion would be
+        about nothing if the body step were gone. The step moved to `pr-policy.yml` on 2026-09-21
+        and that message came true -- which is the whole subject of this guard, arriving in its
+        own suite for the second time.
+        """
+        readers = []
+        for name in sorted(guard.policy()["workflows"]):
+            body = open(os.path.join(guard.WORKFLOW_DIR, name), encoding="utf-8").read()
+            runnable = guard.executable(body)
+            # `pull_request:` as well as `--text`: `canon-issue.yml` reads an ISSUE body on the
+            # `issues` event, where there is no `edited` type to subscribe to and no merge to
+            # block. The rule is about a body a merge waits on.
+            if "--text" not in runnable or "pull_request:" not in runnable:
+                continue
+            readers.append(name)
+            self.assertRegex(body, r"(?m)^\s*types:\s*\[[^\]]*\bedited\b", name)
+        self.assertEqual(readers, ["pr-policy.yml"],
+                         "no workflow reads the pull request body, so this case checks nothing")
+
+    def test_the_body_check_lives_in_the_workflow_that_now_owns_it(self):
+        """This job used to be `canon-citations-in-the-pull-request` in `ci.yml`, and this case
+        used to assert it was in `build.needs`. It moved to `pr-policy.yml` on 2026-09-21 and
+        became a required CONTEXT of its own, so asserting it is still a job here would fail --
+        and repairing that by deleting the case would leave the move unchecked. The property is
+        the same one: the body check exists somewhere the merge waits on."""
+        ci = open(guard.WORKFLOW, encoding="utf-8").read()
+        self.assertNotIn("canon-citations-in-the-pull-request", ci,
+                         "a copy left behind is the duplicate run this split removes")
+        entry = guard.policy()["workflows"]["pr-policy.yml"]
+        self.assertTrue(entry["gates_merges"])
+        self.assertEqual(entry["required_contexts"], ["pr-policy"])
+        body = open(os.path.join(guard.WORKFLOW_DIR, "pr-policy.yml"), encoding="utf-8").read()
+        names, _ = guard.jobs_and_needs(body)
+        self.assertIn("pr-policy", names)
+
+    def test_the_classifier_is_a_job_and_the_gate_waits_on_it(self):
+        """`classify` decides whether this event needs code validation. `build` outside its
+        `needs` is a gate that cannot see the decision it is conditioned on."""
         names, needs = guard.jobs_and_needs(open(guard.WORKFLOW, encoding="utf-8").read())
-        self.assertIn("canon-citations-in-the-pull-request", names)
-        self.assertIn("canon-citations-in-the-pull-request", needs)
+        self.assertIn("classify", names)
+        self.assertIn("classify", needs)
 
     def test_the_guards_run_once_and_are_required(self):
         """The whole point of splitting them out: one job runs them, and `build` looks at it."""
@@ -294,11 +337,30 @@ class WorkflowDeclarations(unittest.TestCase):
         problems = self._run({"thing.yml": {"why": "because"}})
         self.assertTrue(any("needs `gates_merges` and a `why`" in p for p in problems), problems)
 
-    def test_a_second_workflow_claiming_to_gate_fails(self):
-        """Only `ci.yml` is audited, so another file saying it gates is a claim nobody checks."""
+    def test_a_second_workflow_claiming_to_gate_with_nothing_behind_it_fails(self):
+        """A second gate has been allowed since 2026-09-21, when the body check became a required
+        context of its own. What it may not be is a sentence: this file said it gated merges and
+        the rule used to refuse it outright, which is not a rule that survives a real second gate.
+        Now it must name the contexts the ruleset requires and own at least one command."""
         self._write("other.yml")
         problems = self._run({"other.yml": {"gates_merges": True, "why": "claims to"}})
-        self.assertTrue(any("only audits ci.yml" in p for p in problems), problems)
+        self.assertTrue(any("names no `required_contexts`" in p for p in problems), problems)
+        self.assertTrue(any("owns no `required_commands`" in p for p in problems), problems)
+
+    def test_a_second_gate_naming_a_context_no_job_publishes_fails(self):
+        self._write("other.yml", "jobs:\n  real-job:\n    steps:\n      - run: python3 x.py\n")
+        problems = self._run({"other.yml": {"gates_merges": True, "why": "it does",
+                                            "required_contexts": ["typo-job"],
+                                            "required_commands": ["python3 x.py"]}})
+        self.assertTrue(any("is not a job in this workflow" in p for p in problems), problems)
+
+    def test_a_second_gate_that_names_its_contexts_and_commands_passes(self):
+        """The control for the three cases above: without it they pass on a rule that refuses
+        every second gate, which is the rule they replaced."""
+        self._write("other.yml", "jobs:\n  real-job:\n    steps:\n      - run: python3 x.py\n")
+        self.assertEqual(self._run({"other.yml": {"gates_merges": True, "why": "it does",
+                                                  "required_contexts": ["real-job"],
+                                                  "required_commands": ["python3 x.py"]}}), [])
 
     def test_a_declared_command_that_no_step_runs_fails(self):
         self._write("thing.yml", "jobs:\n  a:\n    steps: []\n")
@@ -415,6 +477,690 @@ class SeamsAreDerivedNotListed(unittest.TestCase):
                 env=dict(os.environ, LPM_CI_WORKFLOW=path))
             self.assertEqual(proc.returncode, 1, (proc.stdout + proc.stderr)[:300])
             self.assertIn("LPM_LABELSET_CENSUS", proc.stdout + proc.stderr)
+
+
+class TheMigrationsOwnMutations(unittest.TestCase):
+    """The 2026-09-21 split, driven at a COPY of the real tree with one thing broken at a time.
+
+    The split moved the pull request body check out of `ci.yml` into `pr-policy.yml`, made
+    `pr-policy` a required context beside build/compile/test, and made every code job wait on a
+    classifier so a title edit stops restarting a macOS test run. Each of those moves has a way of
+    being wrong that leaves every check green, and the sweep that proved this guard catches them
+    was a throwaway script whose output lived only in a transcript. A control measured once and
+    discarded is a control nobody has; these are that sweep, committed.
+
+    They run against copies because the mutation is the point: the real files are never written.
+    """
+
+    REAL_WORKFLOWS = os.path.join(REPO, ".github", "workflows")
+    REAL_POLICY = os.path.join(REPO, ".github", "ci", "CI-GATE.json")
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        self.workflows = os.path.join(self.dir, "workflows")
+        shutil.copytree(self.REAL_WORKFLOWS, self.workflows)
+        self.policy_path = os.path.join(self.dir, "CI-GATE.json")
+        shutil.copy(self.REAL_POLICY, self.policy_path)
+        self.saved = (guard.WORKFLOW_DIR, guard.POLICY_PATH)
+        guard.WORKFLOW_DIR, guard.POLICY_PATH = self.workflows, self.policy_path
+
+        def restore():
+            guard.WORKFLOW_DIR, guard.POLICY_PATH = self.saved
+        self.addCleanup(restore)
+
+    def _path(self, name):
+        return os.path.join(self.workflows, name)
+
+    def _edit(self, name, old, new, count=1):
+        """Rewrite one workflow, refusing a mutation that did not land.
+
+        A `replace` whose needle has drifted is a no-op, and a no-op mutation makes the case pass
+        for the reason the control passes -- the shape these cases exist to refuse.
+        """
+        with open(self._path(name), encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertEqual(text.count(old), count,
+                         f"{name}: the anchor for this mutation is not there {count} time(s)")
+        with open(self._path(name), "w", encoding="utf-8") as handle:
+            handle.write(text.replace(old, new))
+
+    def _append_step(self, name, run):
+        with open(self._path(name), "a", encoding="utf-8") as handle:
+            handle.write(f"\n      - run: {run}\n")
+
+    def _repolicy(self, mutate):
+        with open(self.policy_path, encoding="utf-8") as handle:
+            rules = json.load(handle)
+        mutate(rules)
+        with open(self.policy_path, "w", encoding="utf-8") as handle:
+            json.dump(rules, handle)
+
+    def _check(self):
+        return guard.check(self._path("ci.yml"))
+
+    def _refuses(self, needle):
+        problems = self._check()
+        self.assertTrue(any(needle in p for p in problems),
+                        f"expected a problem mentioning {needle!r}; got {problems}")
+
+    # ---- the control -------------------------------------------------------------------------
+    def test_the_unmutated_copy_passes(self):
+        """Without this every case below passes on a guard that refuses everything."""
+        self.assertEqual(self._check(), [])
+
+    # ---- the commands that moved ---------------------------------------------------------------
+    def test_deleting_the_moved_changed_command_from_its_new_owner_fails(self):
+        """G01. The destination, not the origin: after a move, deleting the check is an edit to
+        `pr-policy.yml`, and a rule still aimed at `ci.yml` would call that clean."""
+        self._edit("pr-policy.yml",
+                   "run: python3 Scripts/check-canon-citations.py --changed pr-changed.txt",
+                   "run: true")
+        self._refuses("check-canon-citations.py --changed")
+
+    def test_deleting_the_moved_body_command_from_its_new_owner_fails(self):
+        """The `--text` invocation, pinned by its line continuation. The continuation is why the
+        ratcheted entry survived the move instead of being dropped with the old job."""
+        self._edit("pr-policy.yml",
+                   "python3 Scripts/check-canon-citations.py \\\n            --text pr-body.md",
+                   "true \\\n            --text pr-body.md")
+        self._refuses("Scripts/check-canon-citations.py \\")
+
+    def test_a_relocation_between_two_gates_passes(self):
+        """G03a, and the reason the rule searches a UNION. Moving the coverage gate from `ci.yml`
+        to `pr-policy.yml` changes which gate runs it and not whether a merge waits on it. A rule
+        that failed here would be repaired by deleting the entry -- and the list may only grow,
+        so that repair removes the requirement outright."""
+        self._edit("ci.yml", "run: bash Scripts/ci-coverage-gate.sh", "run: true")
+        self._append_step("pr-policy.yml", "bash Scripts/ci-coverage-gate.sh")
+        self.assertEqual(self._check(), [])
+
+    def test_deleting_the_coverage_gate_from_both_gates_fails(self):
+        """G03b. The same edit as above without the destination: a move with nowhere to move to."""
+        self._edit("ci.yml", "run: bash Scripts/ci-coverage-gate.sh", "run: true")
+        self._refuses("bash Scripts/ci-coverage-gate.sh")
+
+    def test_parking_a_gate_command_in_a_workflow_that_gates_nothing_fails(self):
+        """G03c. `maintenance.yml` declares `gates_merges: false`; a check that runs there can go
+        red with the merge permitted, so relocating into it is a deletion with a receipt."""
+        self._edit("ci.yml", "run: bash Scripts/ci-coverage-gate.sh", "run: true")
+        self._append_step("maintenance.yml", "bash Scripts/ci-coverage-gate.sh")
+        self._refuses("bash Scripts/ci-coverage-gate.sh")
+
+    def test_a_command_left_only_in_a_comment_fails(self):
+        """The near-miss this guard's `executable()` exists for: the string is still in the file,
+        and nothing runs it. A substring search over raw YAML reports the old owner as still
+        running commands its comments merely describe."""
+        self._edit("ci.yml",
+                   "          python3 Scripts/run-repo-guards.py > guard-run.log 2>&1 || status=$?",
+                   "          # python3 Scripts/run-repo-guards.py > guard-run.log 2>&1")
+        self._refuses("python3 Scripts/run-repo-guards.py")
+
+    def test_deleting_the_classifier_from_the_workflow_that_owns_it_fails(self):
+        """The classifier is what keeps a metadata edit from restarting the code jobs. Deleting
+        the step while the job-level conditions still read its output leaves those conditions
+        reading an empty string -- which is not `'true'`, so the code gates never run."""
+        self._edit("ci.yml",
+                   "python3 Scripts/classify-pull-request-event.py",
+                   "true #", count=1)
+        self._refuses("classify-pull-request-event.py")
+
+    # ---- the topology ---------------------------------------------------------------------------
+    def test_a_code_job_dropped_from_the_aggregate_fails(self):
+        """G02. The defect this whole guard exists for, at the job the migration touched most."""
+        self._edit("ci.yml",
+                   "needs: [classify, guards, compile, test, formula]",
+                   "needs: [classify, guards, compile, formula]")
+        self._refuses("`test` is in no required gate")
+
+    # ---- the declaration itself -----------------------------------------------------------------
+    def test_demoting_the_second_gate_fails(self):
+        """`gates_merges: false` on `pr-policy.yml` is how the migration would be undone on paper
+        while the file still sits there looking like a gate: its commands stop counting, because
+        a workflow that gates nothing is not where a required check may live."""
+        self._repolicy(lambda r: r["workflows"]["pr-policy.yml"].update({"gates_merges": False}))
+        self._refuses("check-canon-citations.py --changed")
+
+    def test_a_required_context_naming_no_job_fails(self):
+        """A context nothing publishes is a merge that waits forever, or a rule aimed at nothing.
+        Both look identical from inside this repository, which is why the name is checked against
+        the file rather than against the ruleset."""
+        self._repolicy(lambda r: r["workflows"]["pr-policy.yml"].update(
+            {"required_contexts": ["pr-polcy"]}))
+        self._refuses("is not a job in this workflow")
+
+    def test_a_second_gate_naming_no_required_context_fails(self):
+        self._repolicy(lambda r: r["workflows"]["pr-policy.yml"].update({"required_contexts": []}))
+        self._refuses("names no `required_contexts`")
+
+    def test_a_second_gate_owning_no_required_command_fails(self):
+        """Without this an empty list is a gate that can be emptied one step at a time."""
+        self._repolicy(lambda r: r["workflows"]["pr-policy.yml"].update({"required_commands": []}))
+        self._refuses("owns no `required_commands`")
+
+    def test_no_workflow_gating_at_all_fails(self):
+        """The vacuity case. With an empty gating set the command search runs over an empty
+        haystack and every entry is missing, so the guard must refuse the DECLARATION rather than
+        report a clean repository with no gates."""
+        def demote(rules):
+            for entry in rules["workflows"].values():
+                entry["gates_merges"] = False
+        self._repolicy(demote)
+        self._refuses("no workflow declares `gates_merges`")
+
+    # ---- the events and the seams ---------------------------------------------------------------
+    def test_the_body_gate_losing_edited_fails(self):
+        """The body check moved, and so did the reason it needs `edited`: open a compliant pull
+        request, let it go green, edit the citations out. Aiming this rule at `ci.yml` alone would
+        now pass, because `ci.yml` no longer reads the body."""
+        self._edit("pr-policy.yml",
+                   "types: [opened, synchronize, reopened, edited]",
+                   "types: [opened, synchronize, reopened]")
+        self._refuses("does not list `edited`")
+
+    def test_a_seam_set_in_the_second_gate_fails(self):
+        """A pull request runs its own copy of `pr-policy.yml` too. Before the split this rule
+        only looked at `ci.yml`, so the new gate was a place to lower a bar unwatched."""
+        self._edit("pr-policy.yml",
+                   "  pr-policy:\n    runs-on: ubuntu-latest\n",
+                   "  pr-policy:\n    env:\n      LPM_COVERAGE_MIN_LINE: \"0\"\n"
+                   "    runs-on: ubuntu-latest\n")
+        self._refuses("LPM_COVERAGE_MIN_LINE")
+
+
+class TheRatchetsOverTheCiLists(unittest.TestCase):
+    """Rule 7 for the four CI-only lists, which this guard owns since #951.
+
+    These cases lived in `test_canon_citations_guard.py` while `check-canon-citations.py` held the
+    ratchet table. They moved WITH the lists, because a ratchet with no case that watches it going
+    the wrong way is a comment: `GUARDS-WITHOUT-A-TEST.json` was a Python set literal for exactly
+    that reason until 2026-09-18, and an outside review added a bare guard and its waiver in one
+    diff with every check green.
+
+    The guard takes its repository root from `abspath(__file__)` and the comparison is against
+    `git merge-base`, so the fixture is a real repository with the guard INSIDE it -- driven by
+    its path in that root, never by changing the working directory.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="ci-ratchet-")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        os.makedirs(os.path.join(self.root, "Scripts"))
+        for name in ("check-every-ci-job-is-required.py", "ratchet.py"):
+            shutil.copy2(os.path.join(REPO, "Scripts", name),
+                         os.path.join(self.root, "Scripts", name))
+        for parts in ((".github", "workflows"), (".github", "ci")):
+            shutil.copytree(os.path.join(REPO, *parts), os.path.join(self.root, *parts))
+        self._git("init", "-q", "-b", "main")
+        self._git("config", "user.email", "t@example.com")
+        self._git("config", "user.name", "t")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base")
+
+    def _git(self, *args):
+        subprocess.run(("git", "-C", self.root) + args, check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def _run(self):
+        return subprocess.run(
+            [sys.executable, os.path.join(self.root, "Scripts",
+                                          "check-every-ci-job-is-required.py")],
+            capture_output=True, text=True)
+
+    def _list(self, name):
+        return os.path.join(self.root, ".github", "ci", name)
+
+    def _rewrite(self, name, mutate):
+        with open(self._list(name), encoding="utf-8") as handle:
+            body = json.load(handle)
+        mutate(body)
+        with open(self._list(name), "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+
+    # ---- the control -----------------------------------------------------------------------
+    def test_the_unmutated_copy_passes(self):
+        """Without this every case below passes on a guard that refuses its own fixture."""
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    # ---- CI-GATE.json: a requirement list, which may only GROW --------------------------------
+    def test_removing_from_a_requirement_list_fails(self):
+        self._rewrite("CI-GATE.json",
+                      lambda body: body.update(required_commands=body["required_commands"][:-1]))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("may only", result.stderr)
+        self.assertIn("CI-GATE", result.stderr)
+
+    # ---- CI-SKIPS.json: an allowance, which may only SHRINK -----------------------------------
+    # A skip exits 0, so `run-repo-guards.py` reports ok for a check that ran nothing. The members
+    # are one per ALLOWED SKIP rather than one per guard, so the number moves in the right
+    # direction.
+    def _a_guard_that_may_skip(self):
+        with open(self._list("CI-SKIPS.json"), encoding="utf-8") as handle:
+            return sorted(json.load(handle)["allowed"])[0]
+
+    def test_raising_a_skip_allowance_fails(self):
+        name = self._a_guard_that_may_skip()
+        self._rewrite("CI-SKIPS.json", lambda body: body["allowed"][name].update(
+            skips=body["allowed"][name]["skips"] + 1))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("CI-SKIPS", result.stderr)
+        self.assertIn("may only", result.stderr)
+
+    def test_lowering_a_skip_allowance_passes(self):
+        """The direction that must stay open, or the allowance can never be paid down."""
+        name = self._a_guard_that_may_skip()
+        self._rewrite("CI-SKIPS.json", lambda body: body["allowed"][name].update(
+            skips=body["allowed"][name]["skips"] - 1))
+        result = self._run()
+        self.assertNotIn("CI-SKIPS", result.stderr)
+
+    def test_a_new_guard_claiming_a_skip_fails(self):
+        self._rewrite("CI-SKIPS.json", lambda body: body["allowed"].update(
+            {"Scripts/check-something-new.py": {"skips": 1, "why": "because"}}))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("check-something-new.py", result.stderr)
+
+    # ---- the two debt lists -------------------------------------------------------------------
+    def test_a_guard_arriving_without_a_test_fails(self):
+        self._rewrite("GUARDS-WITHOUT-A-TEST.json", lambda body: body["guards"].update(
+            {"check-something-new.py": "no test yet"}))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("GUARDS-WITHOUT-A-TEST", result.stderr)
+
+    def test_a_guard_arriving_blind_to_its_own_gate_fails(self):
+        self._rewrite("GUARD-TESTS-BLIND-TO-THEIR-GUARD.json", lambda body: body["guards"].update(
+            {"check-something-new.py": "its test does not notice the gate going away"}))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("GUARD-TESTS-BLIND-TO-THEIR-GUARD", result.stderr)
+
+
+class TheMigrationIsComparedNotBootstrapped(unittest.TestCase):
+    """#951 M01-M03, M05, M06: the base carries the OLD path and the tree carries the new one.
+
+    This is the shape the relocation actually has, and the one where a ratchet quietly stops
+    existing: a list absent at the merge base is unratcheted on the branch that introduces it, and
+    the branch that MOVES a requirement is exactly the branch where losing one is easiest. The
+    class above starts from a base that already carries `.github/ci/` -- the follow-up branch, M06
+    -- so between them the ratchet is driven from both starting states.
+
+    `legacy` is declared by the owner and never read out of the moved file. A policy that names its
+    own predecessor chooses what it is compared against.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="ci-migration-")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        os.makedirs(os.path.join(self.root, "Scripts"))
+        for name in ("check-every-ci-job-is-required.py", "ratchet.py"):
+            shutil.copy2(os.path.join(REPO, "Scripts", name),
+                         os.path.join(self.root, "Scripts", name))
+        shutil.copytree(os.path.join(REPO, ".github", "workflows"),
+                        os.path.join(self.root, ".github", "workflows"))
+        # THE BASE CARRIES THE OLD PATHS, and only those.
+        self.old = os.path.join(self.root, "docs", "canon")
+        os.makedirs(self.old)
+        self.names = sorted(os.listdir(os.path.join(REPO, ".github", "ci")))
+        for name in self.names:
+            shutil.copy2(os.path.join(REPO, ".github", "ci", name),
+                         os.path.join(self.old, name))
+        self._git("init", "-q", "-b", "main")
+        self._git("config", "user.email", "t@example.com")
+        self._git("config", "user.name", "t")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base: the lists under docs/canon")
+        # The working tree carries the new ones. This is the migration commit, uncommitted.
+        self.new = os.path.join(self.root, ".github", "ci")
+        os.makedirs(self.new)
+        for name in self.names:
+            shutil.move(os.path.join(self.old, name), os.path.join(self.new, name))
+
+    def _git(self, *args):
+        subprocess.run(("git", "-C", self.root) + args, check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def _run(self, **env):
+        return subprocess.run(
+            [sys.executable, os.path.join(self.root, "Scripts",
+                                          "check-every-ci-job-is-required.py")],
+            capture_output=True, text=True, env=dict(os.environ, **env))
+
+    def _rewrite(self, name, mutate):
+        path = os.path.join(self.new, name)
+        with open(path, encoding="utf-8") as handle:
+            body = json.load(handle)
+        mutate(body)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+
+    def test_an_exact_relocation_passes_and_says_what_it_compared(self):
+        """M01. Passing is not enough: a ratchet that skipped would also pass, and the note is the
+        only way to tell the two apart from outside."""
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for name in self.names:
+            self.assertIn(f"compared against docs/canon/{name}", result.stderr,
+                          f"{name} was not compared against the path it moved from")
+
+    def test_adding_a_waiver_while_relocating_fails(self):
+        """M02. The move is not a fresh start for the allowance."""
+        self._rewrite("CI-SKIPS.json", lambda body: body["allowed"].update(
+            {"Scripts/check-something-new.py": {"skips": 1, "why": "because"}}))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("check-something-new.py", result.stderr)
+
+    def test_removing_a_mandatory_command_while_relocating_fails(self):
+        """M03. A migration that removes a requirement is a deletion wearing its name."""
+        self._rewrite("CI-GATE.json",
+                      lambda body: body.update(required_commands=body["required_commands"][:-1]))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("may only", result.stderr)
+
+    def test_a_renamed_key_is_an_error_not_an_empty_set(self):
+        """M04. `required_commands` read under another name yields no members, and an empty set
+        compares clean against anything if nobody notices it is empty."""
+        self._rewrite("CI-GATE.json", lambda body: body.update(
+            commands=body.pop("required_commands")))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        # Named, so the case cannot pass on some other refusal the same edit happens to trigger.
+        self.assertIn("no `required_commands`", result.stderr)
+
+    def test_a_corrupt_policy_is_an_error_not_a_pass(self):
+        """M04, the other half."""
+        with open(os.path.join(self.new, "CI-GATE.json"), "w", encoding="utf-8") as handle:
+            handle.write("{ not json")
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_delete_then_restore_does_not_become_the_new_base(self):
+        """M05. `at_base` returned None both when a file is NEW and when the base does not carry
+        it, and the caller skipped for both -- so deleting a list and restoring it with anything
+        written in handed the ratchet whatever the restored file said."""
+        self._git("rm", "-q", "-r", "--cached", "docs/canon")
+        self._git("commit", "-q", "-m", "delete the lists")
+        self._rewrite("CI-SKIPS.json", lambda body: body["allowed"].update(
+            {"Scripts/check-something-new.py": {"skips": 1, "why": "because"}}))
+        result = self._run()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("last ancestor carrying it", result.stderr)
+
+    def test_no_readable_merge_base_under_ci_fails_rather_than_degrading(self):
+        """M05, the other half. Named for what it covers: there is no repository at all here, so
+        `merge_base()` returns None and `base_or_refuse` refuses. It was called the shallow case
+        and is not one -- a shallow clone HAS a readable merge base, which is the whole difficulty
+        and is driven by `test_a_shallow_clone_cannot_bootstrap_a_grow_list` below."""
+        shutil.rmtree(os.path.join(self.root, ".git"), ignore_errors=True)
+        result = self._run(CI="true")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+
+    def _introduce_the_new_layout(self, root, shortened):
+        """Put `.github/ci/` in that root's WORKING TREE, optionally one requirement short."""
+        target = os.path.join(root, ".github", "ci")
+        os.makedirs(target, exist_ok=True)
+        if os.path.abspath(target) != os.path.abspath(self.new):
+            for name in self.names:
+                shutil.copy2(os.path.join(self.new, name), os.path.join(target, name))
+        if not shortened:
+            return
+        gate = os.path.join(target, "CI-GATE.json")
+        with open(gate, encoding="utf-8") as handle:
+            body = json.load(handle)
+        body["required_commands"] = body["required_commands"][:-1]
+        with open(gate, "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+
+    def _run_in(self, root, **env):
+        return subprocess.run(
+            [sys.executable, os.path.join(root, "Scripts",
+                                          "check-every-ci-job-is-required.py")],
+            capture_output=True, text=True, env=dict(os.environ, **env))
+
+    def _shallow_clone_of_this_fixture(self):
+        """A real `--depth=1` clone over `file://`, which is what CI's `fetch-depth: 1` produces.
+
+        `--depth` is ignored for a local path clone, so the URL has to be `file://`. The clone
+        carries one commit; `git merge-base HEAD origin/main` still answers, and `git rev-list`
+        over a path no reachable commit carries exits 0 with NO OUTPUT. That pair is the defect:
+        a readable base and an unreadable history.
+
+        The DELETION commit is what makes the truncation bite. `docs/canon/` exists only in the
+        first commit, so a one-commit clone cannot see it, while a full clone finds it by walking
+        back -- which is exactly the difference the case is about. The new path stays uncommitted,
+        because a base that already carries it is compared directly and never reaches this code.
+        """
+        self._git("rm", "-q", "-r", "--cached", "docs/canon")
+        self._git("commit", "-q", "-m", "the old lists leave the tree")
+        shallow = tempfile.mkdtemp(prefix="ci-shallow-")
+        self.addCleanup(shutil.rmtree, shallow, ignore_errors=True)
+        target = os.path.join(shallow, "clone")
+        subprocess.run(["git", "clone", "-q", "--depth=1", "file://" + self.root, target],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return target
+
+    def test_a_shallow_clone_cannot_bootstrap_a_grow_list(self):
+        """M05, the case the `.git`-deletion test never covered.
+
+        Reproduced by a reviewer against a real `--depth=1` clone: the old path is gone from the
+        truncated history, the new path is absent at the base, `at_base` returned None for both,
+        and `_before` called it a genuine first introduction. A `grow` list that had lost a
+        required command passed with NO failures. `Unknown` is what separates the two answers.
+        """
+        clone = self._shallow_clone_of_this_fixture()
+        self._introduce_the_new_layout(clone, shortened=True)
+        result = self._run_in(clone, CI="true")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("truncated", result.stderr)
+
+    def test_the_same_loss_is_caught_with_full_history(self):
+        """The positive control for the case above, in the same shape. Without it, "the shallow
+        clone refuses" says nothing about whether the requirement loss is what it refused."""
+        self._git("rm", "-q", "-r", "--cached", "docs/canon")
+        self._git("commit", "-q", "-m", "the old lists leave the tree")
+        self._introduce_the_new_layout(self.root, shortened=True)
+        result = self._run(CI="true")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("may only GROW", result.stderr)
+
+    def test_full_history_accepts_the_equivalent_relocation(self):
+        """The negative control. The same two commits with the requirement intact must PASS, or
+        the two cases above are only proving that this fixture refuses everything."""
+        self._git("rm", "-q", "-r", "--cached", "docs/canon")
+        self._git("commit", "-q", "-m", "the old lists leave the tree")
+        self._introduce_the_new_layout(self.root, shortened=False)
+        result = self._run(CI="true")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_the_shallow_clone_control_is_a_clone_and_not_a_broken_root(self):
+        """The control for the case above. An unmodified shallow clone must still REFUSE -- the
+        history it needs is not there either way -- and it must refuse for the truncation rather
+        than because the fixture failed to build. Without this, a clone that silently did not
+        happen would make the previous case pass for the wrong reason."""
+        clone = self._shallow_clone_of_this_fixture()
+        self.assertTrue(os.path.exists(os.path.join(clone, ".git")))
+        base = subprocess.run(["git", "-C", clone, "merge-base", "HEAD", "origin/main"],
+                              capture_output=True, text=True)
+        self.assertEqual(base.returncode, 0, base.stderr)
+        self.assertTrue(base.stdout.strip(), "a shallow clone still answers merge-base")
+        shallow = subprocess.run(["git", "-C", clone, "rev-parse", "--is-shallow-repository"],
+                                 capture_output=True, text=True)
+        self.assertEqual(shallow.stdout.strip(), "true")
+
+    def test_an_unparsable_policy_at_the_base_is_not_read_as_absent(self):
+        """`show_json` returned None for "that commit does not carry it" AND for "it does and is
+        not JSON". The second is unknown history, and skipping the comparison for it is the same
+        bootstrap in a different coat.
+
+        Only `docs/canon` is staged. `git add -A` would commit `.github/ci/` as well, and a base
+        that carries the new path directly is compared against itself and never reaches the code
+        this case is about -- which is how the first draft of it passed for the wrong reason.
+        """
+        with open(os.path.join(self.old, "CI-GATE.json"), "w", encoding="utf-8") as handle:
+            handle.write("{ not json")
+        self._git("add", "--", "docs/canon")
+        self._git("commit", "-q", "-m", "the base policy becomes unreadable")
+        self._rewrite("CI-GATE.json",
+                      lambda body: body.update(required_commands=body["required_commands"][:-1]))
+        result = self._run(CI="true")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("not readable JSON", result.stderr)
+
+    def test_an_unparsable_ANCESTOR_is_not_read_as_absent_either(self):
+        """The same third answer one commit further back, which is a separate line.
+
+        The case above stops at the merge base, where `show_json` answers directly. This one makes
+        the base carry nothing and leaves the unreadable copy in an ancestor, so the refusal has to
+        come out of the walk in `at_base` rather than out of its first call. Without it that early
+        return is a line no case can fail for.
+        """
+        with open(os.path.join(self.old, "CI-GATE.json"), "w", encoding="utf-8") as handle:
+            handle.write("{ not json")
+        self._git("add", "--", "docs/canon")
+        self._git("commit", "-q", "-m", "an ancestor's policy becomes unreadable")
+        self._git("rm", "-q", "-r", "--cached", "docs/canon")
+        self._git("commit", "-q", "-m", "and then the old path leaves the tree")
+        self._rewrite("CI-GATE.json",
+                      lambda body: body.update(required_commands=body["required_commands"][:-1]))
+        result = self._run(CI="true")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("not readable JSON", result.stderr)
+        # And it must not ALSO announce that it ratcheted against that ancestor. Falling through
+        # to the "found one" branch returns the same object and still refuses, so the refusal
+        # alone cannot tell the two apart -- the note is where the difference shows.
+        self.assertFalse(
+            [line for line in result.stderr.splitlines()
+             if "docs/canon/CI-GATE.json" in line and "last ancestor carrying it" in line],
+            "claimed to ratchet against a commit whose copy it could not read:\n" + result.stderr)
+
+
+class AFailedGitCommandIsUnknownHistory(unittest.TestCase):
+    """`at_base` driven through `History.git` directly, because a fixture cannot break `rev-list`.
+
+    The other unknown-history cases are reachable from a real repository -- a shallow clone, an
+    unparsable committed file. This one is not: `git rev-list` over a readable base practically
+    always exits 0, so the branch that handles it failing had no case that could fail for it and
+    would have been a line defended rather than checked. `History` exists as an object precisely
+    so a test can point it somewhere, and the seam is one method.
+    """
+
+    def _history(self, rev_list):
+        ratchet = guard.ratchet
+
+        class Stubbed(ratchet.History):
+            def git(self, *args):
+                if args[0] == "rev-list":
+                    return rev_list
+                return "false"
+
+            def show_json(self, sha, path):
+                return None
+
+        return Stubbed(REPO)
+
+    def test_rev_list_failing_is_unknown_and_not_absence(self):
+        found = self._history(None).at_base("deadbeef", ".github/ci/CI-GATE.json")
+        self.assertIsInstance(found, guard.ratchet.Unknown)
+        self.assertIn("`git rev-list` failed", found.why)
+
+    def test_rev_list_answering_with_nothing_in_a_full_clone_is_still_absence(self):
+        """The control. If every `rev-list` answer became `Unknown`, the case above would pass
+        while the ordinary first introduction of a list stopped working."""
+        self.assertIsNone(self._history("").at_base("deadbeef", ".github/ci/CI-GATE.json"))
+
+
+class TheTwoOwnersFailIndependently(unittest.TestCase):
+    """#951 M07-M09: a defect in one owner's subject does not need the other owner to diagnose it.
+
+    Relocating JSON while keeping the coupling would pass every case above and fail this one. The
+    fixture carries BOTH owners over one tree, so each assertion is about the same repository
+    state seen by two guards rather than about two fixtures chosen to agree.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="two-owners-")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        os.makedirs(os.path.join(self.root, "Scripts"))
+        os.makedirs(os.path.join(self.root, "docs", "observations"))
+        for name in ("check-every-ci-job-is-required.py", "check-canon-citations.py",
+                     "ratchet.py", "logic_canon.py", "nibarchive.py"):
+            shutil.copy2(os.path.join(REPO, "Scripts", name),
+                         os.path.join(self.root, "Scripts", name))
+        for parts in ((".github", "workflows"), (".github", "ci"), ("docs", "canon")):
+            shutil.copytree(os.path.join(REPO, *parts), os.path.join(self.root, *parts))
+        with open(os.path.join(self.root, "docs", "canon", "WITHOUT-CANON.json"),
+                  "w", encoding="utf-8") as handle:
+            json.dump({"records": ["docs/observations/2000-01-01-seeded.json"]}, handle)
+        self.seeded = os.path.join(self.root, "docs", "observations",
+                                   "2000-01-01-seeded.json")
+        with open(self.seeded, "w", encoding="utf-8") as handle:
+            json.dump({"schema": 1, "id": "seeded"}, handle)
+        for args in (("init", "-q", "-b", "main"), ("config", "user.email", "t@example.com"),
+                     ("config", "user.name", "t"), ("add", "-A"), ("commit", "-q", "-m", "base")):
+            subprocess.run(("git", "-C", self.root) + args, check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def _run(self, script):
+        return subprocess.run([sys.executable, os.path.join(self.root, "Scripts", script)],
+                              capture_output=True, text=True)
+
+    def _ci(self):
+        return self._run("check-every-ci-job-is-required.py")
+
+    def _canon(self):
+        return self._run("check-canon-citations.py")
+
+    def test_the_unmutated_tree_passes_both(self):
+        """Without this, either assertion below could be reporting a fixture neither owner
+        accepts."""
+        self.assertEqual(self._ci().returncode, 0, self._ci().stderr)
+        self.assertEqual(self._canon().returncode, 0, self._canon().stderr)
+
+    def test_a_ci_policy_defect_fails_the_ci_owner_and_not_canon(self):
+        """M07. Nothing about Logic changed, so the Canon gate has nothing to say -- and before
+        this split it would have been the gate a contributor had to satisfy to fix a job name."""
+        path = os.path.join(self.root, ".github", "ci", "CI-SKIPS.json")
+        with open(path, encoding="utf-8") as handle:
+            body = json.load(handle)
+        body["allowed"]["Scripts/check-something-new.py"] = {"skips": 1, "why": "because"}
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(body, handle, ensure_ascii=False)
+        ci = self._ci()
+        self.assertEqual(ci.returncode, 1, ci.stdout + ci.stderr)
+        self.assertIn("check-something-new.py", ci.stderr)
+        canon = self._canon()
+        self.assertEqual(canon.returncode, 0,
+                         "a CI-topology defect made the Canon gate fail:\n" + canon.stderr)
+
+    def test_a_citation_defect_fails_canon_and_not_the_ci_owner(self):
+        """M08. The converse, and the one that says the coupling is gone in both directions."""
+        with open(os.path.join(self.root, "docs", "observations",
+                               "2026-09-21-new.json"), "w", encoding="utf-8") as handle:
+            json.dump({"schema": 1, "id": "new"}, handle)
+        canon = self._canon()
+        self.assertEqual(canon.returncode, 1, canon.stdout + canon.stderr)
+        ci = self._ci()
+        self.assertEqual(ci.returncode, 0,
+                         "a citation defect made the CI-integrity gate fail:\n" + ci.stderr)
+
+    def test_both_owners_are_discovered_by_the_runner_that_ci_invokes(self):
+        """M09. `CI-GATE.json` requires `python3 Scripts/run-repo-guards.py`, and that runner
+        discovers by FILENAME. Extracting an owner into a file the runner does not discover is how
+        a required execution contract becomes a file nobody runs."""
+        spec = importlib.util.spec_from_file_location(
+            "repo_guards_under_test", os.path.join(REPO, "Scripts", "run-repo-guards.py"))
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        discovered = {os.path.basename(p) for p in runner.discovered()}
+        for name in ("check-every-ci-job-is-required.py", "check-canon-citations.py",
+                     "test_every_ci_job_is_required.py", "test_canon_citations_guard.py"):
+            self.assertIn(name, discovered)
 
 
 if __name__ == "__main__":

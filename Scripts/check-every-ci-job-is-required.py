@@ -20,7 +20,7 @@ may only shrink.
 
 Scope is now DECLARED rather than assumed. `ci.yml` carries the required gate and is the workflow
 whose jobs are audited against `build.needs`. Every other workflow file must be named in
-`docs/canon/CI-GATE.json` under `workflows`, with `gates_merges` and a reason -- and a file nobody
+`.github/ci/CI-GATE.json` under `workflows`, with `gates_merges` and a reason -- and a file nobody
 named is a failure.
 
 That last rule is the same rule as the first one, moved up a level. The three defects above are all
@@ -33,12 +33,30 @@ easily be a gate nobody wired up.
 leaving its string in this guard's list would have kept a test looking in the wrong file; moving it
 out and checking nothing would have lost the step silently. The command follows the workflow.
 """
+import importlib.util
 import json
 import os
 import re
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _load_ratchet():
+    """The merge-base comparison, shared with `check-canon-citations.py`.
+
+    Loaded by path because `Scripts/` is not a package. It knows nothing about Logic, which is the
+    point of the split: this guard decides CI topology without loading the corpus, and the Canon
+    checker decides citations without loading CI topology.
+    """
+    path = os.path.join(REPO, "Scripts", "ratchet.py")
+    spec = importlib.util.spec_from_file_location("ratchet_for_ci_guard", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+ratchet = _load_ratchet()
 #: A seam, so the self-test can drive main() -- the ENTRY POINT -- at a tree that must
 #: fail. Without one every case reaches the helpers only, and a `main()` returning 0
 #: unconditionally stays green; Scripts/mutation-sweep-guard-tests.py measured that for
@@ -54,7 +72,46 @@ GATE = "build"
 #: `required_commands` exists because a JOB being required says nothing about its STEPS. The
 #: tree-wide citation check runs with `--changed` in one step of one job, and deleting that step
 #: leaves the job green and the check unaimed.
-POLICY_PATH = os.path.join(REPO, "docs", "canon", "CI-GATE.json")
+POLICY_PATH = os.path.join(REPO, ".github", "ci", "CI-GATE.json")
+
+#: THE CI-ONLY RATCHETS, moved here from `check-canon-citations.py` with the files they compare
+#: (#951). None of these four lists says anything about Logic -- they are this gate's own topology
+#: and its own debt -- and they were ratcheted in the Canon checker only because that is where the
+#: merge-base comparison happened to live. Owning the rule and owning the file is the same job.
+#:
+#: `legacy` is how the relocation is CHECKED rather than bootstrapped. Without it a list absent at
+#: the merge base is unratcheted on the branch that introduces it, and the branch that moves a
+#: requirement is exactly the branch where losing one is easiest. It is declared HERE, by the
+#: owner, and never read out of the moved file: a policy that names its own predecessor chooses
+#: what it is compared against.
+RATCHETS = (
+    ratchet.Ratchet(".github/ci/CI-GATE.json", "required_commands", "grow",
+                    "commands the required CI gate must carry",
+                    legacy="docs/canon/CI-GATE.json"),
+    #: A waiver for "this job does not have to be required" is the most load-bearing waiver in the
+    #: repository, because what it waives is the gate itself. It was NOT ratcheted until 2026-09-20
+    #: -- only `required_commands` was -- so a change could add a CI job that always fails, waive
+    #: it in `not_required` in the same commit, and both guards passed.
+    ratchet.Ratchet(".github/ci/CI-GATE.json", "not_required", "shrink",
+                    "CI jobs that are allowed not to gate a merge", ratchet.key_members,
+                    legacy="docs/canon/CI-GATE.json"),
+    ratchet.Ratchet(".github/ci/CI-SKIPS.json", "allowed", "shrink",
+                    "cases guards are allowed to SKIP under CI", ratchet.skip_members,
+                    legacy="docs/canon/CI-SKIPS.json"),
+    #: Was a Python set literal in the guard that reads it, so "may only shrink" was a comment and
+    #: a change could add a guard with no test and waive it in the same diff.
+    ratchet.Ratchet(".github/ci/GUARDS-WITHOUT-A-TEST.json", "guards", "shrink",
+                    "guards with no test that drives them", ratchet.key_members,
+                    legacy="docs/canon/GUARDS-WITHOUT-A-TEST.json"),
+    #: A CENSUS, not a set of permissions: no guard reads it to skip anything. It is measured by
+    #: `Scripts/mutation-sweep-guard-tests.py`, and a guard leaves it by gaining a case that drives
+    #: its entry point at an input that must fail. Removing an entry therefore needs the sweep to
+    #: say so; editing the file is not evidence. The ratchet is `shrink` for the same reason.
+    ratchet.Ratchet(".github/ci/GUARD-TESTS-BLIND-TO-THEIR-GUARD.json", "guards", "shrink",
+                    "guards whose test does not notice the gate being removed",
+                    ratchet.key_members,
+                    legacy="docs/canon/GUARD-TESTS-BLIND-TO-THEIR-GUARD.json"),
+)
 
 
 WORKFLOW_DIR = os.path.join(REPO, ".github", "workflows")
@@ -70,11 +127,61 @@ def policy() -> dict:
     return loaded
 
 
-def check_workflows(rules: dict, problems: list) -> None:
-    """Every workflow file is declared, and every declaration is of a file that exists."""
+def executable(text: str) -> str:
+    """The workflow with its comment-only lines removed.
+
+    A rule about what a workflow RUNS that a COMMENT can satisfy is a rule about prose. This one
+    nearly became that during the 2026-09-21 migration: the commands that moved to `pr-policy.yml`
+    were still spelled in `ci.yml`'s comments describing where they went, so a plain substring
+    search over the whole file would have reported the old owner as still running them.
+
+    Only whole-line comments are dropped. A trailing `#` inside a `run:` block is shell, not YAML.
+    """
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+
+
+def check_body_trigger(name: str, body: str, problems: list) -> None:
+    """A job that reads the PULL REQUEST BODY is only as good as the events that start it.
+
+    `pull_request:` with no `types:` defaults to opened, synchronize and reopened -- `edited` is NOT
+    among them -- so the body gate saw the body as of the last PUSH and never again. Open a
+    compliant pull request, let it go green, edit the citations out: nothing re-runs. The rule named
+    the body; the enforcement site was the push.
+
+    Applied to every declared workflow rather than only the audited one. The body check MOVED to
+    `pr-policy.yml` on 2026-09-21, and a rule aimed at the file a check used to live in is the
+    defect this repository keeps finding: the check is gone from `ci.yml`, so aiming this there
+    still passes and protects nothing.
+    """
+    if "--text" not in body or "pull_request:" not in body:
+        return
+    trigger = re.search(r"^\s*types:\s*\[([^\]]*)\]", body, re.M)
+    listed = {t.strip() for t in (trigger.group(1) if trigger else "").split(",") if t.strip()}
+    if "edited" not in listed:
+        problems.append(
+            f".github/workflows/{name}: a step runs `--text` over the pull request body, and the "
+            f"`pull_request` trigger does not list `edited`. The default types are opened, "
+            f"synchronize and reopened, so the body could be rewritten after the gate went green "
+            f"and nothing would re-read it.")
+
+
+def check_workflows(rules: dict, problems: list, audited: str = None) -> dict:
+    """Every workflow file is declared, and every declaration is of a file that exists.
+
+    Returns the executable text of each workflow that declares it gates merges, which is what the
+    top-level `required_commands` are searched in.
+
+    `audited` is the executable text of the file `check()` was pointed at, and it stands in for
+    `ci.yml` here. Without that substitution every per-file rule -- the body trigger, the required
+    commands, the seams derived from what this returns -- reads the copy on disk rather than the
+    workflow under audit, and `LPM_CI_WORKFLOW` stops meaning anything: three cases that drove the
+    guard at a deliberately broken workflow went green on 2026-09-21 because the guard was
+    measuring the unmutated file beside it.
+    """
     declared = rules["workflows"]
     on_disk = sorted(name for name in os.listdir(WORKFLOW_DIR)
                      if name.endswith((".yml", ".yaml")))
+    gating = {}
     for name in on_disk:
         entry = declared.get(name)
         if entry is None:
@@ -89,13 +196,43 @@ def check_workflows(rules: dict, problems: list) -> None:
                 f".github/workflows/{name}: its entry needs `gates_merges` and a `why` with "
                 f"something in it. A waiver with no reason is a list.")
             continue
-        if entry["gates_merges"] and name != AUDITED:
-            problems.append(
-                f".github/workflows/{name}: declares that it gates merges, and this guard only "
-                f"audits {AUDITED}. Either audit it here or say it does not gate.")
-        path = os.path.join(WORKFLOW_DIR, name)
-        with open(path, "r", encoding="utf-8") as handle:
-            body = handle.read()
+        if name == AUDITED and audited is not None:
+            body = audited
+        else:
+            path = os.path.join(WORKFLOW_DIR, name)
+            with open(path, "r", encoding="utf-8") as handle:
+                body = executable(handle.read())
+        check_body_trigger(name, body, problems)
+        if entry["gates_merges"]:
+            gating[name] = body
+            # A SECOND gating workflow is allowed since 2026-09-21, because the pull request body
+            # check became a required context of its own rather than a job inside `build`. What it
+            # may not be is a claim: the jobs it names must exist in it, and it must own at least
+            # one command, or "this gates merges" is a sentence that gates nothing. The names are
+            # job ids, not display names -- `ci.yml`'s are expressions now.
+            #
+            # Whether the branch ruleset actually requires those contexts is NOT checked here.
+            # This guard runs offline on every contributor's machine and must not need a token;
+            # the readback that proves the ruleset is an administrator step, recorded in `why`.
+            if name != AUDITED:
+                contexts = entry.get("required_contexts") or []
+                if not contexts:
+                    problems.append(
+                        f".github/workflows/{name}: declares that it gates merges and names no "
+                        f"`required_contexts`. Name the job(s) the branch ruleset requires, or "
+                        f"say it does not gate.")
+                if not (entry.get("required_commands") or []):
+                    problems.append(
+                        f".github/workflows/{name}: declares that it gates merges and owns no "
+                        f"`required_commands`. A gate whose steps nothing names can be emptied "
+                        f"one step at a time with every check still green.")
+                job_names, _ = jobs_and_needs(body)
+                for context in contexts:
+                    if context not in job_names:
+                        problems.append(
+                            f".github/workflows/{name}: `required_contexts` names `{context}`, "
+                            f"which is not a job in this workflow. A required context nothing "
+                            f"publishes is a merge that waits forever or a rule aimed at nothing.")
         for command in entry.get("required_commands") or []:
             if command not in body:
                 problems.append(
@@ -107,13 +244,13 @@ def check_workflows(rules: dict, problems: list) -> None:
             f"{os.path.relpath(POLICY_PATH, REPO)}: `workflows` names `{name}`, which is not a "
             f"file in .github/workflows. A declaration for something that does not exist is "
             f"bookkeeping that outlived its reason.")
+    return gating
 
 
 def jobs_and_needs(text: str):
     """The workflow's job names and the gate's `needs`, read without a YAML dependency.
 
-    Parsed by indentation rather than with PyYAML because this guard runs in the same plain-Python
-    contract as the rest of `run-repo-guards.py`, which deliberately has no third-party imports.
+    Parsed by indentation rather than with PyYAML because this guard has no third-party imports.
     The shapes it must handle are the two this file uses: a flow sequence on one line, and a block
     sequence of `- name` lines.
     """
@@ -178,21 +315,6 @@ def check(path: str = WORKFLOW):
                             f"that outlived its reason.")
     for job in sorted(set(needs) - set(names)):
         problems.append(f"{path}: `{GATE}.needs` names `{job}`, which is not a job in this workflow")
-    # A job that reads the PULL REQUEST BODY is only as good as the events that start it.
-    # `pull_request:` with no `types:` defaults to opened, synchronize and reopened -- `edited` is
-    # NOT among them -- so the body gate saw the body as of the last PUSH and never again. Open a
-    # compliant pull request, let it go green, edit the citations out: nothing re-runs. The rule
-    # named the body; the enforcement site was the push.
-    if "--text" in text and "pull_request:" in text:
-        trigger = re.search(r"^\s*types:\s*\[([^\]]*)\]", text, re.M)
-        listed = {t.strip() for t in (trigger.group(1) if trigger else "").split(",") if t.strip()}
-        if "edited" not in listed:
-            problems.append(
-                f"{path}: a step runs `--text` over the pull request body, and the `pull_request` "
-                f"trigger does not list `edited`. The default types are opened, synchronize and "
-                f"reopened, so the body could be rewritten after the gate went green and nothing "
-                f"would re-read it.")
-
     # A gate whose bar the gated change can set is not a bar.
     #
     # `ci-coverage-gate.sh` reads its floors from `LPM_COVERAGE_MIN_REGION` and
@@ -228,25 +350,46 @@ def check(path: str = WORKFLOW):
             f"{path}: no seam could be read from Scripts/, so the rule that stops a workflow "
             f"aiming a guard elsewhere is checking nothing. That is a broken reader, not a "
             f"repository with no seams.")
-    for setting in sorted(seams):
-        for line in text.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("#") or not stripped.startswith(setting):
-                continue
-            problems.append(
-                f"{path}: this workflow sets `{setting}`. That variable is a SEAM -- it exists so "
-                f"a guard's self-test can drive it at an input that must fail -- and a pull "
-                f"request runs its own copy of this file, so setting one here lets a change point "
-                f"a guard somewhere else or choose the bar it is measured against. Change the "
-                f"default in the script, where the diff says what changed.")
+    gating = check_workflows(rules, problems, executable(text))
 
-    check_workflows(rules, problems)
+    # Every merge-gating workflow, not only the audited one. `pr-policy.yml` became a gate on
+    # 2026-09-21, and a pull request runs its own copy of THAT file too -- a seam set there aims a
+    # guard elsewhere exactly as one set here does.
+    for name, body in sorted(gating.items()):
+        for setting in sorted(seams):
+            for line in body.splitlines():
+                if not line.strip().startswith(setting):
+                    continue
+                problems.append(
+                    f".github/workflows/{name}: this workflow sets `{setting}`. That variable is a "
+                    f"SEAM -- it exists so a guard's self-test can drive it at an input that must "
+                    f"fail -- and a pull request runs its own copy of this file, so setting one "
+                    f"here lets a change point a guard somewhere else or choose the bar it is "
+                    f"measured against. Change the default in the script, where the diff says what "
+                    f"changed.")
 
+    # Searched across EVERY gating workflow rather than only `ci.yml`. The pull request body check
+    # moved to `pr-policy.yml` on 2026-09-21 and its commands went with it; searching only the old
+    # owner would have read a completed relocation as a deleted check, and the obvious repair --
+    # dropping the two entries from this list -- is the one thing that must not happen, because the
+    # list is ratcheted to GROW and dropping an entry removes the requirement outright.
+    #
+    # So a command may live in either gate, and deleting it from both still fails. What this
+    # deliberately does NOT do is accept a command found in `maintenance.yml`: that workflow
+    # declares `gates_merges: false`, so a check parked there blocks nothing.
+    if not gating:
+        problems.append(
+            f"{os.path.relpath(POLICY_PATH, REPO)}: no workflow declares `gates_merges`, so the "
+            f"required-command rule has nowhere to look and would report clean over an empty "
+            f"search. That is a broken declaration, not a repository with no gates.")
+    haystack = "\n".join(body for _, body in sorted(gating.items()))
     for command in rules["required_commands"]:
-        if command not in text:
+        if command not in haystack:
             problems.append(
-                f"{path}: no step runs `{command}`. A required JOB says nothing about its STEPS, "
-                f"and deleting a step leaves the job green with the check unaimed.")
+                f"{path}: no step in any merge-gating workflow runs `{command}`. A required JOB "
+                f"says nothing about its STEPS, and deleting a step leaves the job green with the "
+                f"check unaimed. Moving it to another gate is fine; moving it to a workflow that "
+                f"does not gate merges, or deleting it, is not.")
     return problems
 
 
@@ -289,6 +432,11 @@ def seam_names() -> set:
 
 def main() -> int:
     problems = check()
+    # The ratchets run on the ENTRY POINT rather than inside `check()`, which the focused tests
+    # drive against fixture trees through the `LPM_CI_*` seams. A comparison against this
+    # repository's own merge base belongs to the real run, and `run-repo-guards.py` discovers this
+    # file, so the `guards` job -- which `build` needs -- is what executes them.
+    ratchet.check(REPO, RATCHETS, problems, owner=os.path.basename(__file__))
     if problems:
         print(f"{len(problems)} problem(s) with the required gate:", file=sys.stderr)
         for problem in problems:

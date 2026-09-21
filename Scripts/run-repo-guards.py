@@ -16,8 +16,9 @@ WHAT IT RUNS
   Scripts/check-*.py          guards — refuse a state the repository must not be in
   Scripts/**/test_*.py        drives — call an API and assert what comes back
 
-Both are plain Python needing neither Xcode nor Logic. Anything that needs the running application
-belongs in Scripts/livekit/ as a live harness and is not picked up here.
+They need no network or running Logic instance. `test_logic_key_event.py` compiles an
+AppKit-dependent Swift helper, so CI runs this runner on macOS. Anything that needs the running
+application belongs in Scripts/livekit/ as a live harness and is not picked up here.
 
 Every discovered file runs even after one fails, because "which guards are broken" is more useful
 than "the first one". The exit code is non-zero if any failed.
@@ -35,7 +36,7 @@ nothing:
 
 So a child must now show that it ran something. `Ran 0 tests` is a failure, no output at all is a
 failure, and skips are counted and printed rather than swallowed. Under CI a skip must be declared
-in `docs/canon/CI-SKIPS.json` with a reason and a number -- CI has no Logic, and the four cases that
+in `.github/ci/CI-SKIPS.json` with a reason and a number -- CI has no Logic, and the four cases that
 need it are the only honest skip in the tree.
 
 A HUNG GUARD IS A FAILURE, NOT A WAIT
@@ -68,6 +69,10 @@ import tempfile
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+#: Spelled once, because the reader and the two sentences that name it to a contributor have to
+#: agree. This file governs CI, not Logic; it lives with the other CI policy under `.github/ci/`.
+CI_SKIPS = os.path.join(".github", "ci", "CI-SKIPS.json")
 
 
 def discovered():
@@ -192,12 +197,12 @@ def evidence_of_work(text: str):
 
 def allowed_skips(rel: str) -> tuple:
     """(how many skips this guard may report under CI, why). Read from a file so it is ratcheted."""
-    path = os.path.join(REPO, "docs", "canon", "CI-SKIPS.json")
+    path = os.path.join(REPO, CI_SKIPS)
     try:
         with open(path, "r", encoding="utf-8") as handle:
             allowed = (json.load(handle) or {}).get("allowed") or {}
     except (OSError, json.JSONDecodeError):
-        return 0, "docs/canon/CI-SKIPS.json could not be read, so nothing is allowed to skip"
+        return 0, f"{CI_SKIPS} could not be read, so nothing is allowed to skip"
     row = allowed.get(rel) or {}
     return int(row.get("skips") or 0), row.get("why") or ""
 
@@ -262,7 +267,7 @@ def main():
                       f"check ran; a guard that asserts nothing reports the same as one that "
                       f"passed.")
             if over_budget:
-                print(f"       it skipped {skips} under CI and docs/canon/CI-SKIPS.json allows "
+                print(f"       it skipped {skips} under CI and {CI_SKIPS} allows "
                       f"{budget}{' (' + why + ')' if why else ''}. Declare the skip with a reason "
                       f"or remove it -- a skip exits 0.")
             for line in text.splitlines():
