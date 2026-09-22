@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "LogicProMCP", targets: ["LogicProMCPCLI"]),
+        .library(name: "LogicProMCPKit", targets: ["LogicProMCP"]),
     ],
     dependencies: [
         // swift-sdk 0.11.0+ adopts the short-form

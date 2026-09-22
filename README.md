@@ -205,6 +205,51 @@ bash <(curl -fsSL https://raw.githubusercontent.com/MongLong0214/logic-pro-mcp/v
 
 See [SECURITY.md §Installer trust model](SECURITY.md#installer-trust-model) for the trust tiers and threat model.
 
+## Using LogicProMCP as a library
+
+The package also exposes the `LogicProMCP` target as a library product named `LogicProMCPKit` (#944), so a Swift application can link the same code the server runs instead of driving the server as a separate stdio process. It changes no runtime behavior and no access level: not one `public`, `internal` or `private` modifier moved, no MCP tool or resource was added, and the server and its executables are byte-for-byte the same code. What the pull request touches besides `Package.swift` is `Package.resolved` — CI's toolchain resolves a larger transitive graph once the package vends a library — and this file, `CHANGELOG.md` and the roadmap.
+
+### Dependency setup
+
+```swift
+// Package.swift
+dependencies: [
+    // The branch, not a version, until the first release carrying this product is published.
+    .package(url: "https://github.com/MongLong0214/logic-pro-mcp", branch: "main"),
+],
+targets: [
+    .target(
+        name: "YourTarget",
+        dependencies: [.product(name: "LogicProMCPKit", package: "logic-pro-mcp")]
+    ),
+]
+```
+
+```swift
+import LogicProMCP
+```
+
+`v3.16.0`, the current published stable release, predates this product, and `from:` resolves the highest matching tag — so the ordinary `from: "3.16.0"` form resolves a package that does not contain `LogicProMCPKit`. Measured 2026-09-22 with a consumer package written exactly that way:
+
+```text
+error: 'consumer': product 'LogicProMCPKit' required by package 'consumer' target 'Consumer'
+not found in package 'logic-pro-mcp'.
+```
+
+Once a release carries the product, `from: "<that version>"` is the ordinary form and is preferred over the branch.
+
+The product name is `LogicProMCPKit`; the module you import is `LogicProMCP`. A library product cannot share the executable's name: SwiftPM accepts such a manifest but reports "ignoring duplicate product" and drops the library.
+
+### What the module exposes today
+
+The public surface is small and deliberate. Almost all of the module, including the Accessibility readers (`AXLogicProElements`, `AXHelpers`, `AccessibilityChannel`), the channels, the state cache, and the dispatchers, is `internal` and is not reachable through the library. What is public, as of this release:
+
+- `PluginInspector` (in `Accessibility/PluginInspector.swift`): the plug-in window Setting-menu inspector. Static entry points `enumerateMenuTree`, `parsePath`, `encodePath`, `resolveMenuPath`, `selectMenuPath`, `decodeAUVersion`, `findPluginWindow`, `identifyPlugin`, `openPluginWindow`, and `closePluginWindow`. Every entry point that touches a window or a menu takes a caller-supplied `PluginPresetProbe` or `PluginWindowRuntime` of closures; the module ships no public production runtime, so nothing here reaches Logic on its own.
+- The data types those entry points use: `PluginPresetNodeKind`, `PluginPresetNode`, `PluginPresetCache`, `PluginPresetInventory`, `MenuHop`, `PluginMenuItemInfo`, `ScannerWindowRecord`, `PluginPresetProbe`, `PluginWindowRuntime`, `PluginError`, `AXUIElementSendable`, and the constant `maxPluginMenuDepth`.
+- The Library inventory data model (in `Accessibility/LibraryAccessor.swift`): `LibraryNodeKind`, `LibraryNode`, `LibraryRoot`, and `TreeProbe`. The `LibraryAccessor` enum that scans and selects patches is `internal`, so only its data model is reachable.
+
+If you need the Mixer, track, or plug-in slot readers from outside the module, that is a separate change; #944 records the plan for a small read-only facade as a follow-up issue rather than part of this product declaration.
+
 ## Setup Doctor
 
 Getting an agent to reliably drive Logic Pro is mostly a permissions-and-environment problem: TCC grants, the right Logic version, a live document, a registered control surface, no blocking modal. `LogicProMCP doctor` is a first-class, **intent-aware readiness platform** built for exactly this — not a boolean "is it installed" check, but a diagnostic that tells you *which capabilities are ready, which are blocked, why, and what to do next* — and never reports green for something it could not actually verify.
