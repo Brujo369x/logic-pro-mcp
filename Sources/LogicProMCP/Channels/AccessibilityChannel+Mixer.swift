@@ -93,11 +93,11 @@ extension AccessibilityChannel {
         // the same channel parameter as the mixer-strip control but identity-safe
         // (it belongs to exactly track `index`, so we can never write the wrong
         // strip the way positional indexing into a 2-strip Inspector mixer could)
-        // and is available without the Mixer being visible. Logic ignores AXValue
-        // writes on these sliders entirely (live-confirmed: `set 0.5` leaves a
-        // 0.76 fader unmoved) — only AXIncrement/AXDecrement detents move them,
-        // in deterministic ~10-raw-unit steps. We converge to the nearest
-        // representable detent and read back every step.
+        // and is available without the Mixer being visible. AXIncrement/AXDecrement
+        // move these sliders in deterministic ~10-raw-unit detents; we converge to
+        // the nearest detent and read back every step. #973: an AXValue write does
+        // not jump to the written value (`set 0.5` on a 0.76 fader looked unmoved),
+        // but on Logic 12.3.1 it moved one raw unit toward it, which the fine phase uses.
         let slider: AXUIElement?
         switch target {
         case .volume: slider = AXLogicProElements.findTrackHeaderVolumeFader(at: index, runtime: runtime)
@@ -186,11 +186,21 @@ extension AccessibilityChannel {
             ))
         }
 
+        // #973: retried like `readSlider` below (#685). This read decides State A versus State B
+        // too, and one dropped read here reported an exact landing as `readback_unavailable`.
         func readContract() -> Double? {
-            switch target {
-            case .volume: return AXValueExtractors.extractLogicMixerFaderValue(slider, runtime: runtime.ax)
-            case .pan:    return AXValueExtractors.headerPanContract(slider, range: range, runtime: runtime.ax)
+            var wait: UInt32 = 25_000
+            for _ in 0..<4 {
+                let value: Double?
+                switch target {
+                case .volume: value = AXValueExtractors.extractLogicMixerFaderValue(slider, runtime: runtime.ax)
+                case .pan:    value = AXValueExtractors.headerPanContract(slider, range: range, runtime: runtime.ax)
+                }
+                if let value { return value }
+                usleep(wait)
+                wait *= 2
             }
+            return nil
         }
         let observedBefore = readContract()
 
@@ -259,12 +269,51 @@ extension AccessibilityChannel {
             current = next
         }
 
+        // #973: an AXValue write moved the header slider one raw unit toward the written value on
+        // Logic 12.3.1. The loop above leaves it within one detent (half, unless it reversed off a
+        // rail), so walk the rest one write at a time; on a normalized 0...1 slider a unit is all of it.
+        let rawUnitRange = range.max - range.min > 2
+        var fineSteps = 0
+        var lastFineWriteFrom: Double?
+        var fineWriteReadMovingAway = false
+        let detentRawStep = 10
+        let maxFineSteps = detentRawStep
+        while rawUnitRange, fineSteps < maxFineSteps, let cur = readSlider(), cur.rounded() != targetRaw.rounded() {
+            guard AXHelpers.setAttribute(
+                slider, kAXValueAttribute as String, NSNumber(value: targetRaw), runtime: runtime.ax
+            ) else { break }
+            fineSteps += 1
+            lastFineWriteFrom = cur
+            usleep(25_000)
+            var next = readSlider()
+            if next == cur {
+                usleep(150_000)
+                next = readSlider()
+            }
+            guard let next else { break }
+            guard abs(next - targetRaw) < abs(cur - targetRaw) else {
+                fineWriteReadMovingAway = abs(next - targetRaw) > abs(cur - targetRaw)
+                break
+            }
+        }
+
         // Retried too, and for the same reason. This read is what decides State A versus State B:
         // a write that landed correctly and then failed its ONE verification read is reported as
         // unverified, which is honest about the read and wrong about the write. Measured after the
         // loop was fixed — a run that reached its target still came back State B here.
         let observedRaw = readSlider()
         let observedAfter = readContract()
+        // Judged on the final read when there is one. When that read fails, the loop's own read is
+        // the only witness left, and without it a write seen moving away was reported as a bare
+        // `readback_unavailable`, as if nothing had been observed.
+        var fineWriteMovedAway = false
+        if let from = lastFineWriteFrom {
+            if let raw = observedRaw {
+                fineWriteMovedAway = abs(raw - targetRaw) > abs(from - targetRaw)
+            } else {
+                fineWriteMovedAway = fineWriteReadMovingAway
+            }
+        }
         // One detent is ~10 raw units; "verified" means we converged to the
         // nearest AX-representable detent (within ~half a detent of target).
         let convergedToNearestDetent = observedRaw.map { abs($0 - targetRaw) <= 6.0 } ?? false
@@ -280,17 +329,26 @@ extension AccessibilityChannel {
             "observed": observedAfter ?? NSNull(),
             "observed_raw": observedRaw ?? NSNull(),
             "target_raw": targetRaw,
-            "detent_raw_step": 10,
+            "detent_raw_step": detentRawStep,
             "verify_source": "ax_slider",
             "write_method": "ax_increment_decrement",
             "nudge_steps": steps,
+            "fine_steps": fineSteps,
+            // On a normalized slider rounding would call 0.6 and 0.9 one position, so only equality counts.
+            "reached_exact": observedRaw.map { rawUnitRange ? $0.rounded() == targetRaw.rounded() : $0 == targetRaw } ?? false,
             // #685: `nudge_steps` alone is not checkable — a partial move and a complete one look
             // the same in it. These two are what a caller, a log or an evidence document needs to
             // see that the loop stopped short, without re-reading the fader to find out.
             "detents_to_target": startRaw.map { ((abs(targetRaw - $0) / 10.0) * 100).rounded() / 100 } ?? NSNull(),
             "reached_target": convergedToNearestDetent,
-            "quantization_note": "Logic exposes this fader to AX in ~10-raw-unit detents; observed is the nearest representable level to requested.",
+            "quantization_note": "Logic moves this fader in ~10-raw-unit detents, and an AXValue write moved it one raw unit on Logic 12.3.1; reached_exact says whether observed_raw is the whole raw position nearest the request.",
         ]
+        if fineWriteMovedAway {
+            baseExtras["reason_detail"] = observedRaw == nil
+                ? "An AXValue write was read moving the slider further from the target, and the fine phase stopped there without restoring it; the final read failed, so observed_raw is unknown."
+                : "An AXValue write moved the slider further from the target, and the fine phase stopped there without restoring it; observed_raw is where it was left."
+            return .success(HonestContract.encodeStateB(reason: .readbackMismatch, extras: baseExtras))
+        }
         if convergedToNearestDetent, let actual = observedAfter {
             baseExtras["observed"] = actual
             return .success(HonestContract.encodeStateA(extras: baseExtras))
