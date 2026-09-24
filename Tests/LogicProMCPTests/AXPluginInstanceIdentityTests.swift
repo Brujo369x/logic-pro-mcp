@@ -175,6 +175,41 @@ private final class ReadCounter: @unchecked Sendable { var reads = 0 }
     #expect(snapshot.diagnostics.note == nil, "something was found: no note")
 }
 
+/// The strip name is a census, not a first match (#976 review guard,
+/// `check-ax-locator-census.py`): two distinct text-field readings on one strip
+/// are an ambiguity the read-only census refuses (the strip keeps its ordinal,
+/// name nil); a numeric readout beside the name field is not a reading.
+@Test func censusRefusesAStripNameWithTwoDistinctReadings() throws {
+    let b = FakeAXRuntimeBuilder()
+    // A strip with two DIFFERENT text fields, one with the name field plus a
+    // numeric level readout, and the plain shape the fixture uses everywhere.
+    let twoReadings = strip(b, 20, name: "Kick", inserts: [])
+    let rival = b.element(9001)
+    b.setAttribute(rival, kAXRoleAttribute as String, kAXTextFieldRole as String)
+    b.setAttribute(rival, kAXValueAttribute as String, "Kick 2")
+    b.setChildren(twoReadings, [b.element(209), rival])            // 209 = strip 20's name field
+    let withReadout = strip(b, 21, name: "Snare", inserts: [])
+    let readout = b.element(9002)
+    b.setAttribute(readout, kAXRoleAttribute as String, kAXStaticTextRole as String)
+    b.setAttribute(readout, kAXValueAttribute as String, "-6.0")
+    b.setChildren(withReadout, [b.element(219), readout])
+    let plain = strip(b, 22, name: "Bass", inserts: [])
+    // Two text fields that AGREE are one reading, not an ambiguity.
+    let twin = strip(b, 23, name: "Hats", inserts: [])
+    let echo = b.element(9003)
+    b.setAttribute(echo, kAXRoleAttribute as String, kAXTextFieldRole as String)
+    b.setAttribute(echo, kAXValueAttribute as String, "Hats")
+    b.setChildren(twin, [b.element(239), echo])
+    let ax = b.makeAXRuntime()
+    #expect(AXPluginInstanceIdentity.stripName(twin, runtime: ax) == "Hats",
+            "agreeing readings are one reading")
+    #expect(AXPluginInstanceIdentity.stripName(twoReadings, runtime: ax) == nil,
+            "two distinct readings: refused, not resolved by tree order")
+    #expect(AXPluginInstanceIdentity.stripName(withReadout, runtime: ax) == "Snare",
+            "a numeric readout beside the name field is not a reading")
+    #expect(AXPluginInstanceIdentity.stripName(plain, runtime: ax) == "Bass")
+}
+
 @Test func censusNamesAnEmptyRead() throws {
     let b = FakeAXRuntimeBuilder()
     let app = b.element(1)

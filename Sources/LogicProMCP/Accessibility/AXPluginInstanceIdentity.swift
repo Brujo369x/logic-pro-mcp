@@ -198,17 +198,26 @@ public enum AXPluginInstanceIdentity {
                           diagnostics: diagnostics(note: note))
     }
 
-    /// A strip's readable name: the first text field / static text whose value
-    /// is non-empty and is not a numeric level readout. Best-effort; nil when
-    /// nothing qualifies (the caller keeps the ordinal).
+    /// A strip's readable name: the text field (or, failing that, static text)
+    /// whose value is non-empty and is not a numeric level readout. The lookup
+    /// is a census, not a first match: every candidate of the role is counted,
+    /// and the name is returned only when the name-like readings agree on ONE
+    /// string. Two distinct readings are an ambiguity a read-only census must
+    /// not settle by tree order, so the strip keeps its ordinal (nil) and the
+    /// join stays honest. Measured 12.3.1 docked Mixer: one name field per
+    /// strip, the level and pan readouts are numeric static texts.
     static func stripName(_ strip: AXUIElement, runtime: AXHelpers.Runtime) -> String? {
         for role in [kAXTextFieldRole as String, kAXStaticTextRole as String] {
-            for element in AXHelpers.findAllDescendants(of: strip, role: role, maxDepth: 3, runtime: runtime) {
+            let census = AXHelpers.censusDescendant(of: strip, role: role, maxDepth: 3, runtime: runtime)
+            var readings: [String] = []
+            for element in census.matches {
                 guard let text = AXValueExtractors.extractTextValue(element, runtime: runtime)?
                         .trimmingCharacters(in: .whitespacesAndNewlines),
-                      !text.isEmpty, Double(text) == nil else { continue }
-                return text
+                      !text.isEmpty, Double(text) == nil, !readings.contains(text) else { continue }
+                readings.append(text)
             }
+            if readings.count == 1 { return readings[0] }
+            if readings.count > 1 { return nil }
         }
         let title = AXHelpers.getTitle(strip, runtime: runtime)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
