@@ -20,6 +20,7 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUARD = "Scripts/check-probe-product-drift.py"
+STRIPPER = "Scripts/check-typechecker-heavy-literals.py"
 PROBE = "Scripts/livekit/ax_plugin_menu_probe.swift"
 POLICY = "Sources/LogicProMCP/Accessibility/AXLocalePolicy.swift"
 PRODUCT = "Sources/LogicProMCP/Accessibility/AXLogicProElements+Mixer.swift"
@@ -29,7 +30,10 @@ WRITER = "Sources/LogicProMCP/HostParameters/ControlsViewBooleanParameterWriter.
 CASES = [
     ("the fold is dropped — the original defect, restored",
      PROBE, "trimmed(text).lowercased()", "trimmed(text)",
-     "no longer trims-then-lowercases"),
+     "no longer trims, lowercases and collapses whitespace"),
+    ("the probe stops collapsing whitespace, which the product's normalize still does",
+     PROBE, '\n        .split(whereSeparator: { $0.isWhitespace })\n        .joined(separator: " ")', "",
+     "no longer trims, lowercases and collapses whitespace"),
     ("a caller compares a label set with .contains instead of folding",
      PROBE,
      "matchesPolicyLabel(descriptionText($0), anyOf: viewLabels)",
@@ -53,9 +57,23 @@ CASES = [
      'canonical: "mixer",\n        variants: [',
      'canonical: "mixer",\n        variants: ["Mixer", ',
      "differ only by case"),
+    # #977: the product used to lowercase the candidate and test exact membership in `.labels`,
+    # which never matched a derived member that kept Apple's capitals (`Table de mixage`). The
+    # regression is going back to that shape, so that is the mutant.
     ("the product stops folding, so the rule the probe mirrors is gone",
-     PRODUCT, ".whitespacesAndNewlines).lowercased()", ".whitespacesAndNewlines)",
-     "no longer trims-then-lowercases before comparing"),
+     PRODUCT, "mixerNamedElement.containsNormalized($0)", "mixerNamedElement.labels.contains($0)",
+     "no longer matches through"),
+    # The same regression with the new call kept in a comment beside it. The guard used to search
+    # the whole file, comments included, and answered clean.
+    ("the product stops folding and a comment still quotes the old call",
+     PRODUCT, "return candidates.contains { AXLocalePolicy.mixerNamedElement.containsNormalized($0) }",
+     "return candidates.contains { AXLocalePolicy.mixerNamedElement.labels.contains($0) }"
+     " // was AXLocalePolicy.mixerNamedElement.containsNormalized($0)",
+     "no longer matches through"),
+    ("the product's normalize stops lowercasing",
+     POLICY, ".whitespacesAndNewlines)\n                .lowercased()\n                .split",
+     ".whitespacesAndNewlines)\n                .split",
+     "LabelSet.normalize no longer"),
     # --- the role clause, added 2026-09-11 with #852 ---------------------------------------------
     ("the probe cannot see AXCheckBox — #852 exactly as it stood",
      PROBE, '    "AXCheckBox",\n    "AXSlider",', '    "AXSlider",',
@@ -87,7 +105,7 @@ def main():
         tree = os.path.join(tmp, "tree")
         # Only the files the guard reads; copying the repository would be slow and would drag in
         # build products the guard never looks at.
-        for relative in (GUARD, PROBE, POLICY, PRODUCT, WRITER):
+        for relative in (GUARD, STRIPPER, PROBE, POLICY, PRODUCT, WRITER):
             destination = os.path.join(tree, relative)
             os.makedirs(os.path.dirname(destination), exist_ok=True)
             shutil.copy(os.path.join(ROOT, relative), destination)

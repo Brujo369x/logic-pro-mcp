@@ -56,11 +56,23 @@ be mutated`; after, `caught check-probe-product-drift.py <- test_probe_product_d
 No seam was added. The self-test already points this at a fixture by copying it there, and an
 environment variable that re-aims a guard is a way to switch one off.
 """
+import importlib.util
 import os
 import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Every anchor below is searched in CODE, never in a comment: a comment that quotes the rule is not
+# the rule. Measured 2026-09-25: restoring the old `.labels.contains` comparison while leaving the
+# new call in a comment beside it answered clean. The stripper is the one the typechecker guard
+# already uses, loaded from beside this file so the self-test's copied tree resolves it too.
+_spec = importlib.util.spec_from_file_location(
+    "typechecker_literals",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-typechecker-heavy-literals.py"))
+_literals = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_literals)
+strip_swift_comments = _literals.strip_swift_comments
 
 # Comparisons that carry the USER's data rather than policy vocabulary. These must stay exact, and
 # they are named so that adding one is a deliberate act rather than a side effect.
@@ -109,35 +121,50 @@ def drift_problems(root: str = None) -> list:
             problems.append(f"cannot read {os.path.relpath(path, root)}: {exc}")
             return ""
 
-    probe = read(probe_path)
-    policy = read(policy_path)
-    product = read(product_path)
-    writer = read(writer_path)
+    probe = strip_swift_comments(read(probe_path))
+    policy = strip_swift_comments(read(policy_path))
+    product = strip_swift_comments(read(product_path))
+    writer = strip_swift_comments(read(writer_path))
 
-    # 1. The product's rule is what the probe must mirror. If the product stops lowercasing, this check
+    # 1. The product's rule is what the probe must mirror. If the product stops folding, this check
     #    is describing a rule that no longer exists and must be revisited rather than silently kept.
-    # Anchored on the SPECIFIC comparison, not on any occurrence of `.lowercased()` in the file. A
-    # mutation test showed the loose form: the file has several, so deleting the load-bearing one left
-    # the check green.
-    PRODUCT_RULE = re.compile(
-        r"trimmingCharacters\(in:\s*\.whitespacesAndNewlines\)\.lowercased\(\)[\s\S]{0,200}?"
-        r"AXLocalePolicy\.mixerNamedElement\.labels\.contains"
-    )
+    # Anchored on the SPECIFIC comparison, not on any occurrence of a fold in the file. A mutation
+    # test showed the loose form: the file has several, so deleting the load-bearing one left the
+    # check green. Since #977 the product no longer folds inline -- it hands the candidate to
+    # `LabelSet.containsNormalized`, so the rule lives in `LabelSet.normalize` and both halves are
+    # anchored: the call site that routes through it, and the body that says what it does.
+    PRODUCT_RULE = re.compile(r"AXLocalePolicy\.mixerNamedElement\.containsNormalized\(")
     if product and not PRODUCT_RULE.search(product):
         problems.append(
-            "AXLogicProElements+Mixer.swift no longer trims-then-lowercases before comparing against "
-            "AXLocalePolicy.mixerNamedElement — the rule this probe mirrors has changed, so update both "
-            "and this check together"
+            "AXLogicProElements+Mixer.swift no longer matches through "
+            "AXLocalePolicy.mixerNamedElement.containsNormalized — the rule this probe mirrors has "
+            "changed, so update both and this check together"
+        )
+    NORMALIZE_RULE = re.compile(
+        r"static func normalize\(_ text: String\) -> String \{\s*"
+        r"text\.trimmingCharacters\(in:\s*\.whitespacesAndNewlines\)\s*"
+        r"\.lowercased\(\)\s*"
+        r"\.split\s*\{\s*\$0\.isWhitespace\s*\}\s*"
+        r'\.joined\(separator: " "\)'
+    )
+    if policy and not NORMALIZE_RULE.search(policy):
+        problems.append(
+            "LabelSet.normalize no longer trims, lowercases and collapses whitespace — the rule this "
+            "probe mirrors has changed, so update both and this check together"
         )
 
     # 2. The probe folds, in one place.
     if probe:
         if not re.search(r"func normalizedPolicyLabel\s*\(", probe):
             problems.append("the probe has no normalizedPolicyLabel(): the folding rule has no single home")
-        elif not re.search(r"func normalizedPolicyLabel\([^)]*\)\s*->\s*String\s*\{\s*\n\s*trimmed\([^)]*\)\.lowercased\(\)",
+        elif not re.search(r"func normalizedPolicyLabel\([^)]*\)\s*->\s*String\s*\{\s*\n\s*"
+                           r"trimmed\([^)]*\)\.lowercased\(\)\s*"
+                           r"\.split\(whereSeparator:\s*\{\s*\$0\.isWhitespace\s*\}\)\s*"
+                           r'\.joined\(separator: " "\)',
                            probe):
             problems.append(
-                "normalizedPolicyLabel() no longer trims-then-lowercases; it must mirror the product's rule"
+                "normalizedPolicyLabel() no longer trims, lowercases and collapses whitespace; it must "
+                "mirror LabelSet.normalize"
             )
         if not re.search(r"func matchesPolicyLabel\s*\(", probe):
             problems.append("the probe has no matchesPolicyLabel(): callers can fold one side and not the other")
