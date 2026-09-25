@@ -241,3 +241,127 @@ private final class ReadCounter: @unchecked Sendable { var reads = 0 }
     #expect(!AXPluginInstanceIdentity.slotNameMatches(nil, pluginName: "SN8K"))
     #expect(!AXPluginInstanceIdentity.slotNameMatches("SN", pluginName: "SN8K"), "a 2-char label is not evidence")
 }
+
+// MARK: - A failed read is not a strip that hosts nothing (#976 review R-972-01)
+
+/// Production answers one AX failure through both seams: `getChildren` gives [] and
+/// `childrenResult` gives the status. A fixture failing only one of them would not be the
+/// failure the census meets, so every case here fails both.
+private func runtimeFailingChildren(
+    of failing: AXUIElement, _ b: FakeAXRuntimeBuilder, app: AXUIElement
+) -> AXLogicProElements.Runtime {
+    b.makeLogicRuntime(
+        appElement: app,
+        childrenHandler: { CFEqual($0, failing) ? [] : nil },
+        childrenResultHandler: { element in
+            CFEqual(element, failing) ? .failure(AXHelpers.AXStatusError(raw: AXError.cannotComplete.rawValue)) : nil
+        },
+        setAttributeHandler: nil, performActionHandler: nil)
+}
+
+@Test func censusDoesNotReportAnUnreadMixerAsWhole() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main])
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: runtimeFailingChildren(of: f.mixer, b, app: f.app))
+    #expect(snapshot.strips.isEmpty)
+    #expect(!snapshot.stripsReadWhole, "the Mixer's children did not read: nothing is known about its strips")
+    #expect(snapshot.diagnostics.mixerFound)
+    #expect(snapshot.diagnostics.note == "mixer-children-unreadable")
+}
+
+@Test func censusDoesNotReportAnUnreadStripAsWhole() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main])
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: runtimeFailingChildren(of: f.strips[1], b, app: f.app))
+    #expect(snapshot.strips.map(\.ordinal) == [2], "the strip that read is still listed")
+    #expect(!snapshot.stripsReadWhole, "Snare's inserts did not read, so it may host the plug-in")
+}
+
+@Test func censusDoesNotReportAnUnreadInsertNameAsWhole() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main])
+    b.setAttribute(b.element(1000), kAXDescriptionAttribute as String, "")   // Kick's occupied insert 0
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: b.makeLogicRuntime(appElement: f.app))
+    #expect(snapshot.strips.map(\.ordinal) == [1, 2])
+    #expect(!snapshot.stripsReadWhole, "an occupied insert with no readable name may be the plug-in")
+}
+
+@Test func censusSaysWhenAWindowsIdentifierWalkWasNotWhole() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    let plain = editorWindow(b, 21, title: "Bass", identifier: nil)
+    let unread = editorWindow(b, 22, title: "Hats", identifier: "sn8k.instance:BBBB")
+    windows(b, f.app, [f.main, plain, unread])
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: runtimeFailingChildren(of: b.element(223), b, app: f.app))   // 223 = Hats' remote view group
+    let bass = try #require(snapshot.windows.first { $0.title == "Bass" })
+    let hats = try #require(snapshot.windows.first { $0.title == "Hats" })
+    #expect(bass.identifier == nil)
+    #expect(bass.identifierReadWhole, "walked whole and found none: absent")
+    #expect(hats.identifier == nil)
+    #expect(!hats.identifierReadWhole, "the view's children did not read: unknown, not absent")
+}
+
+@Test func censusSaysWhenTheIdentifierIsDeeperThanTheWalk() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main, editorWindow(b, 20, title: "Snare", identifier: "sn8k.instance:AAAA")])
+    let runtime = b.makeLogicRuntime(appElement: f.app)
+    let shallow = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 1, runtime: runtime)
+    let window = try #require(shallow.windows.first)
+    #expect(window.identifier == nil)
+    #expect(!window.identifierReadWhole, "the view root sits below maxDepth, so it was never looked at")
+    let deep = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 2, runtime: runtime)
+    #expect(deep.windows.first?.identifier == "sn8k.instance:AAAA")
+}
+
+@Test func censusRefusesAnEmptyIdentifierPrefix() {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main, editorWindow(b, 20, title: "Snare", identifier: "anything:1")])
+    #expect(throws: AXPluginInstanceIdentity.CensusError.emptyIdentifierPrefix) {
+        try AXPluginInstanceIdentity.census(pluginName: "SN8K", identifierPrefix: "", maxDepth: 12,
+                                            runtime: b.makeLogicRuntime(appElement: f.app))
+    }
+}
+
+/// The stem direction a host relies on (`SN8K` against `SN8KExtens`, measured) matches any
+/// label that begins with the stem. That is why a strip is a candidate and the window's
+/// identifier is the identity.
+@Test func slotNameMatchIsACandidateNotAnIdentity() {
+    #expect(AXPluginInstanceIdentity.slotNameMatches("SN8KOther", pluginName: "SN8K"))
+}
+
+@Test func censusSaysWhenAnIdentifierReadFailed() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main, editorWindow(b, 20, title: "Snare", identifier: "sn8k.instance:AAAA")])
+    let root = b.element(204)   // Snare's view root, the node carrying the identifier
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: b.makeLogicRuntime(
+            appElement: f.app,
+            attributeValueHandler: { element, attribute in
+                (CFEqual(element, root) && attribute == kAXIdentifierAttribute as String) ? .some(nil) : nil
+            },
+            attributeValueResultHandler: { element, attribute in
+                guard CFEqual(element, root), attribute == kAXIdentifierAttribute as String else { return nil }
+                return .failure(AXHelpers.AXStatusError(raw: AXError.cannotComplete.rawValue))
+            },
+            setAttributeHandler: nil, performActionHandler: nil))
+    let window = try #require(snapshot.windows.first)
+    #expect(window.identifier == nil)
+    #expect(!window.identifierReadWhole, "the identifier read failed: unknown, not absent")
+}

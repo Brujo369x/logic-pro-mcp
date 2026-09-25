@@ -15,8 +15,11 @@ import Foundation
 /// Three states a caller can tell apart, because they mean different things:
 ///  * EMPTY: `census` returns a snapshot with no strips and no windows and a
 ///    `diagnostics.note` saying why (`mixer-not-found`, `no-hosting-strips`, …).
-///  * PARTIAL: `stripsReadWhole == false`; strips are listed but ordinals must
-///    not be trusted, a child of the Mixer refused its role read.
+///  * PARTIAL: `stripsReadWhole == false`; strips are listed but the list may
+///    miss a hosting strip and ordinals must not be trusted: the Mixer's or a
+///    strip's children did not read, a child of the Mixer refused its role
+///    read, or an occupied insert's name did not read. A failed read is never
+///    reported as a strip that hosts nothing.
 ///  * FAILED: the editor-window enumeration answered an AX error; `census`
 ///    THROWS `CensusError.windowsReadFailed` carrying the status and whatever
 ///    strips were read. A failed read is never reported as zero windows.
@@ -25,11 +28,14 @@ import Foundation
 /// over: the editor window's AX title is the TRACK name, so a window is joined
 /// to a strip by name and duplicate names are the caller's ambiguity to refuse;
 /// Logic labels an occupied insert slot with the AU component name truncated
-/// (~10 characters), so slot matching is prefix-tolerant; the Mixer strips are
+/// (~10 characters), so slot matching is prefix-tolerant, which makes a strip a
+/// CANDIDATE and not an identification: every plug-in whose label shares the
+/// name's stem matches. The identity is the window's `kAXIdentifier`; the Mixer strips are
 /// reachable through `getMixerArea` when the Mixer is docked in the main window.
 public enum AXPluginInstanceIdentity {
 
     /// One Mixer strip carrying at least one insert whose display name matches.
+    /// A candidate, not an identification: see `slotNameMatches`.
     public struct Strip: Sendable, Equatable {
         /// Ordinal in the Mixer's strip enumeration (0-based). Meaningful only
         /// when the snapshot's `stripsReadWhole` is true.
@@ -46,6 +52,10 @@ public enum AXPluginInstanceIdentity {
         public let title: String
         /// The first descendant `kAXIdentifier` beginning with the prefix, or nil.
         public let identifier: String?
+        /// Whether the walk read every node down to `maxDepth` and found nothing
+        /// below it. When false, a nil `identifier` is unknown, not absent: a
+        /// node's children did not read, or the window goes deeper than the walk.
+        public let identifierReadWhole: Bool
     }
 
     /// What WAS observed, so an empty snapshot can never be silent about its
@@ -61,13 +71,16 @@ public enum AXPluginInstanceIdentity {
         /// was re-read after 200 ms (the #608 rule: once, and only for that status).
         public let windowsReadRetried: Bool
         /// Why the snapshot is empty when it is: `main-window-nil`,
-        /// `mixer-not-found`, `no-hosting-strips`. Nil when something was found.
+        /// `mixer-not-found`, `mixer-children-unreadable`, `no-hosting-strips`.
+        /// Nil when something was found.
         public let note: String?
     }
 
     public struct AXSnapshot: Sendable, Equatable {
         public let strips: [Strip]
-        /// Whether the strip list was read WHOLE (no Mixer child refused its role).
+        /// Whether the strip list was read WHOLE: the Mixer's children and every
+        /// strip's children read, every Mixer child read its role, and every
+        /// occupied insert's name read.
         public let stripsReadWhole: Bool
         public let windows: [Window]
         /// Arrange track headers by 0-based index, when every header read.
@@ -78,6 +91,9 @@ public enum AXPluginInstanceIdentity {
     public enum CensusError: Error, Sendable, Equatable {
         /// No Logic Pro process; nothing was read.
         case logicNotRunning
+        /// `identifierPrefix` was empty, which every identifier begins with;
+        /// nothing was read.
+        case emptyIdentifierPrefix
         /// The editor-window enumeration answered an AX error. `status` is the
         /// raw `AXError`; `strips` and `stripsReadWhole` are what the Mixer read
         /// returned before the failure, so a caller keeps the half it has.
@@ -91,6 +107,10 @@ public enum AXPluginInstanceIdentity {
     /// "SN8KExtens"), so an exact match is wrong in both directions: the label
     /// may be a prefix of the name, or the name a prefix of the label. Both
     /// sides are trimmed and lowercased; a prefix match needs at least 4 characters.
+    /// The second direction is what lets a host pass its stem (`SN8K` against
+    /// the label `SN8KExtens`, measured), and it is also why a match is only a
+    /// candidate: `SN8KOther` matches `SN8K` too, and so does any plug-in whose
+    /// whole name is a truncated label's prefix.
     static func slotNameMatches(_ slotName: String?, pluginName wanted: String) -> Bool {
         let a = (slotName ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let b = wanted.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -104,8 +124,9 @@ public enum AXPluginInstanceIdentity {
     ///   - pluginName: the insert display name to match (case-insensitive, trimmed, prefix-tolerant).
     ///   - identifierPrefix: the `kAXIdentifier` prefix the plug-in's view root sets.
     ///   - maxDepth: window walk depth for the identifier search.
-    /// - Throws: `CensusError.logicNotRunning`; `CensusError.windowsReadFailed`
-    ///   when the editor-window read itself failed (never surfaced as empty).
+    /// - Throws: `CensusError.emptyIdentifierPrefix`; `CensusError.logicNotRunning`;
+    ///   `CensusError.windowsReadFailed` when the editor-window read itself failed
+    ///   (never surfaced as empty).
     public static func census(
         pluginName: String,
         identifierPrefix: String,
@@ -122,6 +143,7 @@ public enum AXPluginInstanceIdentity {
         maxDepth: Int,
         runtime: AXLogicProElements.Runtime
     ) throws -> AXSnapshot {
+        guard !identifierPrefix.isEmpty else { throw CensusError.emptyIdentifierPrefix }
         guard let pid = runtime.logicProPID() else { throw CensusError.logicNotRunning }
         let appRoot = AXLogicProElements.appRoot(runtime: runtime)
 
@@ -145,16 +167,29 @@ public enum AXPluginInstanceIdentity {
         let mainWindowFound = AXLogicProElements.mainWindow(runtime: runtime) != nil
         let mixer = AXLogicProElements.getMixerArea(runtime: runtime)
 
+        // Children are read with their status: `getChildren` answers a failed
+        // read with [], which would report a Mixer or strip it could not see as
+        // one that hosts nothing.
         var strips: [Strip] = []
         var readWhole = false
+        var mixerChildrenUnreadable = false
         if let mixer {
-            let enumeration = AXLogicProElements.stripEnumeration(in: mixer, runtime: runtime.ax)
-            readWhole = enumeration.unreadableChildren == 0
-            for (index, strip) in enumeration.strips.enumerated() {
-                let slots = AXLogicProElements.audioPluginInsertSlots(in: strip, runtime: runtime.ax)
-                let hits = slots.filter { slotNameMatches($0.name, pluginName: pluginName) }.map(\.index)
-                guard !hits.isEmpty else { continue }
-                strips.append(Strip(ordinal: index, name: stripName(strip, runtime: runtime.ax), insertSlots: hits))
+            if let children = readChildren(mixer, runtime: runtime.ax) {
+                let enumeration = AXLogicProElements.stripEnumeration(children: children, runtime: runtime.ax)
+                readWhole = enumeration.unreadableChildren == 0
+                for (index, strip) in enumeration.strips.enumerated() {
+                    guard let stripChildren = readChildren(strip, runtime: runtime.ax) else {
+                        readWhole = false
+                        continue
+                    }
+                    let slots = AXLogicProElements.audioPluginInsertSlots(children: stripChildren, runtime: runtime.ax)
+                    if slots.contains(where: { $0.readStatus == .occupiedUnreadable }) { readWhole = false }
+                    let hits = slots.filter { slotNameMatches($0.name, pluginName: pluginName) }.map(\.index)
+                    guard !hits.isEmpty else { continue }
+                    strips.append(Strip(ordinal: index, name: stripName(strip, runtime: runtime.ax), insertSlots: hits))
+                }
+            } else {
+                mixerChildrenUnreadable = true
             }
         }
 
@@ -175,10 +210,11 @@ public enum AXPluginInstanceIdentity {
                                                 diagnostics: diagnostics(note: "windows-read-failed"))
         }
         let windows = editors.map { window in
-            Window(title: (AXHelpers.getTitle(window, runtime: runtime.ax) ?? "")
-                        .trimmingCharacters(in: .whitespacesAndNewlines),
-                   identifier: firstIdentifier(in: window, prefix: identifierPrefix,
-                                               maxDepth: maxDepth, runtime: runtime.ax))
+            let found = firstIdentifier(in: window, prefix: identifierPrefix,
+                                        maxDepth: maxDepth, runtime: runtime.ax)
+            return Window(title: (AXHelpers.getTitle(window, runtime: runtime.ax) ?? "")
+                              .trimmingCharacters(in: .whitespacesAndNewlines),
+                          identifier: found.identifier, identifierReadWhole: found.readWhole)
         }
 
         let note: String?
@@ -190,6 +226,8 @@ public enum AXPluginInstanceIdentity {
             note = "main-window-nil"
         } else if mixer == nil {
             note = "mixer-not-found"
+        } else if mixerChildrenUnreadable {
+            note = "mixer-children-unreadable"
         } else {
             note = "no-hosting-strips"
         }
@@ -226,18 +264,39 @@ public enum AXPluginInstanceIdentity {
 
     /// Depth-first search for the first descendant whose `kAXIdentifier` starts
     /// with `prefix`. Remote (out-of-process) view content is walked like any
-    /// other subtree; an AX refusal at any node ends that branch, not the search.
+    /// other subtree; an AX refusal at any node ends that branch, not the search,
+    /// and makes `readWhole` false. So does a node at `maxDepth` that still has
+    /// children, because they were not looked at.
     static func firstIdentifier(in root: AXUIElement, prefix: String, maxDepth: Int,
-                                runtime: AXHelpers.Runtime) -> String? {
-        guard maxDepth > 0 else { return nil }
-        for child in AXHelpers.getChildren(root, runtime: runtime) {
-            if let id = AXHelpers.getIdentifier(child, runtime: runtime), id.hasPrefix(prefix) {
-                return id
+                                runtime: AXHelpers.Runtime) -> (identifier: String?, readWhole: Bool) {
+        guard let children = readChildren(root, runtime: runtime) else { return (nil, false) }
+        guard maxDepth > 0 else { return (nil, children.isEmpty) }
+        var readWhole = true
+        for child in children {
+            switch AXHelpers.getAttributeResult(child, kAXIdentifierAttribute as String, runtime: runtime) as Result<String?, AXHelpers.AXStatusError> {
+            case let .success(id?) where id.hasPrefix(prefix):
+                return (id, true)
+            case .success:
+                break
+            case let .failure(error) where error.isDefinitiveAbsence:
+                break
+            case .failure:
+                readWhole = false
             }
-            if let found = firstIdentifier(in: child, prefix: prefix, maxDepth: maxDepth - 1, runtime: runtime) {
-                return found
-            }
+            let below = firstIdentifier(in: child, prefix: prefix, maxDepth: maxDepth - 1, runtime: runtime)
+            if let id = below.identifier { return (id, true) }
+            readWhole = readWhole && below.readWhole
         }
-        return nil
+        return (nil, readWhole)
+    }
+
+    /// An element's children, or nil when the read failed. -25205 and -25212 are
+    /// answers (the element has no children), not failures.
+    private static func readChildren(_ element: AXUIElement, runtime: AXHelpers.Runtime) -> [AXUIElement]? {
+        switch AXHelpers.childrenResult(element, runtime: runtime) {
+        case let .success(children): return children
+        case let .failure(error) where error.isDefinitiveAbsence: return []
+        case .failure: return nil
+        }
     }
 }
