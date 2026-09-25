@@ -295,6 +295,55 @@ private func runtimeFailingChildren(
     #expect(!snapshot.stripsReadWhole, "an occupied insert with no readable name may be the plug-in")
 }
 
+@Test func censusDoesNotReportAnInsertGroupItCouldNotReadAsWhole() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main])
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: runtimeFailingChildren(of: b.element(1100), b, app: f.app))   // 1100 = Snare's SN8K insert
+    #expect(snapshot.strips.map(\.ordinal) == [2], "the insert could not be classified, so Snare is not listed")
+    #expect(!snapshot.stripsReadWhole, "an insert group whose children did not read may be the plug-in")
+}
+
+@Test func censusDoesNotReportAnInsertWhoseRoleDidNotReadAsWhole() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main])
+    let insert = b.element(1100)   // Snare's SN8K insert
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: b.makeLogicRuntime(
+            appElement: f.app,
+            attributeValueHandler: { element, attribute in
+                (CFEqual(element, insert) && attribute == kAXRoleAttribute as String) ? .some(nil) : nil
+            },
+            attributeValueResultHandler: { element, attribute in
+                guard CFEqual(element, insert), attribute == kAXRoleAttribute as String else { return nil }
+                return .failure(AXHelpers.AXStatusError(raw: AXError.cannotComplete.rawValue))
+            },
+            setAttributeHandler: nil, performActionHandler: nil))
+    #expect(snapshot.strips.map(\.ordinal) == [2])
+    #expect(!snapshot.stripsReadWhole, "an insert whose role did not read may be the plug-in")
+}
+
+@Test func censusTakesAnUnsupportedAttributeInAnInsertAsAnAnswer() throws {
+    let b = FakeAXRuntimeBuilder()
+    let f = mixerFixture(b)
+    windows(b, f.app, [f.main])
+    let snapshot = try AXPluginInstanceIdentity.census(
+        pluginName: "SN8K", identifierPrefix: "sn8k.instance:", maxDepth: 12,
+        runtime: b.makeLogicRuntime(
+            appElement: f.app,
+            attributeValueResultHandler: { _, attribute in
+                attribute == kAXHelpAttribute as String
+                    ? .failure(AXHelpers.AXStatusError(raw: AXError.attributeUnsupported.rawValue)) : nil
+            },
+            setAttributeHandler: nil, performActionHandler: nil))
+    #expect(snapshot.strips.map(\.ordinal) == [1, 2])
+    #expect(snapshot.stripsReadWhole, "-25205 says an element has no help text; it is not a failed read")
+}
+
 @Test func censusSaysWhenAWindowsIdentifierWalkWasNotWhole() throws {
     let b = FakeAXRuntimeBuilder()
     let f = mixerFixture(b)

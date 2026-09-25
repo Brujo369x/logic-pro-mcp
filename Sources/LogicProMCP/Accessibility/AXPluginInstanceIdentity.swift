@@ -18,8 +18,9 @@ import Foundation
 ///  * PARTIAL: `stripsReadWhole == false`; strips are listed but the list may
 ///    miss a hosting strip and ordinals must not be trusted: the Mixer's or a
 ///    strip's children did not read, a child of the Mixer refused its role
-///    read, or an occupied insert's name did not read. A failed read is never
-///    reported as a strip that hosts nothing.
+///    read, a read made while classifying a strip's inserts failed, or an
+///    occupied insert's name did not read. A failed read is never reported as
+///    a strip that hosts nothing.
 ///  * FAILED: the editor-window enumeration answered an AX error; `census`
 ///    THROWS `CensusError.windowsReadFailed` carrying the status and whatever
 ///    strips were read. A failed read is never reported as zero windows.
@@ -79,8 +80,9 @@ public enum AXPluginInstanceIdentity {
     public struct AXSnapshot: Sendable, Equatable {
         public let strips: [Strip]
         /// Whether the strip list was read WHOLE: the Mixer's children and every
-        /// strip's children read, every Mixer child read its role, and every
-        /// occupied insert's name read.
+        /// strip's children read, every Mixer child read its role, every read
+        /// made while classifying inserts succeeded or answered -25205/-25212,
+        /// and every occupied insert's name read.
         public let stripsReadWhole: Bool
         public let windows: [Window]
         /// Arrange track headers by 0-based index, when every header read.
@@ -177,13 +179,17 @@ public enum AXPluginInstanceIdentity {
             if let children = readChildren(mixer, runtime: runtime.ax) {
                 let enumeration = AXLogicProElements.stripEnumeration(children: children, runtime: runtime.ax)
                 readWhole = enumeration.unreadableChildren == 0
+                let failedSlotReads = FailedReads()
+                let slotRuntime = noting(failedSlotReads, over: runtime.ax)
                 for (index, strip) in enumeration.strips.enumerated() {
                     guard let stripChildren = readChildren(strip, runtime: runtime.ax) else {
                         readWhole = false
                         continue
                     }
-                    let slots = AXLogicProElements.audioPluginInsertSlots(children: stripChildren, runtime: runtime.ax)
-                    if slots.contains(where: { $0.readStatus == .occupiedUnreadable }) { readWhole = false }
+                    let slots = AXLogicProElements.audioPluginInsertSlots(children: stripChildren, runtime: slotRuntime)
+                    if failedSlotReads.any || slots.contains(where: { $0.readStatus == .occupiedUnreadable }) {
+                        readWhole = false
+                    }
                     let hits = slots.filter { slotNameMatches($0.name, pluginName: pluginName) }.map(\.index)
                     guard !hits.isEmpty else { continue }
                     strips.append(Strip(ordinal: index, name: stripName(strip, runtime: runtime.ax), insertSlots: hits))
@@ -288,6 +294,63 @@ public enum AXPluginInstanceIdentity {
             readWhole = readWhole && below.readWhole
         }
         return (nil, readWhole)
+    }
+
+    /// Whether any read made under `noting(_:over:)` failed with a status other
+    /// than -25205/-25212.
+    private final class FailedReads: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+
+        var any: Bool {
+            lock.lock(); defer { lock.unlock() }
+            return count > 0
+        }
+
+        func note<T>(_ result: Result<T, AXHelpers.AXStatusError>) -> Result<T, AXHelpers.AXStatusError> {
+            if case let .failure(error) = result, !error.isDefinitiveAbsence {
+                lock.lock(); count += 1; lock.unlock()
+            }
+            return result
+        }
+    }
+
+    /// `base`, answering every attribute and children read from its
+    /// status-preserving seam and noting each failure in `failures`. The
+    /// insert-slot classifier reads through `getChildren` and `getAttribute`,
+    /// which answer a failure the way they answer an absence (#982): an insert
+    /// group whose children or role did not read is classified as no slot, and
+    /// the strip reads as one hosting nothing. Noting under the classifier lets
+    /// the census call that read partial without changing what the classifier
+    /// returns to anyone else. In production the status-preserving read is the
+    /// same AX call the lossy one makes, so the classifier sees the same answers.
+    private static func noting(_ failures: FailedReads, over base: AXHelpers.Runtime) -> AXHelpers.Runtime {
+        let attribute: @Sendable (AXUIElement, String) -> Result<AnyObject?, AXHelpers.AXStatusError> = { element, name in
+            failures.note(AXHelpers.getAttributeResult(element, name, runtime: base))
+        }
+        let children: @Sendable (AXUIElement) -> Result<[AXUIElement], AXHelpers.AXStatusError> = { element in
+            failures.note(AXHelpers.childrenResult(element, runtime: base))
+        }
+        return AXHelpers.Runtime(
+            axApp: base.axApp,
+            attributeValue: { element, name in
+                if case let .success(value) = attribute(element, name) { return value }
+                return nil
+            },
+            attributeIsSettable: base.attributeIsSettable,
+            setAttributeValue: base.setAttributeValue,
+            children: { element in
+                if case let .success(found) = children(element) { return found }
+                return []
+            },
+            performAction: base.performAction,
+            childCount: base.childCount,
+            actionNames: base.actionNames,
+            actionNamesResult: base.actionNamesResult,
+            childrenResult: children,
+            attributeValueResult: attribute,
+            performActionResult: base.performActionResult
+        )
     }
 
     /// An element's children, or nil when the read failed. -25205 and -25212 are
